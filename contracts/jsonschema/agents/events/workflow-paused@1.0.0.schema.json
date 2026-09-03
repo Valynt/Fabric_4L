@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/agents/events/workflow-paused@1.0.0.schema.json",
+  "title": "WorkflowPaused",
+  "description": "Payload schema for agents.workflow.paused.v1: an agentic workflow has paused pending a resume condition.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "workflow_run_id", "workflow_type", "status", "paused_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the workflow run" },
+    "workflow_run_id": { "type": "string", "minLength": 1, "description": "Workflow run identifier" },
+    "workflow_type": { "type": "string", "description": "Workflow type" },
+    "status": { "type": "string", "description": "Status: paused" },
+    "pause_reason": { "type": "string", "description": "awaiting_approval, external_tool, or scheduled" },
+    "checkpoint_id": { "type": "string", "description": "Checkpoint for resume" },
+    "paused_at": { "type": "string", "format": "date-time", "description": "ISO 8601 pause timestamp" }
+  }
+}

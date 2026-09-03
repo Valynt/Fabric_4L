@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/refund-processed@1.0.0.schema.json",
+  "title": "RefundProcessed",
+  "description": "Payload schema for billing.refund.processed.v1: a refund has been initiated and confirmed for a payment.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "billing_account_id", "refund_id", "payment_id", "amount_cents", "processed_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the refund" },
+    "billing_account_id": { "type": "string", "minLength": 1, "description": "Billing account identifier" },
+    "refund_id": { "type": "string", "minLength": 1, "description": "Refund identifier" },
+    "payment_id": { "type": "string", "minLength": 1, "description": "Original payment identifier" },
+    "amount_cents": { "type": "integer", "minimum": 0, "description": "Refund amount in cents" },
+    "target": { "type": "string", "description": "Refund target: credit or payment instrument" },
+    "processed_at": { "type": "string", "format": "date-time", "description": "ISO 8601 processing timestamp" }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/plan-published@1.0.0.schema.json",
+  "title": "PlanPublished",
+  "description": "Payload schema for billing.catalog.plan_published.v1: a billing plan or pricing tier has been published.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["plan_id", "name", "published_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the plan catalog" },
+    "plan_id": { "type": "string", "minLength": 1, "description": "Plan identifier" },
+    "name": { "type": "string", "minLength": 1, "description": "Public plan name" },
+    "pricing_rules": { "type": "object", "description": "Pricing rules for the plan" },
+    "published_at": { "type": "string", "format": "date-time", "description": "ISO 8601 publication timestamp" }
+  }
+}

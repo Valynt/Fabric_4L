@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/agents/events/tool-invocation-completed@1.0.0.schema.json",
+  "title": "ToolInvocationCompleted",
+  "description": "Payload schema for agents.tool_invocation.completed.v1: a tool invocation issued by an agent step has completed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "workflow_run_id", "invocation_id", "tool_name", "status", "completed_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the workflow run" },
+    "workflow_run_id": { "type": "string", "minLength": 1, "description": "Workflow run identifier" },
+    "invocation_id": { "type": "string", "minLength": 1, "description": "Tool invocation identifier" },
+    "tool_name": { "type": "string", "description": "Registered tool name" },
+    "status": { "type": "string", "description": "succeeded, failed, or timeout" },
+    "result_pointer": { "type": "string", "description": "Pointer to the tool outcome" },
+    "completed_at": { "type": "string", "format": "date-time", "description": "ISO 8601 completion timestamp" }
+  }
+}

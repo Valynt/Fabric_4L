@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/identity/events/tenant-provisioned@1.0.0.schema.json",
+  "title": "TenantProvisioned",
+  "description": "Payload schema for identity.tenant.provisioned.v1: a new tenant has been provisioned.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "tenant_slug", "provisioned_by", "provisioned_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Provisioned tenant identifier" },
+    "tenant_slug": { "type": "string", "minLength": 1, "description": "Tenant slug" },
+    "provisioned_by": { "type": "string", "minLength": 1, "description": "Principal that provisioned the tenant" },
+    "region": { "type": "string", "description": "Deployment region" },
+    "provisioned_at": { "type": "string", "format": "date-time", "description": "ISO 8601 provisioning timestamp" }
+  }
+}

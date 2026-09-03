@@ -164,15 +164,23 @@ def check_rule_2_schema_registered(
                 violations.append(
                     Violation("2", f"Envelope schema not in schema-index: {envelope_ref}", loc)
                 )
-        # For schema_ref, we warn if it doesn't look like a registered path.
-        # Full schema registry integration is future work.
+        # schema_ref must resolve to a committed payload schema in the index.
+        # schema_ref uses URI-like form "jsonschema://<path>@<version>", which maps
+        # to contract file "contracts/jsonschema/<path>@<version>.schema.json".
         if schema_ref.startswith("jsonschema://"):
             path_part = schema_ref.replace("jsonschema://", "")
-            # schema refs may contain @version; strip for path check
-            path_part = re.sub(r"@[\d.]+$", "", path_part)
             candidate = f"contracts/jsonschema/{path_part}.schema.json"
-            if candidate not in registered_paths:
-                pass  # Future schema registry may cover this; not a hard failure yet
+            stripped = re.sub(r"@[\d.]+$", "", path_part)
+            candidate2 = f"contracts/jsonschema/{stripped}.schema.json"
+            if candidate not in registered_paths and candidate2 not in registered_paths:
+                violations.append(
+                    Violation("2", f"Payload schema not in schema-index: {schema_ref} "
+                                    f"(expected {candidate})", loc)
+                )
+        elif schema_ref:
+            violations.append(
+                Violation("2", f"schema_ref must use the jsonschema:// prefix: {schema_ref}", loc)
+            )
     return violations
 
 

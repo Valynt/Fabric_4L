@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/knowledge/events/entity-ingested@1.0.0.schema.json",
+  "title": "EntityIngested",
+  "description": "Payload schema for knowledge.entity.ingested.v1: raw entity data has been ingested from a source run.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "ingest_record_id", "source_run_id", "entity_type", "ingested_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the ingested data" },
+    "ingest_record_id": { "type": "string", "minLength": 1, "description": "Ingested record identifier" },
+    "source_run_id": { "type": "string", "minLength": 1, "description": "Source run identifier" },
+    "entity_type": { "type": "string", "description": "Entity type" },
+    "row_count": { "type": "integer", "minimum": 0, "description": "Number of records ingested" },
+    "ingested_at": { "type": "string", "format": "date-time", "description": "ISO 8601 ingestion timestamp" }
+  }
+}

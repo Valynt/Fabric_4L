@@ -1,0 +1,62 @@
+{
+  "$schema": "../schemas/skill.schema.json",
+  "id": "audit_ai_systems",
+  "version": "1.0.0",
+  "kind": "skill",
+  "owner": "@layer4-agents",
+  "risk_class": "high",
+  "description": "Comprehensive audit of AI/ML systems including prompt injection detection, model governance validation, RAG architecture review, and LLM cost anomaly detection.",
+  "skill_path": "../../../services/layer4-agents/skills/audit_ai_systems.md",
+  "tool_name": "audit_ai_systems",
+  "inputs": [
+    "audit_scope",
+    "layers",
+    "prompt_paths",
+    "severity_threshold",
+    "include_cost_analysis",
+    "check_model_registry",
+    "output_format",
+    "fail_on_critical"
+  ],
+  "outputs": [
+    "ai_audit_report",
+    "findings",
+    "severity_levels",
+    "cost_anomalies",
+    "model_registry_issues"
+  ],
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-08-29",
+      "summary": "Initial registry metadata for existing audit_ai_systems skill artifact."
+    }
+  ],
+  "compatibility": {
+    "supported_prior_versions": [],
+    "migration_notes": "Initial skill registry entry. Skill text changes require changelog updates before enforcement becomes blocking."
+  },
+  "observability": {
+    "required_trace_fields": [
+      "tenant_id",
+      "trace_id",
+      "skill_name",
+      "skill_version",
+      "tool_name"
+    ],
+    "required_metrics": [
+      "skill_invocation_total",
+      "tool_invocation_total"
+    ],
+    "audit_events": [
+      "skill_invoked",
+      "tool_output_generated"
+    ]
+  },
+  "governance": {
+    "review_requirement": "Skill owner review plus Contract Council review for input/output or risk-class changes.",
+    "approval_threshold": "One Layer 4 reviewer and one Platform Contracts reviewer.",
+    "rollout_policy": "Skill compatibility changes start in warning mode and graduate behind feature flags.",
+    "deprecation_policy": "Retain previous skill metadata until all agents reference the new version."
+  }
+}

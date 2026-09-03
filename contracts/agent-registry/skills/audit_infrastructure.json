@@ -1,0 +1,63 @@
+{
+  "$schema": "../schemas/skill.schema.json",
+  "id": "audit_infrastructure",
+  "version": "1.0.0",
+  "kind": "skill",
+  "owner": "@layer4-agents",
+  "risk_class": "high",
+  "description": "Infrastructure security and compliance audit for Kubernetes, IaC, CI/CD pipelines, and secret management with drift detection and policy validation.",
+  "skill_path": "../../../services/layer4-agents/skills/audit_infrastructure.md",
+  "tool_name": "audit_infrastructure",
+  "inputs": [
+    "audit_scope",
+    "environments",
+    "k8s_namespaces",
+    "run_iac_scanners",
+    "check_container_security",
+    "verify_network_policies",
+    "drift_detection",
+    "severity_threshold",
+    "output_format",
+    "fail_on_critical"
+  ],
+  "outputs": [
+    "infrastructure_report",
+    "findings",
+    "severity_levels",
+    "drift_findings"
+  ],
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-08-29",
+      "summary": "Initial registry metadata for existing audit_infrastructure skill artifact."
+    }
+  ],
+  "compatibility": {
+    "supported_prior_versions": [],
+    "migration_notes": "Initial skill registry entry. Skill text changes require changelog updates before enforcement becomes blocking."
+  },
+  "observability": {
+    "required_trace_fields": [
+      "tenant_id",
+      "trace_id",
+      "skill_name",
+      "skill_version",
+      "tool_name"
+    ],
+    "required_metrics": [
+      "skill_invocation_total",
+      "tool_invocation_total"
+    ],
+    "audit_events": [
+      "skill_invoked",
+      "tool_output_generated"
+    ]
+  },
+  "governance": {
+    "review_requirement": "Skill owner review plus Contract Council review for input/output or risk-class changes.",
+    "approval_threshold": "One Layer 4 reviewer and one Platform Contracts reviewer.",
+    "rollout_policy": "Skill compatibility changes start in warning mode and graduate behind feature flags.",
+    "deprecation_policy": "Retain previous skill metadata until all agents reference the new version."
+  }
+}

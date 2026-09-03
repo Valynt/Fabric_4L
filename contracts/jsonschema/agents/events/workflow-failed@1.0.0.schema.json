@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/agents/events/workflow-failed@1.0.0.schema.json",
+  "title": "WorkflowFailed",
+  "description": "Payload schema for agents.workflow.failed.v1: an agentic workflow failed and reached a recoverable checkpoint.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "workflow_run_id", "workflow_type", "status", "failed_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the workflow run" },
+    "workflow_run_id": { "type": "string", "minLength": 1, "description": "Workflow run identifier" },
+    "workflow_type": { "type": "string", "description": "Workflow type" },
+    "status": { "type": "string", "description": "Terminal status: failed" },
+    "failure_reason": { "type": "string", "description": "Stable failure reason code" },
+    "checkpoint_id": { "type": "string", "description": "Checkpoint from which the run can resume" },
+    "failed_at": { "type": "string", "format": "date-time", "description": "ISO 8601 failure timestamp" }
+  }
+}

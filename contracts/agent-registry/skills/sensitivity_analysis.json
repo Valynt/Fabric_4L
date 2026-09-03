@@ -1,0 +1,55 @@
+{
+  "$schema": "../schemas/skill.schema.json",
+  "id": "sensitivity_analysis",
+  "version": "1.0.0",
+  "kind": "skill",
+  "owner": "@layer4-agents",
+  "risk_class": "medium",
+  "description": "Performs sensitivity analysis on formulas by varying inputs.",
+  "skill_path": "../../../services/layer4-agents/skills/sensitivity_analysis.md",
+  "tool_name": "sensitivity_analysis",
+  "inputs": [
+    "base_formula",
+    "base_variables",
+    "variable_ranges"
+  ],
+  "outputs": [
+    "scenarios",
+    "tornado_data",
+    "optimal_variables"
+  ],
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-08-29",
+      "summary": "Initial registry metadata for existing sensitivity_analysis skill artifact."
+    }
+  ],
+  "compatibility": {
+    "supported_prior_versions": [],
+    "migration_notes": "Initial skill registry entry. Skill text changes require changelog updates before enforcement becomes blocking."
+  },
+  "observability": {
+    "required_trace_fields": [
+      "tenant_id",
+      "trace_id",
+      "skill_name",
+      "skill_version",
+      "tool_name"
+    ],
+    "required_metrics": [
+      "skill_invocation_total",
+      "tool_invocation_total"
+    ],
+    "audit_events": [
+      "skill_invoked",
+      "tool_output_generated"
+    ]
+  },
+  "governance": {
+    "review_requirement": "Skill owner review plus Contract Council review for input/output or risk-class changes.",
+    "approval_threshold": "One Layer 4 reviewer and one Platform Contracts reviewer.",
+    "rollout_policy": "Skill compatibility changes start in warning mode and graduate behind feature flags.",
+    "deprecation_policy": "Retain previous skill metadata until all agents reference the new version."
+  }
+}

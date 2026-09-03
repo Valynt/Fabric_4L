@@ -572,6 +572,63 @@ def _atomic_write_json(data: dict[str, Any], output_path: Path) -> None:
         raise
 
 
+def _stamp_layer4_tenant_scope(
+    spec: OpenApiExportSpec, openapi_spec: dict[str, object]
+) -> dict[str, object]:
+    """Inject ``x-tenant-scope`` into every Layer 4 operation.
+
+    Scope values come from ``contracts/layer4-route-contract-matrix.json``
+    (the source of truth enumerated by the regenerator). Operations that
+    have no matrix entry fail the export so coverage gaps cannot pass the
+    freshness gate. Returns the (possibly) modified spec dict.
+    """
+    matrix_path = REPO_ROOT / "contracts" / "layer4-route-contract-matrix.json"
+    try:
+        matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(
+            f"[{spec.label}] cannot load tenant-scope matrix {matrix_path}: {exc}"
+        ) from exc
+
+    entries = matrix.get("entries") or []
+    scope_by_key: dict[tuple[str, str], str] = {}
+    for entry in entries:
+        method = str(entry.get("method", "")).upper()
+        path = str(entry.get("openapi_path", ""))
+        scope = entry.get("tenant_scope")
+        if method and path and scope:
+            scope_by_key[(method, path)] = scope
+
+    paths = openapi_spec.get("paths")
+    if not isinstance(paths, dict):
+        raise RuntimeError(
+            f"[{spec.label}] spec has no top-level 'paths' object to stamp"
+        )
+    unstamped: list[str] = []
+    for path, path_item in paths.items():
+        if not isinstance(path_item, dict):
+            continue
+        for method, operation in path_item.items():
+            if method.lower() not in {
+                "get", "post", "put", "patch", "delete", "options", "head", "trace",
+            }:
+                continue
+            if not isinstance(operation, dict):
+                continue
+            scope = scope_by_key.get((method.upper(), path))
+            if scope is None:
+                unstamped.append(f"{method.upper()} {path}")
+                continue
+            operation["x-tenant-scope"] = scope
+    if unstamped:
+        preview = "  - " + "\n  - ".join(sorted(unstamped)[:20])
+        raise RuntimeError(
+            f"[{spec.label}] {len(unstamped)} operation(s) have no tenant_scope in the "
+            f"matrix:\n{preview}"
+        )
+    return openapi_spec
+
+
 # Layer 4 is the canonical billing runtime. Both ``layer4-billing.json``
 # (canonical) and ``layer7-billing.json`` (deprecated compatibility projection)
 # are deterministic subset exports of the Layer 4 application scoped to its
@@ -660,6 +717,12 @@ def _export_service_in_process(spec: OpenApiExportSpec) -> bool:
 
         output_path = EXPORT_DIR / spec.output_filename
         document = app.openapi()
+        if spec.output_filename in {
+            "layer4-agents.json",
+            CANONICAL_BILLING_CONTRACT,
+            LEGACY_BILLING_CONTRACT,
+        }:
+            document = _stamp_layer4_tenant_scope(spec, document)
         if spec.output_filename == CANONICAL_BILLING_CONTRACT:
             document = _filter_openapi_to_billing_subset(document, compatibility=False)
         elif spec.output_filename == LEGACY_BILLING_CONTRACT:

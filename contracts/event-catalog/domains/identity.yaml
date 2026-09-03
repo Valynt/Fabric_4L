@@ -1,5 +1,6 @@
-# Identity Domain Event Catalog (stub)
-# Placeholder for canonical events owned by the identity bounded context.
+# Identity Domain Event Catalog
+# Normative inventory of canonical events owned by the identity bounded context.
+# Status: DRAFT = planned but not yet wired; ACTIVE = currently emitted.
 
 catalog_version: "1.0.0"
 domain: identity
@@ -9,13 +10,18 @@ entries:
   - event_type: identity.user.authenticated.v1
     name: User Authenticated
     description: >
-      A user has successfully authenticated. Placeholder entry for identity
-      domain event catalog.
+      A user has successfully authenticated. Emitted after primary or
+      multi-factor authentication succeeds and a session context is established.
     domain: identity.authentication
     owner: identity-team/authentication
     producer: services/api
     triggered_by:
       - user.login
+      - mfa.verify
+    preconditions:
+      - "User account exists and is active"
+    postconditions:
+      - "Authenticated session is established and tokens issued"
     schema_ref: "jsonschema://identity/events/user-authenticated@1.0.0"
     envelope_ref: "jsonschema://common/event-envelope@1.0.0"
     subject_type: user
@@ -25,11 +31,294 @@ entries:
     consumer_effect_key: event.id
     expected_latency_ms: 200
     criticality: HIGH
-    transport_channel: identity.events
-    ordering_guarantee: BEST_EFFORT
+    transport_channel: identity.auth.events
+    ordering_guarantee: PARTITION_ORDER
     replay_behavior: IDEMPOTENT
     retention_classification: MEDIUM_TERM
     sensitive_payload: true
     event_class: DOMAIN_EVENT
     status: DRAFT
     consumers: []
+
+  - event_type: identity.user.registered.v1
+    name: User Registered
+    description: >
+      A new user account has been created through self-service signup or
+      administrative provisioning. The account may require email or MFA
+      verification before first use.
+    domain: identity.users
+    owner: identity-team/users
+    producer: services/api
+    triggered_by:
+      - user.signup
+      - admin.create_user
+    preconditions:
+      - "Email address is not already registered"
+    postconditions:
+      - "User account record is persisted with provisioning status"
+    schema_ref: "jsonschema://identity/events/user-registered@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: user
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 300
+    criticality: MEDIUM
+    transport_channel: identity.users.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: true
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+
+  - event_type: identity.user.updated.v1
+    name: User Updated
+    description: >
+      An existing user account has been updated: profile attributes, display
+      name, locale, or administrative role membership changed.
+    domain: identity.users
+    owner: identity-team/users
+    producer: services/api
+    triggered_by:
+      - user.profile.update
+      - admin.update_user
+    preconditions:
+      - "User account exists"
+    postconditions:
+      - "Updated profile attributes are persisted and versioned"
+    schema_ref: "jsonschema://identity/events/user-updated@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: user
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 300
+    criticality: MEDIUM
+    transport_channel: identity.users.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: true
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+
+  - event_type: identity.user.deactivated.v1
+    name: User Deactivated
+    description: >
+      A user account has been deactivated. Deactivation terminates active
+      sessions and blocks future authentication; the account record is retained
+      for audit and compliance purposes.
+    domain: identity.users
+    owner: identity-team/users
+    producer: services/api
+    triggered_by:
+      - admin.deactivate_user
+      - tenant.policy.deactivate
+    preconditions:
+      - "User account exists and is not already deactivated"
+    postconditions:
+      - "Active sessions are revoked and authentication is blocked"
+    schema_ref: "jsonschema://identity/events/user-deactivated@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: user
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 300
+    criticality: HIGH
+    transport_channel: identity.users.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - user_id: "usr_123"
+        tenant_id: "ten_123"
+        deactivated_by: "usr_admin"
+        deactivated_at: "2026-01-15T09:00:00Z"
+        reason: "employee_offboarding"
+
+  - event_type: identity.session.created.v1
+    name: Session Created
+    description: >
+      A new authenticated session has been created for a user, backed by a
+      token or cookie grant. Includes the session identifier and issuance
+      metadata.
+    domain: identity.sessions
+    owner: identity-team/sessions
+    producer: services/api
+    triggered_by:
+      - user.login
+      - token.refresh
+    preconditions:
+      - "Authentication succeeded for a valid user"
+    postconditions:
+      - "Session record is persisted with expiry"
+    schema_ref: "jsonschema://identity/events/session-created@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: session
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 100
+    criticality: HIGH
+    transport_channel: identity.sessions.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: SHORT_TERM
+    sensitive_payload: true
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+
+  - event_type: identity.session.revoked.v1
+    name: Session Revoked
+    description: >
+      A session has been revoked before its natural expiry: logout, password
+      change, MFA reset, or administrative force-logout. The session can no
+      longer be used to access resources.
+    domain: identity.sessions
+    owner: identity-team/sessions
+    producer: services/api
+    triggered_by:
+      - user.logout
+      - admin.revoke_session
+      - identity.password.changed.v1
+    preconditions:
+      - "Session exists and has not already been revoked"
+    postconditions:
+      - "Session is marked revoked and tokens are invalidated"
+    schema_ref: "jsonschema://identity/events/session-revoked@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: session
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 100
+    criticality: HIGH
+    transport_channel: identity.sessions.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: SHORT_TERM
+    sensitive_payload: true
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+
+  - event_type: identity.mfa.enrolled.v1
+    name: MFA Enrolled
+    description: >
+      A multi-factor authentication factor has been enrolled for a user,
+      raising the authentication assurance level for the account.
+    domain: identity.mfa
+    owner: identity-team/mfa
+    producer: services/api
+    triggered_by:
+      - mfa.enroll
+      - admin.enforce_mfa
+    preconditions:
+      - "User account exists and prior factors are verified if re-enrolling"
+    postconditions:
+      - "MFA factor record is persisted and factor status set to enrolled"
+    schema_ref: "jsonschema://identity/events/mfa-enrolled@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: mfa_factor
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 200
+    criticality: MEDIUM
+    transport_channel: identity.mfa.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: true
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+
+  - event_type: identity.password.changed.v1
+    name: Password Changed
+    description: >
+      A user's password has been changed, either by the user (with proof of
+      current password) or by an administrator reset. Validates that password
+      was not reused within the reuse window.
+    domain: identity.credentials
+    owner: identity-team/credentials
+    producer: services/api
+    triggered_by:
+      - user.change_password
+      - admin.reset_password
+    preconditions:
+      - "User account exists"
+    postconditions:
+      - "Password credential is rotated and reuse window is enforced"
+    schema_ref: "jsonschema://identity/events/password-changed@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: user
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 200
+    criticality: HIGH
+    transport_channel: identity.credentials.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: true
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+
+  - event_type: identity.tenant.provisioned.v1
+    name: Tenant Provisioned
+    description: >
+      A new tenant has been provisioned: the tenant context is created, its
+      identity realm is initialized, and default administrative access is
+      granted to the provisioning principal.
+    domain: identity.tenants
+    owner: identity-team/tenants
+    producer: services/api
+    triggered_by:
+      - tenant.onboard
+      - admin.create_tenant
+    preconditions:
+      - "Tenant identifier is unique and naming policy is satisfied"
+    postconditions:
+      - "Tenant context and identity realm are available for downstream use"
+    schema_ref: "jsonschema://identity/events/tenant-provisioned@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: tenant
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: HIGH
+    transport_channel: identity.tenants.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LONG_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        tenant_slug: "acme-corp"
+        provisioned_by: "usr_admin"
+        provisioned_at: "2026-01-15T09:00:00Z"
+        region: "us-east-1"

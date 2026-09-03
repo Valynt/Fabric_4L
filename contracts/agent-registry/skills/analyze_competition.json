@@ -1,0 +1,63 @@
+{
+  "$schema": "../schemas/skill.schema.json",
+  "id": "analyze_competition",
+  "version": "1.0.0",
+  "kind": "skill",
+  "owner": "@layer4-agents",
+  "risk_class": "medium",
+  "description": "Analyzes competitive alternatives and produces structured competitive intelligence.",
+  "skill_path": "../../../services/layer4-agents/skills/analyze_competition.md",
+  "tool_name": "analyze_competition",
+  "inputs": [
+    "context_artifact_id",
+    "tenant_id",
+    "workspace_id",
+    "prospect_industry",
+    "known_competitors",
+    "known_incumbent",
+    "deal_context",
+    "baselines_to_evaluate"
+  ],
+  "outputs": [
+    "artifact",
+    "baselines_evaluated",
+    "total_differences_found",
+    "unsupported_claim_count",
+    "defensibility_score",
+    "agent_notes"
+  ],
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-08-29",
+      "summary": "Initial registry metadata for existing analyze_competition skill artifact."
+    }
+  ],
+  "compatibility": {
+    "supported_prior_versions": [],
+    "migration_notes": "Initial skill registry entry. Skill text changes require changelog updates before enforcement becomes blocking."
+  },
+  "observability": {
+    "required_trace_fields": [
+      "tenant_id",
+      "trace_id",
+      "skill_name",
+      "skill_version",
+      "tool_name"
+    ],
+    "required_metrics": [
+      "skill_invocation_total",
+      "tool_invocation_total"
+    ],
+    "audit_events": [
+      "skill_invoked",
+      "tool_output_generated"
+    ]
+  },
+  "governance": {
+    "review_requirement": "Skill owner review plus Contract Council review for input/output or risk-class changes.",
+    "approval_threshold": "One Layer 4 reviewer and one Platform Contracts reviewer.",
+    "rollout_policy": "Skill compatibility changes start in warning mode and graduate behind feature flags.",
+    "deprecation_policy": "Retain previous skill metadata until all agents reference the new version."
+  }
+}

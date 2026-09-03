@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/credit-applied@1.0.0.schema.json",
+  "title": "CreditApplied",
+  "description": "Payload schema for billing.credit.applied.v1: a credit has been applied to a billing account or invoice.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "billing_account_id", "credit_id", "amount_cents", "applied_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the credit" },
+    "billing_account_id": { "type": "string", "minLength": 1, "description": "Billing account identifier" },
+    "credit_id": { "type": "string", "minLength": 1, "description": "Credit identifier" },
+    "invoice_id": { "type": "string", "description": "Invoice identifier when applied to an invoice" },
+    "amount_cents": { "type": "integer", "minimum": 0, "description": "Credit amount in cents" },
+    "applied_at": { "type": "string", "format": "date-time", "description": "ISO 8601 application timestamp" }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/knowledge/events/subgraph-cached@1.0.0.schema.json",
+  "title": "SubgraphCached",
+  "description": "Payload schema for knowledge.subgraph.cached.v1: a subgraph has been cached for fast retrieval.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "root_entity_id", "cache_tier", "cached_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the subgraph" },
+    "root_entity_id": { "type": "string", "minLength": 1, "description": "Subgraph root entity identifier" },
+    "cache_tier": { "type": "string", "description": "redis, memcached, or in-process tier" },
+    "ttl_seconds": { "type": "integer", "minimum": 0, "description": "Cache TTL in seconds" },
+    "cached_at": { "type": "string", "format": "date-time", "description": "ISO 8601 cache timestamp" }
+  }
+}

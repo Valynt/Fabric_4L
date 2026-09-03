@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/reconciliation-completed@1.0.0.schema.json",
+  "title": "ReconciliationCompleted",
+  "description": "Payload schema for billing.reconciliation.completed.v1: a reconciliation run has completed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "reconciliation_run_id", "completed_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the reconciliation run" },
+    "reconciliation_run_id": { "type": "string", "minLength": 1, "description": "Reconciliation run identifier" },
+    "match_count": { "type": "integer", "minimum": 0, "description": "Number of matched records" },
+    "discrepancy_count": { "type": "integer", "minimum": 0, "description": "Number of discrepancies" },
+    "completed_at": { "type": "string", "format": "date-time", "description": "ISO 8601 completion timestamp" }
+  }
+}

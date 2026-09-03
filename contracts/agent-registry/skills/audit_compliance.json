@@ -1,0 +1,63 @@
+{
+  "$schema": "../schemas/skill.schema.json",
+  "id": "audit_compliance",
+  "version": "1.0.0",
+  "kind": "skill",
+  "owner": "@layer4-agents",
+  "risk_class": "high",
+  "description": "Automated compliance audit for SOC 2 Type II, GDPR, and ISO 27001 controls with evidence collection and drift detection.",
+  "skill_path": "../../../services/layer4-agents/skills/audit_compliance.md",
+  "tool_name": "audit_compliance",
+  "inputs": [
+    "frameworks",
+    "controls",
+    "collect_evidence",
+    "evidence_retention_days",
+    "audit_scope",
+    "include_drift_detection",
+    "severity_threshold",
+    "output_format",
+    "output_directory",
+    "fail_on_critical"
+  ],
+  "outputs": [
+    "compliance_report",
+    "control_details",
+    "evidence_bundle",
+    "drift_findings"
+  ],
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-08-29",
+      "summary": "Initial registry metadata for existing audit_compliance skill artifact."
+    }
+  ],
+  "compatibility": {
+    "supported_prior_versions": [],
+    "migration_notes": "Initial skill registry entry. Skill text changes require changelog updates before enforcement becomes blocking."
+  },
+  "observability": {
+    "required_trace_fields": [
+      "tenant_id",
+      "trace_id",
+      "skill_name",
+      "skill_version",
+      "tool_name"
+    ],
+    "required_metrics": [
+      "skill_invocation_total",
+      "tool_invocation_total"
+    ],
+    "audit_events": [
+      "skill_invoked",
+      "tool_output_generated"
+    ]
+  },
+  "governance": {
+    "review_requirement": "Skill owner review plus Contract Council review for input/output or risk-class changes.",
+    "approval_threshold": "One Layer 4 reviewer and one Platform Contracts reviewer.",
+    "rollout_policy": "Skill compatibility changes start in warning mode and graduate behind feature flags.",
+    "deprecation_policy": "Retain previous skill metadata until all agents reference the new version."
+  }
+}

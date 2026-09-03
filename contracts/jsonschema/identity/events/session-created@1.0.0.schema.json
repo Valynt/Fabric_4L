@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/identity/events/session-created@1.0.0.schema.json",
+  "title": "SessionCreated",
+  "description": "Payload schema for identity.session.created.v1: a new authenticated session has been created.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "session_id", "user_id", "issued_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the session" },
+    "session_id": { "type": "string", "minLength": 1, "description": "Session identifier" },
+    "user_id": { "type": "string", "minLength": 1, "description": "Session owner" },
+    "token_type": { "type": "string", "description": "Token or cookie grant backing the session" },
+    "expires_at": { "type": "string", "format": "date-time", "description": "Session expiry timestamp" },
+    "issued_at": { "type": "string", "format": "date-time", "description": "ISO 8601 issuance timestamp" }
+  }
+}

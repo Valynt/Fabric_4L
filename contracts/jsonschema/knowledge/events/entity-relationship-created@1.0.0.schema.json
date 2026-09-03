@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/knowledge/events/entity-relationship-created@1.0.0.schema.json",
+  "title": "EntityRelationshipCreated",
+  "description": "Payload schema for knowledge.entity_relationship.created.v1: a relationship between two entities has been created.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "relationship_id", "source_entity_id", "target_entity_id", "relationship_type", "created_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the relationship" },
+    "relationship_id": { "type": "string", "minLength": 1, "description": "Relationship edge identifier" },
+    "source_entity_id": { "type": "string", "minLength": 1, "description": "Source entity identifier" },
+    "target_entity_id": { "type": "string", "minLength": 1, "description": "Target entity identifier" },
+    "relationship_type": { "type": "string", "description": "Relationship type" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "Relationship confidence score" },
+    "source_run_id": { "type": "string", "description": "Source run that created the relationship" },
+    "created_at": { "type": "string", "format": "date-time", "description": "ISO 8601 creation timestamp" }
+  }
+}

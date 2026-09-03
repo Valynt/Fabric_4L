@@ -25,7 +25,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/App.tsx"
-      ]
+      ],
+      "tenant_scope": "GLOBAL"
     },
     {
       "route_id": "GET /auth/oidc/callback",
@@ -58,7 +59,8 @@
         "apps/web/src/pages/Login.tsx",
         "apps/web/src/services/authClient.ts",
         "apps/web/src/services/authClient.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /auth/oidc/logout",
@@ -90,7 +92,8 @@
         "apps/web/src/pages/admin/PlatformSettings.tsx",
         "apps/web/src/contexts/AuthContext.test.tsx",
         "apps/web/src/contexts/AuthContext.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /auth/oidc/refresh",
@@ -125,7 +128,8 @@
         "apps/web/src/lib/schemas/integrations.ts",
         "apps/web/src/pages/admin/HealthMonitor.tsx",
         "apps/web/src/pages/drivers/DriverTreePage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /auth/oidc/{tenant_slug}/login",
@@ -159,7 +163,8 @@
         "apps/web/src/contexts/AuthContext.test.tsx",
         "apps/web/src/contexts/AuthContext.tsx",
         "apps/web/src/pages/Login.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /auth/oidc/{tenant_slug}/metadata",
@@ -191,7 +196,8 @@
         "apps/web/src/pages/FormulaList.tsx",
         "apps/web/src/pages/formulaBuilderLogic.test.ts",
         "apps/web/src/pages/formulaBuilderLogic.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /health",
@@ -214,7 +220,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/dev/IntegrationDashboard.tsx",
         "apps/web/src/pages/SourceConfiguration.tsx"
-      ]
+      ],
+      "tenant_scope": "GLOBAL"
     },
     {
       "route_id": "GET /metrics",
@@ -235,7 +242,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/realization/RealizationPage.tsx",
         "apps/web/src/pages/value-case/ValueCasePage.tsx"
-      ]
+      ],
+      "tenant_scope": "GLOBAL"
     },
     {
       "route_id": "GET /ready",
@@ -257,7 +265,8 @@
         "apps/web/src/pages/ValuePacks.tsx",
         "apps/web/src/pages/intelligence/EnrichmentTab.tsx",
         "apps/web/src/contexts/AuthContext.test.tsx"
-      ]
+      ],
+      "tenant_scope": "GLOBAL"
     },
     {
       "route_id": "GET /v1/accounts",
@@ -291,7 +300,8 @@
         "apps/web/src/pages/intelligence/SignalsTab.tsx",
         "apps/web/src/test/mocks/handlers.ts",
         "apps/web/src/pages/Accounts.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/accounts",
@@ -328,7 +338,8 @@
         "apps/web/src/test/mocks/handlers.ts",
         "apps/web/src/app/settings/pages/PersonalProfile.tsx",
         "apps/web/src/app/settings/schemas.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/accounts/filters",
@@ -353,7 +364,8 @@
         "apps/web/src/pages/ValuePacks.test.tsx",
         "apps/web/src/pages/SourceConfiguration.tsx",
         "apps/web/src/pages/IngestionJobs.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/accounts/search",
@@ -385,7 +397,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/FormulaList.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/accounts/sync",
@@ -417,7 +430,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/ValuePacks.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/accounts/sync-status",
@@ -441,7 +455,8 @@
         "apps/web/src/hooks/useAccounts.ts",
         "apps/web/src/hooks/queryKeys.ts",
         "apps/web/src/hooks/useAccounts.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/accounts/{account_id}",
@@ -473,7 +488,8 @@
         "apps/web/src/pages/NotificationsPage.tsx",
         "apps/web/src/pages/value-case/ValueCasePage.tsx",
         "apps/web/src/pages/intelligence/HypothesesTab.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/accounts/{account_id}/activity",
@@ -509,7 +525,41 @@
         "apps/web/src/hooks/useApiShared.ts",
         "apps/web/src/hooks/useProvenance.ts",
         "apps/web/src/hooks/useAccounts.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
+    },
+    {
+      "route_id": "GET /v1/accounts/{account_id}/journey-timeline",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/accounts.py"
+      ],
+      "openapi_path": "/v1/accounts/{account_id}/journey-timeline",
+      "method": "GET",
+      "operation_id": "get_account_journey_timeline_v1_accounts__account_id__journey_timeline_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/AccountJourneyTimelineResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/components/journey/JourneyTimelineRightRail.tsx"
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/accounts/{account_id}/refresh",
@@ -544,7 +594,8 @@
         "apps/web/src/lib/schemas/integrations.ts",
         "apps/web/src/pages/admin/HealthMonitor.tsx",
         "apps/web/src/pages/drivers/DriverTreePage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/accounts/{account_id}/signals",
@@ -576,39 +627,8 @@
         "apps/web/src/pages/realization/RealizationPage.tsx",
         "apps/web/src/pages/ValueNarrativeHome.test.tsx",
         "apps/web/src/pages/ValueNarrativeHome.tsx"
-      ]
-    },
-    {
-      "route_id": "GET /v1/accounts/{account_id}/journey-timeline",
-      "backend_route_files": [
-        "services/layer4-agents/src/layer4_agents/api/routes/accounts.py"
       ],
-      "openapi_path": "/v1/accounts/{account_id}/journey-timeline",
-      "method": "GET",
-      "operation_id": "get_account_journey_timeline_v1_accounts__account_id__journey_timeline_get",
-      "request_schema": null,
-      "success_response_schemas": [
-        {
-          "status_code": "200",
-          "description": "Successful Response",
-          "schema": {
-            "$ref": "#/components/schemas/AccountJourneyTimelineResponse"
-          }
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/components/journey/JourneyTimelineRightRail.tsx"
-      ]
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/admin/tenant-overview",
@@ -646,7 +666,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "SYSTEM"
     },
     {
       "route_id": "POST /v1/agent-stream/chat",
@@ -686,7 +707,8 @@
         "apps/web/src/components/layout/AgentChat.tsx",
         "apps/web/src/agui/useAgentEvents.ts",
         "apps/web/src/agui/AgentEventClient.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/agent-stream/chat/stream",
@@ -717,7 +739,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/intelligence/EvidenceAcceptanceFlow.test.tsx",
         "apps/web/src/pages/ExtractionEngine.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/analysis/roi",
@@ -750,7 +773,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/formulaBuilderLogic.test.ts",
         "apps/web/src/pages/formulaBuilderLogic.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/analysis/whitespace",
@@ -786,7 +810,8 @@
         "apps/web/src/pages/BusinessCase.tsx",
         "apps/web/src/value-pilot/components/ValuePilotLayout.tsx",
         "apps/web/src/api/workflows.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/api-keys",
@@ -823,7 +848,8 @@
         "apps/web/src/hooks/useGovernance.ts",
         "apps/web/src/hooks/queryKeys.ts",
         "apps/web/src/shell/router.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/api-keys",
@@ -857,7 +883,8 @@
         "apps/web/src/pages/admin/PermissionsAdmin.tsx",
         "apps/web/src/app/settings/schemas.ts",
         "apps/web/src/hooks/useGovernance.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "DELETE /v1/api-keys/{key_id}",
@@ -883,7 +910,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/audit/logs",
@@ -913,7 +941,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/IngestionJobs.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/auth/session",
@@ -937,7 +966,8 @@
         "apps/web/src/pages/IngestionJobs.test.tsx",
         "apps/web/src/lib/telemetry.test.ts",
         "apps/web/src/pages/admin/PlatformSettings.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/billing/charges",
@@ -965,7 +995,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/charges",
@@ -995,7 +1026,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "GET /v1/billing/check-feature",
@@ -1023,7 +1055,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/checkout",
@@ -1057,7 +1090,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "GET /v1/billing/customers/{customer_id}/balance",
@@ -1087,7 +1121,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "GET /v1/billing/entitlements",
@@ -1117,7 +1152,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/events",
@@ -1147,7 +1183,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/events/batch",
@@ -1177,7 +1214,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "GET /v1/billing/invoices",
@@ -1205,7 +1243,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/invoices",
@@ -1235,7 +1274,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "GET /v1/billing/invoices/{invoice_id}",
@@ -1263,7 +1303,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/invoices/{invoice_id}/finalize",
@@ -1291,7 +1332,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/invoices/{invoice_id}/items",
@@ -1321,7 +1363,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/invoices/{invoice_id}/void",
@@ -1349,7 +1392,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "GET /v1/billing/limits/{customer_id}",
@@ -1377,7 +1421,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/limits/{customer_id}/check",
@@ -1407,7 +1452,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "GET /v1/billing/plans/{plan_id}/limits",
@@ -1435,7 +1481,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/portal",
@@ -1469,7 +1516,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "GET /v1/billing/reports/revenue",
@@ -1499,7 +1547,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "GET /v1/billing/subscription",
@@ -1527,7 +1576,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/subscription/cancel",
@@ -1559,7 +1609,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/subscription/reactivate",
@@ -1589,7 +1640,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/subscription/update-plan",
@@ -1621,7 +1673,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/sync-customer",
@@ -1651,7 +1704,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "GET /v1/billing/usage/{customer_id}/events",
@@ -1684,7 +1738,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "GET /v1/billing/usage/{customer_id}/summary",
@@ -1714,7 +1769,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/usage/{customer_id}/sync",
@@ -1744,7 +1800,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT_AND_BILLING_ACCOUNT"
     },
     {
       "route_id": "POST /v1/billing/webhook",
@@ -1777,7 +1834,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "SYSTEM"
     },
     {
       "route_id": "POST /v1/c1/stream",
@@ -1808,7 +1866,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/intelligence/EvidenceAcceptanceFlow.test.tsx",
         "apps/web/src/pages/ExtractionEngine.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/cases",
@@ -1841,7 +1900,8 @@
         "apps/web/src/test/mocks/handlers.ts",
         "apps/web/src/agui/useAgentEvents.ts",
         "apps/web/src/pages/BusinessCaseList.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/cases",
@@ -1876,7 +1936,8 @@
         "apps/web/src/pages/ValuePacks.tsx",
         "apps/web/src/pages/BusinessCase.test.tsx",
         "apps/web/src/pages/BusinessCaseList.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/cases/{case_id}",
@@ -1908,7 +1969,8 @@
         "apps/web/src/pages/FormulaBuilder/components/ScenarioPanel.tsx",
         "apps/web/src/pages/BusinessCase.test.tsx",
         "apps/web/src/pages/deliverables/ExecutiveView.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/cases/{case_id}/export",
@@ -1944,7 +2006,8 @@
         "apps/web/src/pages/FormulaList.tsx",
         "apps/web/src/pages/evidence/AlternativesTab.tsx",
         "apps/web/src/pages/evidence/SolutionCostTab.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/cases/{case_id}/regenerate",
@@ -1978,7 +2041,8 @@
         "apps/web/src/pages/intelligence/HypothesesTab.tsx",
         "apps/web/src/pages/BusinessCase.tsx",
         "apps/web/src/hooks/useDocuments.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/cases/{case_id}/scenarios",
@@ -2014,7 +2078,8 @@
         "apps/web/src/agui/useAgentEvents.ts",
         "apps/web/src/pages/studio/StudioROITab.tsx",
         "apps/web/src/pages/calculator/ValueModelTab.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/cases/{case_id}/scenarios",
@@ -2047,7 +2112,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/studio/StudioROITab.tsx",
         "apps/web/src/pages/calculator/ValueModelTab.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "DELETE /v1/cases/{case_id}/scenarios/{scenario_id}",
@@ -2076,7 +2142,8 @@
       "frontend_consumers": [
         "apps/web/src/hooks/useFormulaScenario.ts",
         "apps/web/src/hooks/useWorkspaceCase.pageActions.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/cases/{case_id}/scenarios/{scenario_id}",
@@ -2107,7 +2174,8 @@
       "frontend_consumers": [
         "apps/web/src/hooks/useFormulaScenario.ts",
         "apps/web/src/hooks/useWorkspaceCase.pageActions.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/cases/{case_id}/workspace/evidence",
@@ -2142,7 +2210,8 @@
         "apps/web/src/pages/evidence/SolutionCostTab.tsx",
         "apps/web/src/pages/realization/RealizationPage.tsx",
         "apps/web/src/pages/value-case/ValueCasePage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/cases/{case_id}/workspace/generate",
@@ -2179,7 +2248,8 @@
         "apps/web/src/api/thesysClient.ts",
         "apps/web/src/api/legacy.ts",
         "apps/web/src/pages/value-case/ValueCasePage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/cases/{case_id}/workspace/{tab_key}",
@@ -2213,7 +2283,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/api/__tests__/contract/workspace.contract.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PUT /v1/cases/{case_id}/workspace/{tab_key}",
@@ -2251,7 +2322,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/api/__tests__/contract/workspace.contract.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/comments",
@@ -2281,7 +2353,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/CollaborationCommentsPage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/comments",
@@ -2313,7 +2386,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/CollaborationCommentsPage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/company-knowledge/extractions",
@@ -2341,7 +2415,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/company-knowledge/extractions/{record_id}/review",
@@ -2374,7 +2449,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/AgentWorkflows.tsx",
         "apps/web/src/pages/ValuePacks.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/company-knowledge/icp",
@@ -2394,7 +2470,8 @@
       ],
       "error_envelope_schemas": [],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/company-knowledge/icp",
@@ -2424,7 +2501,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PATCH /v1/company-knowledge/icp/{icp_id}",
@@ -2454,7 +2532,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/company-knowledge/onboarding-status",
@@ -2474,7 +2553,8 @@
       ],
       "error_envelope_schemas": [],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/company-knowledge/profiles",
@@ -2504,7 +2584,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/company-knowledge/profiles/current",
@@ -2529,7 +2610,8 @@
         "apps/web/src/pages/FormulaBuilder.tsx",
         "apps/web/src/pages/ValueTreeExplorer.tsx",
         "apps/web/src/pages/IngestionJobs.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/company-knowledge/profiles/{profile_id}",
@@ -2557,7 +2639,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PATCH /v1/company-knowledge/profiles/{profile_id}",
@@ -2587,7 +2670,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/company-knowledge/profiles/{profile_id}/approve",
@@ -2619,7 +2703,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/formulaBuilderLogic.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/company-knowledge/sources",
@@ -2649,7 +2734,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/SourceConfiguration.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/company-knowledge/sources",
@@ -2681,7 +2767,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/SourceConfiguration.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/enrichment/batch",
@@ -2718,7 +2805,8 @@
         "apps/web/src/pages/IngestionJobs.test.tsx",
         "apps/web/src/pages/ExtractionEngine.tsx",
         "apps/web/src/pages/IngestionJobs.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/enrichment/status",
@@ -2740,7 +2828,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/FormulaList.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/enrichment/{account_id}",
@@ -2774,7 +2863,8 @@
         "apps/web/src/pages/NotificationsPage.tsx",
         "apps/web/src/pages/value-case/ValueCasePage.tsx",
         "apps/web/src/pages/intelligence/HypothesesTab.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/enrichment/{account_id}",
@@ -2819,7 +2909,8 @@
         "apps/web/src/lib/schemas/competitiveIntel.ts",
         "apps/web/src/pages/value-case/ValueCasePage.tsx",
         "apps/web/src/pages/intelligence/HypothesesTab.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PATCH /v1/evidence/{evidence_id}/decision",
@@ -2849,7 +2940,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/evidence/{evidence_id}/drivers/{driver_id}",
@@ -2881,7 +2973,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/feature-flags",
@@ -2915,7 +3008,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/api/__tests__/contract/governance.contract.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "DELETE /v1/feature-flags/{flag_key}",
@@ -2944,7 +3038,8 @@
       "frontend_consumers": [
         "apps/web/src/api/__tests__/contract/governance.contract.test.ts",
         "apps/web/src/api/__tests__/contract/_helpers.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/feature-flags/{flag_key}",
@@ -2975,7 +3070,8 @@
       "frontend_consumers": [
         "apps/web/src/api/__tests__/contract/governance.contract.test.ts",
         "apps/web/src/api/__tests__/contract/_helpers.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PUT /v1/feature-flags/{flag_key}",
@@ -3008,7 +3104,8 @@
       "frontend_consumers": [
         "apps/web/src/api/__tests__/contract/governance.contract.test.ts",
         "apps/web/src/api/__tests__/contract/_helpers.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/feature-flags/{flag_key}/evaluate",
@@ -3043,7 +3140,8 @@
         "apps/web/src/pages/admin/VariableRegistry.tsx",
         "apps/web/src/hooks/useFormulas.ts",
         "apps/web/src/hooks/useC1Stream.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/governance/audit/exports",
@@ -3081,7 +3179,8 @@
         "apps/web/src/lib/schemas/index.ts",
         "apps/web/src/test/mocks/handlers.ts",
         "apps/web/src/api/legacy.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/governance/audit/exports/{audit_export_id}",
@@ -3109,7 +3208,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/governance/lineage/{correlation_id}",
@@ -3142,7 +3242,8 @@
         "apps/web/src/hooks/useIngestion.ts",
         "apps/web/src/api/types.ts",
         "apps/web/src/hooks/useWorkflows.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/governance/reviews",
@@ -3177,7 +3278,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/realization/RealizationPage.tsx",
         "apps/web/src/lib/schemas/competitiveIntel.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/governance/reviews",
@@ -3210,7 +3312,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/realization/RealizationPage.tsx",
         "apps/web/src/lib/schemas/competitiveIntel.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/governance/reviews/{review_id}",
@@ -3238,7 +3341,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/governance/reviews/{review_id}/decisions",
@@ -3273,7 +3377,8 @@
         "apps/web/src/hooks/useWorkspaceCase.ts",
         "apps/web/src/hooks/queryKeys.ts",
         "apps/web/src/stores/userTierStore.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/governance/versions",
@@ -3305,7 +3410,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/value-case/ValueCasePage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/governance/versions/{version_id}",
@@ -3333,7 +3439,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/governance/versions/{version_id}/diff",
@@ -3367,7 +3474,8 @@
         "apps/web/src/pages/ValueTreeExplorer.tsx",
         "apps/web/src/pages/value-case/ValueCasePage.tsx",
         "apps/web/src/pages/ValuePacks.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/ground-truth/maturity-ladder",
@@ -3396,7 +3504,8 @@
         "apps/web/src/hooks/queryKeys.ts",
         "apps/web/src/hooks/useL5Governance.test.tsx",
         "apps/web/src/test/mocks/handlers.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/ground-truth/truths",
@@ -3431,7 +3540,8 @@
         "apps/web/src/pages/GovernanceAuditLog.tsx",
         "apps/web/src/pages/GovernancePages.test.tsx",
         "apps/web/src/hooks/useL5Governance.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/ground-truth/truths/freshness-summary",
@@ -3458,7 +3568,8 @@
         "apps/web/src/pages/GovernancePages.test.tsx",
         "apps/web/src/hooks/queryKeys.ts",
         "apps/web/src/hooks/useGroundTruthGovernance.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/ground-truth/truths/stale",
@@ -3493,7 +3604,8 @@
         "apps/web/src/pages/GovernanceEvidence.tsx",
         "apps/web/src/pages/drivers/DriverTreePage.tsx",
         "apps/web/src/pages/Accounts.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/ground-truth/truths/{truth_id}",
@@ -3526,7 +3638,8 @@
       "frontend_consumers": [
         "apps/web/src/hooks/useL5Governance.ts",
         "apps/web/src/api/__tests__/contract/ground-truth.contract.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/ground-truth/truths/{truth_id}/audit",
@@ -3564,7 +3677,8 @@
         "apps/web/src/pages/DecisionTrace.test.tsx",
         "apps/web/src/pages/admin/PlatformSettings.tsx",
         "apps/web/src/pages/admin/AdminPages.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/ground-truth/truths/{truth_id}/validate",
@@ -3599,7 +3713,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/evidence/SolutionCostTab.tsx",
         "apps/web/src/pages/formulaBuilderLogic.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/harness/gates/{gate_id}/decide",
@@ -3629,7 +3744,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/harness/health",
@@ -3649,7 +3765,8 @@
       ],
       "error_envelope_schemas": [],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/harness/runs",
@@ -3677,7 +3794,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/harness/runs",
@@ -3707,7 +3825,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "DELETE /v1/harness/runs/{run_id}",
@@ -3733,7 +3852,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/harness/runs/{run_id}",
@@ -3761,7 +3881,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/harness/runs/{run_id}/checkpoints",
@@ -3789,7 +3910,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/harness/runs/{run_id}/checkpoints/latest",
@@ -3817,7 +3939,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/harness/runs/{run_id}/gates",
@@ -3845,7 +3968,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/harness/runs/{run_id}/gates",
@@ -3875,7 +3999,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/harness/runs/{run_id}/transition",
@@ -3905,7 +4030,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/harness/runs/{run_id}/validate",
@@ -3935,7 +4061,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/harness/runs/{run_id}/validation",
@@ -3963,7 +4090,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/health/badges",
@@ -3999,7 +4127,8 @@
         "apps/web/src/index.css",
         "apps/web/src/pages/admin/PermissionsAdmin.tsx",
         "apps/web/src/pages/MyModels.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/health/badges/dismiss",
@@ -4032,7 +4161,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/ValuePacks.test.tsx",
         "apps/web/src/hooks/useOpportunities.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/health/components/{component_name}",
@@ -4060,7 +4190,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/health/detailed",
@@ -4088,7 +4219,8 @@
         "apps/web/src/hooks/useWorkflows.ts",
         "apps/web/src/lib/formatters.ts",
         "apps/web/src/api/validation.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/health/report-connection-quality",
@@ -4120,7 +4252,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/health/websocket",
@@ -4140,7 +4273,8 @@
       ],
       "error_envelope_schemas": [],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/hypotheses/account/{account_id}",
@@ -4170,7 +4304,8 @@
         "apps/web/src/pages/NotificationsPage.tsx",
         "apps/web/src/pages/value-case/ValueCasePage.tsx",
         "apps/web/src/pages/intelligence/HypothesesTab.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/hypotheses/from-signal",
@@ -4202,7 +4337,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/hooks/useHypotheses.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/hypotheses/generate",
@@ -4235,7 +4371,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/realization/RealizationPage.tsx",
         "apps/web/src/pages/value-case/ValueCasePage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/hypotheses/rank",
@@ -4269,7 +4406,8 @@
         "apps/web/src/pages/intelligence/HypothesesTab.tsx",
         "apps/web/src/agui/AgentEventClient.ts",
         "apps/web/src/hooks/useHypotheses.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/hypotheses/summary/stats",
@@ -4298,7 +4436,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/SourceConfiguration.tsx",
         "apps/web/src/pages/ValueTreeExplorer.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "DELETE /v1/hypotheses/{hypothesis_id}",
@@ -4332,7 +4471,8 @@
         "apps/web/src/pages/drivers/DriverTreePage.tsx",
         "apps/web/src/hooks/useCalculators.ts",
         "apps/web/src/hooks/useHypotheses.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/hypotheses/{hypothesis_id}",
@@ -4364,7 +4504,8 @@
         "apps/web/src/pages/drivers/DriverTreePage.tsx",
         "apps/web/src/hooks/useCalculators.ts",
         "apps/web/src/hooks/useHypotheses.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/hypotheses/{hypothesis_id}/convert",
@@ -4395,7 +4536,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/intelligence/HypothesesTab.tsx",
         "apps/web/src/agui/events.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/hypotheses/{hypothesis_id}/validate",
@@ -4428,7 +4570,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/evidence/SolutionCostTab.tsx",
         "apps/web/src/pages/formulaBuilderLogic.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/integrations",
@@ -4450,7 +4593,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/Integrations.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/integrations/salesforce/oauth/authorize",
@@ -4485,7 +4629,8 @@
         "apps/web/src/pages/admin/VariableRegistry.tsx",
         "apps/web/src/hooks/useGraphQuery.integration.test.ts",
         "apps/web/src/hooks/useAuth.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/integrations/salesforce/oauth/start",
@@ -4517,7 +4662,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/Integrations.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "DELETE /v1/integrations/{provider}",
@@ -4545,7 +4691,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/config/auth.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/integrations/{provider}",
@@ -4575,7 +4722,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/config/auth.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/integrations/{provider}",
@@ -4607,7 +4755,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/config/auth.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/integrations/{provider}/sync",
@@ -4637,7 +4786,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/ValuePacks.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/integrations/{provider}/sync-jobs",
@@ -4667,7 +4817,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/Integrations.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/integrations/{provider}/sync-jobs/{job_id}",
@@ -4697,7 +4848,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/Integrations.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/integrations/{provider}/test",
@@ -4727,7 +4879,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/ValuePacks.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/intelligence/account/{account_id}/briefing",
@@ -4757,7 +4910,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/intelligence/EnrichmentTab.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/intelligence/account/{account_id}/deal-readiness",
@@ -4790,7 +4944,8 @@
         "apps/web/src/hooks/queryKeys.ts",
         "apps/web/src/hooks/useIntelligence.ts",
         "apps/web/src/hooks/useIntelligence.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/intelligence/pipeline-summary",
@@ -4814,7 +4969,8 @@
         "apps/web/src/hooks/useIntelligence.ts",
         "apps/web/src/hooks/useIntelligence.test.tsx",
         "apps/web/src/api/__tests__/contract/intelligence.contract.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/models",
@@ -4858,7 +5014,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/MyModels.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/models",
@@ -4891,7 +5048,8 @@
       "frontend_consumers": [
         "apps/web/src/test/mocks/handlers.ts",
         "apps/web/src/pages/MyModels.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/models/active",
@@ -4935,7 +5093,8 @@
         "apps/web/src/pages/ValuePacks.test.tsx",
         "apps/web/src/api/client.test.ts",
         "apps/web/src/api/thesysClient.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/models/eval-run",
@@ -4965,7 +5124,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/models/{model_id}",
@@ -5008,7 +5168,8 @@
         "apps/web/src/pages/drivers/DriverTreePage.tsx",
         "apps/web/src/pages/MyModels.test.tsx",
         "apps/web/src/pages/calculator/ValueModelTab.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/models/{model_id}/history",
@@ -5055,7 +5216,8 @@
         "apps/web/src/pages/FormulaBuilder.tsx",
         "apps/web/src/pages/AgentWorkflows.test.tsx",
         "apps/web/src/pages/AgentWorkflows.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/models/{model_id}/promote",
@@ -5087,7 +5249,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/intelligence/HypothesesTab.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/narratives",
@@ -5115,7 +5278,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/studio/NarrativeTab.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/narratives/generate",
@@ -5146,7 +5310,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/realization/RealizationPage.tsx",
         "apps/web/src/pages/value-case/ValueCasePage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "DELETE /v1/narratives/{narrative_id}",
@@ -5172,7 +5337,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/narratives/{narrative_id}",
@@ -5198,67 +5364,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
-    },
-    {
-      "route_id": "PATCH /v1/narratives/{narrative_id}/status",
-      "backend_route_files": [],
-      "openapi_path": "/v1/narratives/{narrative_id}/status",
-      "method": "PATCH",
-      "operation_id": "update_narrative_status_v1_narratives__narrative_id__status_patch",
-      "request_schema": {
-        "$ref": "#/components/schemas/StatusUpdateRequest"
-      },
-      "success_response_schemas": [
-        {
-          "status_code": "200",
-          "description": "Successful Response",
-          "schema": {}
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/pages/FormulaList.tsx"
-      ]
-    },
-    {
-      "route_id": "POST /v1/narratives/{narrative_id}/export",
-      "backend_route_files": [
-        "services/layer4-agents/src/layer4_agents/api/routes/narratives.py"
-      ],
-      "openapi_path": "/v1/narratives/{narrative_id}/export",
-      "method": "POST",
-      "operation_id": "export_narrative_v1_narratives__narrative_id__export_post",
-      "request_schema": {
-        "$ref": "#/components/schemas/NarrativeExportRequest"
-      },
-      "success_response_schemas": [
-        {
-          "status_code": "200",
-          "description": "Successful Response",
-          "schema": {}
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/narratives/{narrative_id}/accept",
@@ -5288,7 +5395,70 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
+    },
+    {
+      "route_id": "POST /v1/narratives/{narrative_id}/export",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/narratives.py"
+      ],
+      "openapi_path": "/v1/narratives/{narrative_id}/export",
+      "method": "POST",
+      "operation_id": "export_narrative_v1_narratives__narrative_id__export_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/NarrativeExportRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {}
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
+    },
+    {
+      "route_id": "PATCH /v1/narratives/{narrative_id}/status",
+      "backend_route_files": [],
+      "openapi_path": "/v1/narratives/{narrative_id}/status",
+      "method": "PATCH",
+      "operation_id": "update_narrative_status_v1_narratives__narrative_id__status_patch",
+      "request_schema": {
+        "$ref": "#/components/schemas/StatusUpdateRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {}
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/pages/FormulaList.tsx"
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/notifications",
@@ -5318,7 +5488,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/NotificationsPage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/notifications",
@@ -5350,7 +5521,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/NotificationsPage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PATCH /v1/notifications/{notification_id}/read",
@@ -5382,7 +5554,8 @@
         "apps/web/src/index.css",
         "apps/web/src/pages/FormulaList.tsx",
         "apps/web/src/pages/NotificationsPage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/prospects/setup",
@@ -5415,7 +5588,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/ValuePacks.test.tsx",
         "apps/web/src/pages/IngestionJobs.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/prospects/{prospect_id}/context",
@@ -5448,7 +5622,8 @@
         "apps/web/src/pages/SourceConfiguration.tsx",
         "apps/web/src/pages/FormulaBuilder.tsx",
         "apps/web/src/pages/EntityDetail.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/prospects/{prospect_id}/start-analysis",
@@ -5481,7 +5656,8 @@
       "frontend_consumers": [
         "apps/web/src/value-pilot/pages/ProspectSetup.test.tsx",
         "apps/web/src/value-pilot/pages/ProspectSetup.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/repo-audit/findings",
@@ -5515,7 +5691,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PATCH /v1/repo-audit/findings/{finding_id}",
@@ -5547,7 +5724,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/repo-audit/report/{run_id}",
@@ -5577,7 +5755,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/repo-audit/run",
@@ -5609,7 +5788,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/repo-audit/runs",
@@ -5643,7 +5823,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/repo-audit/runs/{run_id}",
@@ -5673,7 +5854,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/repo-audit/scorecard/history",
@@ -5703,7 +5885,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/repo-audit/scorecard/latest",
@@ -5733,7 +5916,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/repo-audit/sprints",
@@ -5767,7 +5951,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/repo-audit/webhook/github",
@@ -5801,7 +5986,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "SYSTEM"
     },
     {
       "route_id": "GET /v1/signals/{signal_id}",
@@ -5837,7 +6023,8 @@
         "apps/web/src/pages/intelligence/SignalsTab.tsx",
         "apps/web/src/pages/intelligence/HypothesisValidationToDriverFlow.test.tsx",
         "apps/web/src/hooks/useHypotheses.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PATCH /v1/signals/{signal_id}/review",
@@ -5869,7 +6056,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/ValuePacks.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tasks",
@@ -5899,7 +6087,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/TasksPage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/tasks",
@@ -5931,7 +6120,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/TasksPage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PATCH /v1/tasks/{task_id}",
@@ -5961,7 +6151,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tenant/context",
@@ -5986,7 +6177,8 @@
         "apps/web/src/pages/SourceConfiguration.tsx",
         "apps/web/src/pages/FormulaBuilder.tsx",
         "apps/web/src/pages/EntityDetail.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tenants",
@@ -6024,7 +6216,8 @@
         "apps/web/src/hooks/queryKeys.ts",
         "apps/web/src/hooks/usePlatformSettings.ts",
         "apps/web/src/hooks/usePlatformSettings.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/tenants",
@@ -6060,7 +6253,8 @@
         "apps/web/src/hooks/queryKeys.ts",
         "apps/web/src/hooks/usePlatformSettings.ts",
         "apps/web/src/hooks/usePlatformSettings.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tenants/current/settings",
@@ -6084,7 +6278,8 @@
         "apps/web/src/pages/ValuePacks.test.tsx",
         "apps/web/src/pages/ExtractionEngine.tsx",
         "apps/web/src/pages/admin/PlatformSettings.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PATCH /v1/tenants/current/settings",
@@ -6118,7 +6313,8 @@
         "apps/web/src/pages/ValuePacks.test.tsx",
         "apps/web/src/pages/ExtractionEngine.tsx",
         "apps/web/src/pages/admin/PlatformSettings.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/tenants/register",
@@ -6152,7 +6348,8 @@
         "apps/web/src/pages/DecisionTrace.test.tsx",
         "apps/web/src/pages/Signup.tsx",
         "apps/web/src/stores/userTierStore.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tenants/tiers",
@@ -6180,7 +6377,8 @@
         "apps/web/src/schemas/auth.ts",
         "apps/web/src/components/navigation/TieredNav.tsx",
         "apps/web/src/workflow/pages/ValueCase.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tenants/validate-slug",
@@ -6208,7 +6406,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/tenants/verify-email",
@@ -6238,7 +6437,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "DELETE /v1/tenants/{tenant_id}",
@@ -6270,7 +6470,8 @@
         "apps/web/src/pages/admin/AdminPages.test.tsx",
         "apps/web/src/pages/admin/VariableRegistry.tsx",
         "apps/web/src/pages/Signup.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tenants/{tenant_id}",
@@ -6306,7 +6507,8 @@
         "apps/web/src/lib/schemas/integrations.ts",
         "apps/web/src/lib/schemas/evidence.test.ts",
         "apps/web/src/lib/schemas/competitiveIntel.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PATCH /v1/tenants/{tenant_id}",
@@ -6344,7 +6546,8 @@
         "apps/web/src/lib/schemas/integrations.ts",
         "apps/web/src/lib/schemas/evidence.test.ts",
         "apps/web/src/lib/schemas/competitiveIntel.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/tenants/{tenant_id}/activate",
@@ -6389,7 +6592,8 @@
         "apps/web/src/hooks/useAccessibility.ts",
         "apps/web/src/api/__tests__/contract/formulas.contract.test.ts",
         "apps/web/src/components/integrations/IntegrationConfigPanel.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tenants/{tenant_id}/audit-log",
@@ -6419,7 +6623,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/navigation/navigationService.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/tenants/{tenant_id}/provisioning/retry",
@@ -6451,7 +6656,8 @@
         "apps/web/src/value-pilot/pages/ProspectSetup.test.tsx",
         "apps/web/src/pages/ValuePacks.test.tsx",
         "apps/web/src/test-utils.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tenants/{tenant_id}/provisioning/status",
@@ -6481,7 +6687,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/FormulaList.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/tenants/{tenant_id}/provisioning/webhook",
@@ -6517,7 +6724,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/admin/PlatformSettings.tsx",
         "apps/web/src/app/settings/pages/BillingWorkspace.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tenants/{tenant_id}/settings",
@@ -6549,7 +6757,8 @@
         "apps/web/src/pages/ValuePacks.test.tsx",
         "apps/web/src/pages/ExtractionEngine.tsx",
         "apps/web/src/pages/admin/PlatformSettings.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PATCH /v1/tenants/{tenant_id}/settings",
@@ -6583,7 +6792,8 @@
         "apps/web/src/pages/ValuePacks.test.tsx",
         "apps/web/src/pages/ExtractionEngine.tsx",
         "apps/web/src/pages/admin/PlatformSettings.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/tenants/{tenant_id}/status",
@@ -6623,7 +6833,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/FormulaList.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/tenants/{tenant_id}/suspend",
@@ -6665,7 +6876,8 @@
         "apps/web/src/hooks/useGovernance.ts",
         "apps/web/src/api/__tests__/contract/governance.contract.test.ts",
         "apps/web/src/api/__tests__/contract/_helpers.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tenants/{tenant_id}/usage",
@@ -6699,7 +6911,8 @@
         "apps/web/src/pages/admin/AdminPages.test.tsx",
         "apps/web/src/pages/admin/VariableRegistry.tsx",
         "apps/web/src/hooks/useHealthMonitor.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tenants/{tenant_id}/users",
@@ -6737,7 +6950,8 @@
         "apps/web/src/pages/ValuePacks.tsx",
         "apps/web/src/pages/admin/PlatformSettings.tsx",
         "apps/web/src/pages/admin/PermissionsAdmin.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tools",
@@ -6774,7 +6988,8 @@
         "apps/web/src/components/AppShell.tsx",
         "apps/web/src/components/navigation/TieredNav.tsx",
         "apps/web/src/main.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tools/categories",
@@ -6800,7 +7015,8 @@
         "apps/web/src/workflow/pages/Intelligence.tsx",
         "apps/web/src/lib/schemas/products.test.ts",
         "apps/web/src/lib/schemas/products.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/tools/export-document",
@@ -6830,7 +7046,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tools/governance/audit/exports",
@@ -6870,7 +7087,8 @@
         "apps/web/src/test/mocks/handlers.ts",
         "apps/web/src/lib/schemas/index.ts",
         "apps/web/src/api/legacy.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/tools/invoke",
@@ -6906,7 +7124,8 @@
         "apps/web/src/components/blocks/TopTabNav.tsx",
         "apps/web/src/components/blocks/TabNav.tsx",
         "apps/web/src/hooks/usePolling.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/tools/{tool_name}",
@@ -6936,7 +7155,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/api/__tests__/contract/agent-stream.contract.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/users",
@@ -6974,7 +7194,8 @@
         "apps/web/src/pages/ValuePacks.tsx",
         "apps/web/src/pages/admin/PlatformSettings.tsx",
         "apps/web/src/pages/admin/PermissionsAdmin.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/users/accept-invite",
@@ -7004,7 +7225,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/users/invite",
@@ -7036,7 +7258,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/admin/PermissionsAdmin.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/users/me",
@@ -7056,7 +7279,8 @@
       ],
       "error_envelope_schemas": [],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PATCH /v1/users/me",
@@ -7086,7 +7310,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "DELETE /v1/users/{user_id}",
@@ -7116,7 +7341,8 @@
         "apps/web/src/test/mocks/handlers.ts",
         "apps/web/src/services/authClient.ts",
         "apps/web/src/services/authClient.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/users/{user_id}",
@@ -7149,7 +7375,8 @@
         "apps/web/src/contexts/AuthContext.tsx",
         "apps/web/src/services/authClient.ts",
         "apps/web/src/services/authClient.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PATCH /v1/users/{user_id}",
@@ -7184,7 +7411,8 @@
         "apps/web/src/contexts/AuthContext.tsx",
         "apps/web/src/services/authClient.ts",
         "apps/web/src/services/authClient.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/validation/seed/auth-context",
@@ -7219,7 +7447,8 @@
       "frontend_consumers": [
         "apps/web/src/contexts/AuthContext.tsx",
         "apps/web/src/api/__tests__/contract/workflows.contract.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/validation/seed/business-case-lifecycle",
@@ -7251,7 +7480,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/validation/session",
@@ -7289,7 +7519,8 @@
         "apps/web/src/pages/admin/PlatformSettings.tsx",
         "apps/web/src/pages/admin/AdminPages.test.tsx",
         "apps/web/src/pages/Login.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/webhooks/crm/health",
@@ -7314,7 +7545,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/dev/IntegrationDashboard.tsx",
         "apps/web/src/pages/SourceConfiguration.tsx"
-      ]
+      ],
+      "tenant_scope": "SYSTEM"
     },
     {
       "route_id": "POST /v1/webhooks/crm/hubspot",
@@ -7355,7 +7587,8 @@
         "apps/web/src/hooks/useSources.ts",
         "apps/web/src/hooks/useAccounts.ts",
         "apps/web/src/hooks/useAccounts.test.tsx"
-      ]
+      ],
+      "tenant_scope": "SYSTEM"
     },
     {
       "route_id": "POST /v1/webhooks/crm/salesforce",
@@ -7393,7 +7626,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/Integrations.tsx",
         "apps/web/src/lib/schemas/integrations.test.ts"
-      ]
+      ],
+      "tenant_scope": "SYSTEM"
     },
     {
       "route_id": "GET /v1/workflows",
@@ -7425,7 +7659,8 @@
         "apps/web/src/pages/AgentWorkflows.test.tsx",
         "apps/web/src/pages/ValuePacks.tsx",
         "apps/web/src/test/mocks/handlers.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/workflows",
@@ -7458,7 +7693,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/AgentWorkflows.test.tsx",
         "apps/web/src/pages/AgentWorkflows.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/workflows/active",
@@ -7490,7 +7726,8 @@
         "apps/web/src/pages/FormulaList.tsx",
         "apps/web/src/pages/ValuePacks.test.tsx",
         "apps/web/src/components/WorkflowDetail.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/workflows/types",
@@ -7516,7 +7753,8 @@
         "apps/web/src/pages/AgentWorkflows.tsx",
         "apps/web/src/pages/formulaBuilderLogic.ts",
         "apps/web/src/pages/ValueTreeExplorer.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "DELETE /v1/workflows/{workflow_id}",
@@ -7550,7 +7788,8 @@
         "apps/web/src/agui/AgentEventClient.ts",
         "apps/web/src/value-pilot/pages/ProspectSetup.test.tsx",
         "apps/web/src/value-pilot/pages/ProspectSetup.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/workflows/{workflow_id}",
@@ -7584,7 +7823,8 @@
         "apps/web/src/agui/AgentEventClient.ts",
         "apps/web/src/value-pilot/pages/ProspectSetup.test.tsx",
         "apps/web/src/value-pilot/pages/ProspectSetup.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/workflows/{workflow_id}/archive",
@@ -7616,7 +7856,8 @@
         "apps/web/src/pages/FormulaList.tsx",
         "apps/web/src/pages/ValuePacks.tsx",
         "apps/web/src/pages/BusinessCaseList.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/workflows/{workflow_id}/checkpoints",
@@ -7656,7 +7897,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/hooks/useWorkflows.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/workflows/{workflow_id}/checkpoints/diff",
@@ -7702,7 +7944,8 @@
         "apps/web/src/pages/value-case/ValueCasePage.tsx",
         "apps/web/src/lib/schemas/competitiveIntel.ts",
         "apps/web/src/pages/ValuePacks.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/workflows/{workflow_id}/checkpoints/{checkpoint_id}/state",
@@ -7743,7 +7986,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/ValuePacks.test.tsx",
         "apps/web/src/pages/NotificationsPage.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/workflows/{workflow_id}/events",
@@ -7780,7 +8024,8 @@
         "apps/web/src/pages/admin/PlatformSettings.tsx",
         "apps/web/src/pages/studio/StudioEnrichmentTab.tsx",
         "apps/web/src/pages/GovernanceAuditLog.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/workflows/{workflow_id}/pause",
@@ -7813,7 +8058,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/AgentWorkflows.tsx",
         "apps/web/src/pages/ExtractionEngine.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/workflows/{workflow_id}/result",
@@ -7843,7 +8089,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/formulaBuilderLogic.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/workflows/{workflow_id}/resume",
@@ -7878,7 +8125,8 @@
         "apps/web/src/pages/calculator/ROITab.tsx",
         "apps/web/src/api/workflows.ts",
         "apps/web/src/pages/AgentWorkflows.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "POST /v1/workflows/{workflow_id}/resume-from-checkpoint",
@@ -7918,7 +8166,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/workflows/{workflow_id}/state/errors",
@@ -7948,7 +8197,8 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/formulaBuilderLogic.test.ts"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/workflows/{workflow_id}/state/history",
@@ -7982,7 +8232,8 @@
         "apps/web/src/pages/AgentWorkflows.test.tsx",
         "apps/web/src/agui/useAgentEvents.ts",
         "apps/web/src/pages/BusinessCase.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/workflows/{workflow_id}/state/outputs",
@@ -8017,7 +8268,8 @@
         "apps/web/src/features/intelligence-workspace/workspaceTabRegistry.ts",
         "apps/web/src/components/workspace/promptParser.ts",
         "apps/web/src/components/workspace/ProspectPromptBuilder.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/workflows/{workflow_id}/state/performance",
@@ -8050,7 +8302,8 @@
         "apps/web/src/hooks/useGraphQuery.performance.test.ts",
         "apps/web/src/hooks/useWorkflows.ts",
         "apps/web/src/hooks/TEST_STRATEGY.md"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/workflows/{workflow_id}/state/schema",
@@ -8081,7 +8334,8 @@
       "frontend_consumers": [
         "apps/web/src/pages/ValueTreeExplorer.tsx",
         "apps/web/src/pages/OntologyEditor.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/workflows/{workflow_id}/state/values",
@@ -8115,7 +8369,8 @@
         "apps/web/src/api/legacy.ts",
         "apps/web/src/pages/admin/PlatformSettings.tsx",
         "apps/web/src/pages/drivers/DriverTreePage.test.tsx"
-      ]
+      ],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/{tenant_id}/dashboard/audit-log",
@@ -8143,7 +8398,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/{tenant_id}/dashboard/daily-usage",
@@ -8171,7 +8427,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/{tenant_id}/dashboard/tier-usage",
@@ -8199,7 +8456,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/{tenant_id}/dashboard/top-endpoints",
@@ -8227,7 +8485,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/{tenant_id}/dashboard/usage",
@@ -8255,7 +8514,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "GET /v1/{tenant_id}/settings",
@@ -8283,7 +8543,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     },
     {
       "route_id": "PATCH /v1/{tenant_id}/settings",
@@ -8313,7 +8574,8 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [],
+      "tenant_scope": "TENANT"
     }
   ]
 }

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/identity/events/user-authenticated@1.0.0.schema.json",
+  "title": "UserAuthenticated",
+  "description": "Payload schema for identity.user.authenticated.v1: a user has successfully authenticated.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "user_id", "auth_method", "authenticated_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the user" },
+    "user_id": { "type": "string", "minLength": 1, "description": "Authenticated user identifier" },
+    "session_id": { "type": "string", "description": "Established session identifier" },
+    "auth_method": { "type": "string", "description": "Primary or multi-factor authentication method" },
+    "mfa_verified": { "type": "boolean", "description": "Whether MFA was satisfied" },
+    "authenticated_at": { "type": "string", "format": "date-time", "description": "ISO 8601 authentication timestamp" }
+  }
+}

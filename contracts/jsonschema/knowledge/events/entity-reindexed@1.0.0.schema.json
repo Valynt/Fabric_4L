@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/knowledge/events/entity-reindexed@1.0.0.schema.json",
+  "title": "EntityReindexed",
+  "description": "Payload schema for knowledge.entity.reindexed.v1: an entity has been reindexed for semantic retrieval.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "entity_id", "index_type", "reindexed_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the entity" },
+    "entity_id": { "type": "string", "minLength": 1, "description": "Reindexed entity identifier" },
+    "index_type": { "type": "string", "description": "hybrid, vector, or keyword index" },
+    "reindex_run_id": { "type": "string", "description": "Reindex run identifier" },
+    "reindexed_at": { "type": "string", "format": "date-time", "description": "ISO 8601 reindex timestamp" }
+  }
+}

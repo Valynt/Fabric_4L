@@ -1,5 +1,6 @@
-# Knowledge Domain Event Catalog (stub)
-# Placeholder for canonical events owned by the knowledge graph bounded context.
+# Knowledge Domain Event Catalog
+# Normative inventory of canonical events owned by the knowledge graph bounded context.
+# Status: DRAFT = planned but not yet wired; ACTIVE = currently emitted.
 
 catalog_version: "1.0.0"
 domain: knowledge
@@ -9,14 +10,18 @@ entries:
   - event_type: knowledge.entity.created.v1
     name: Knowledge Entity Created
     description: >
-      A new entity has been created in the knowledge graph. Placeholder entry
-      for knowledge domain event catalog.
+      A new entity has been created in the knowledge graph. Emitted after
+      entity ingestion or resolution materializes a distinct entity node.
     domain: knowledge.graph
     owner: layer3-knowledge/graph
     producer: services/layer3-knowledge
     triggered_by:
       - entity.ingest
       - entity.resolve
+    preconditions:
+      - "Entity attributes pass schema validation"
+    postconditions:
+      - "Entity node exists in the graph and is queryable"
     schema_ref: "jsonschema://knowledge/events/entity-created@1.0.0"
     envelope_ref: "jsonschema://common/event-envelope@1.0.0"
     subject_type: entity
@@ -34,3 +39,237 @@ entries:
     event_class: DOMAIN_EVENT
     status: DRAFT
     consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        entity_id: "ent_456"
+        entity_type: "company"
+        name: "Acme Corp"
+        source_run_id: "run_789"
+        created_at: "2026-01-15T10:00:00Z"
+
+  - event_type: knowledge.entity.updated.v1
+    name: Knowledge Entity Updated
+    description: >
+      An existing entity in the knowledge graph has been updated: attributes
+      merged, properties changed, or confidence scores revised.
+    domain: knowledge.graph
+    owner: layer3-knowledge/graph
+    producer: services/layer3-knowledge
+    triggered_by:
+      - entity.merge
+      - entity.ingest
+      - entity.resolve
+    preconditions:
+      - "Entity exists in the graph"
+    postconditions:
+      - "Entity attributes reflect the latest source evidence"
+    schema_ref: "jsonschema://knowledge/events/entity-updated@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: entity
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: MEDIUM
+    transport_channel: knowledge.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LONG_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        entity_id: "ent_456"
+        entity_type: "company"
+        changed_fields: ["revenue_band", "founding_year"]
+        source_run_id: "run_789"
+        updated_at: "2026-01-15T11:30:00Z"
+
+  - event_type: knowledge.entity_relationship.created.v1
+    name: Knowledge Entity Relationship Created
+    description: >
+      A relationship between two entities has been created in the knowledge
+      graph, including relationship type, direction, and confidence.
+    domain: knowledge.graph
+    owner: layer3-knowledge/graph
+    producer: services/layer3-knowledge
+    triggered_by:
+      - relationship.create
+      - entity.ingest
+    preconditions:
+      - "Both endpoint entities exist in the graph"
+    postconditions:
+      - "Relationship edge is traversable with provenance"
+    schema_ref: "jsonschema://knowledge/events/entity-relationship-created@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: entity_relationship
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: MEDIUM
+    transport_channel: knowledge.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LONG_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        relationship_id: "rel_101"
+        source_entity_id: "ent_456"
+        target_entity_id: "ent_789"
+        relationship_type: "acquired_by"
+        source_run_id: "run_789"
+        created_at: "2026-01-15T10:15:00Z"
+
+  - event_type: knowledge.entity.resolved.v1
+    name: Knowledge Entity Resolved
+    description: >
+      An entity has been resolved to a canonical node after entity resolution,
+      merging candidate records from one or more source runs.
+    domain: knowledge.resolution
+    owner: layer3-knowledge/resolution
+    producer: services/layer3-knowledge
+    triggered_by:
+      - entity.resolve
+      - entity.merge
+    preconditions:
+      - "Candidate entity records share matching keys and pass resolution rules"
+    postconditions:
+      - "Merged entity node exists with provenance links to source runs"
+    schema_ref: "jsonschema://knowledge/events/entity-resolved@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: entity
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 700
+    criticality: MEDIUM
+    transport_channel: knowledge.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LONG_TERM
+    sensitive_payload: true
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+
+  - event_type: knowledge.entity.ingested.v1
+    name: Knowledge Entity Ingested
+    description: >
+      Raw entity data has been ingested from a source run and persisted in the
+      staging area, before resolution and graph materialization.
+    domain: knowledge.ingestion
+    owner: layer3-knowledge/ingestion
+    producer: services/layer3-knowledge
+    triggered_by:
+      - entity.ingest
+      - source.deliver
+    preconditions:
+      - "Source run is complete and provenance metadata is present"
+    postconditions:
+      - "Ingested entity records are available for resolution"
+    schema_ref: "jsonschema://knowledge/events/entity-ingested@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: entity
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: MEDIUM
+    transport_channel: knowledge.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LONG_TERM
+    sensitive_payload: true
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+
+  - event_type: knowledge.entity.reindexed.v1
+    name: Knowledge Entity Reindexed
+    description: >
+      An entity has been reindexed after graph write or bulk reindex, making
+      its latest state searchable through the semantic index.
+    domain: knowledge.retrieval
+    owner: layer3-knowledge/retrieval
+    producer: services/layer3-knowledge
+    triggered_by:
+      - index.rebuild
+      - entity.ingest
+      - entity.updated.v1
+    preconditions:
+      - "Entity exists in the graph"
+    postconditions:
+      - "Entity is searchable by semantic and hybrid retrieval"
+    schema_ref: "jsonschema://knowledge/events/entity-reindexed@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: entity
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 1000
+    criticality: LOW
+    transport_channel: knowledge.events
+    ordering_guarantee: BEST_EFFORT
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        entity_id: "ent_456"
+        index_type: "hybrid"
+        reindex_run_id: "idx_789"
+        reindexed_at: "2026-01-15T12:00:00Z"
+
+  - event_type: knowledge.subgraph.cached.v1
+    name: Knowledge Subgraph Cached
+    description: >
+      A subgraph around an entity or query root has been cached for fast,
+      repeated retrieval, including the cache tier and TTL.
+    domain: knowledge.retrieval
+    owner: layer3-knowledge/retrieval
+    producer: services/layer3-knowledge
+    triggered_by:
+      - subgraph.cache
+      - graph.query
+    preconditions:
+      - "Subgraph data is available from the graph"
+    postconditions:
+      - "Subgraph is retrievable from cache until TTL expiry"
+    schema_ref: "jsonschema://knowledge/events/subgraph-cached@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: subgraph
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 200
+    criticality: LOW
+    transport_channel: knowledge.events
+    ordering_guarantee: BEST_EFFORT
+    replay_behavior: IDEMPOTENT
+    retention_classification: SHORT_TERM
+    sensitive_payload: false
+    event_class: INTEGRATION_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        root_entity_id: "ent_456"
+        cache_tier: "redis"
+        ttl_seconds: 300
+        cached_at: "2026-01-15T12:05:00Z"

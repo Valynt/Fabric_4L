@@ -49,7 +49,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/checkout": {
@@ -109,7 +110,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/portal": {
@@ -169,7 +171,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/subscription/cancel": {
@@ -227,7 +230,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/subscription/update-plan": {
@@ -285,7 +289,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/subscription/reactivate": {
@@ -333,7 +338,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/entitlements": {
@@ -381,7 +387,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/check-feature": {
@@ -438,7 +445,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/sync-customer": {
@@ -494,7 +502,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/webhook": {
@@ -540,7 +549,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "SYSTEM"
       }
     },
     "/v1/billing/invoices": {
@@ -629,7 +639,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       },
       "post": {
         "tags": [
@@ -669,7 +680,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/invoices/{invoice_id}": {
@@ -712,7 +724,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/invoices/{invoice_id}/items": {
@@ -765,7 +778,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/invoices/{invoice_id}/finalize": {
@@ -808,7 +822,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/invoices/{invoice_id}/void": {
@@ -869,7 +884,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/charges": {
@@ -974,7 +990,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       },
       "post": {
         "tags": [
@@ -1014,7 +1031,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/reports/revenue": {
@@ -1070,7 +1088,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/customers/{customer_id}/balance": {
@@ -1115,7 +1134,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/limits/{customer_id}": {
@@ -1158,7 +1178,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/limits/{customer_id}/check": {
@@ -1223,7 +1244,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/plans/{plan_id}/limits": {
@@ -1266,7 +1288,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/events": {
@@ -1308,7 +1331,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/events/batch": {
@@ -1350,7 +1374,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/usage/{customer_id}/summary": {
@@ -1438,7 +1463,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/usage/{customer_id}/events": {
@@ -1559,7 +1585,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/usage/{customer_id}/sync": {
@@ -1620,7 +1647,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     }
   },

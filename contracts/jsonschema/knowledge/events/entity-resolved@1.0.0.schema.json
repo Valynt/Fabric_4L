@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/knowledge/events/entity-resolved@1.0.0.schema.json",
+  "title": "EntityResolved",
+  "description": "Payload schema for knowledge.entity.resolved.v1: an entity has been resolved to a canonical node.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "entity_id", "resolved_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the entity" },
+    "entity_id": { "type": "string", "minLength": 1, "description": "Canonical entity identifier" },
+    "candidate_ids": { "type": "array", "items": { "type": "string" }, "description": "Merged candidate record identifiers" },
+    "resolution_rule": { "type": "string", "description": "Resolution rule key that matched" },
+    "resolved_at": { "type": "string", "format": "date-time", "description": "ISO 8601 resolution timestamp" }
+  }
+}
