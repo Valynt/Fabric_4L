@@ -14,7 +14,7 @@ FROM mcr.microsoft.com/playwright@sha256:02810c978d5396bf382ab6015c25ad6bed9e39f
 # Playwright v1.60+ images ship Node 22 — no upgrade needed
 
 # Enable pnpm via corepack (project standard)
-RUN corepack enable && corepack prepare pnpm@10.18.1 --activate
+RUN corepack enable && corepack prepare pnpm@10.34.5 --activate
 
 # -----------------------------------------------------------------------------
 # Bake dependencies

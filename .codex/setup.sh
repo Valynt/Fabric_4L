@@ -7,9 +7,9 @@ set -e
 echo "→ Setting up Value Fabric environment..."
 
 # Enable corepack and activate the repo-pinned pnpm version
-echo "→ Enabling corepack and activating pnpm@10.18.1..."
+echo "→ Enabling corepack and activating pnpm@10.34.5..."
 corepack enable
-corepack use pnpm@10.18.1
+corepack use pnpm@10.34.5
 
 # Install JavaScript/TypeScript dependencies
 echo "→ Installing dependencies with pnpm..."

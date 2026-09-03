@@ -49,7 +49,7 @@ Use the same runtime family across local development, CI, and container images t
 | Runtime | Canonical version | Applies to | Source of truth |
 |---|---:|---|---|
 | Node.js | `22.22.2` | Local frontend tooling, pnpm workspaces, GitHub Actions `setup-node` jobs | Root `package.json` `engines.node` and workflow `node-version` entries |
-| pnpm | `10.18.1` | Local installs, CI installs, Corepack activation | Root `package.json` `packageManager` and `corepack prepare pnpm@10.18.1 --activate` commands |
+| pnpm | `10.34.5` | Local installs, CI installs, Corepack activation | Root `package.json` `packageManager` and `corepack prepare pnpm@10.34.5 --activate` commands |
 | Python | `3.11` | Local backend tooling, pytest, contract/governance CI jobs | Makefile interpreter selection and GitHub Actions `setup-python` jobs |
 | Python container base | `python@sha256:d1e9ca7c4e78d1e8ecadb5d44bfc8e956e7a65b659a9950f569f243d72b326d0` (`python:3.11-slim`) | Maintained service Dockerfiles and full/uv service variants | `FROM python:3.11-slim@sha256:...` (optionally prefixed with `docker.io/`) / `ARG BASE_IMAGE=python@sha256:...` |
 | Node container base | `node@sha256:027911463b296bdaf6df82b5ccf2c6b290fee725d5fba6513a037ed019400625` (`node:22.12.0-alpine3.20`) | Frontend Dockerfiles | `FROM node@sha256:...` in `apps/web/Dockerfile*` |
@@ -68,7 +68,7 @@ For first-time local setup, use one flow:
 
 ```bash
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
 make setup
 make migrate

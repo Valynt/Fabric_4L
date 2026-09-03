@@ -17,7 +17,7 @@ Quick answers to common questions about Fabric 4L. For detailed guides, see [Tut
 | Disk | 20 GB free | 50 GB SSD |
 | Python | 3.11+ | 3.11+ |
 | Node.js | ≥ 22.12.0 | 22.12.0+ (LTS) |
-| Package Manager | pnpm 10.18.1 | pnpm 10.18.1 |
+| Package Manager | pnpm 10.34.5 | pnpm 10.34.5 |
 | Docker | 24.0+ | Latest stable |
 | Docker Compose | 2.20+ (v2 `docker compose`) | Latest stable |
 
@@ -29,11 +29,11 @@ For production deployments, see the [Kubernetes deployment guide](/how-to/deploy
 
 ```bash
 # 1. Ensure prerequisites are installed:
-# PostgreSQL 15+, Redis 7+, Neo4j, Keycloak, Python 3.11+, Node.js ≥ 22.12.0, pnpm 10.18.1
+# PostgreSQL 15+, Redis 7+, Neo4j, Keycloak, Python 3.11+, Node.js ≥ 22.12.0, pnpm 10.34.5
 
 # 2. Enable pnpm and install frontend/monorepo dependencies
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
 
 # 3. Set up Python virtual environment and service dependencies

@@ -104,8 +104,6 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up pnpm
         uses: pnpm/action-setup@v3
-        with:
-          version: "10.18.1"
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -149,8 +147,6 @@ jobs:
           distribution: "temurin"
       - name: Set up pnpm
         uses: pnpm/action-setup@v3
-        with:
-          version: "10.18.1"
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
@@ -189,8 +185,6 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up pnpm
         uses: pnpm/action-setup@v3
-        with:
-          version: "10.18.1"
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
@@ -271,8 +265,6 @@ jobs:
       - name: Set up pnpm for testing
         if: needs.generate-typescript.result == 'success'
         uses: pnpm/action-setup@v3
-        with:
-          version: "10.18.1"
       - name: Test TypeScript SDK compilation
         if: needs.generate-typescript.result == 'success'
         run: |
@@ -393,8 +385,6 @@ jobs:
           path: sdk/typescript/
       - name: Set up pnpm
         uses: pnpm/action-setup@v3
-        with:
-          version: "10.18.1"
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:

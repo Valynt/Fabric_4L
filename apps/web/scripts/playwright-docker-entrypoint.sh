@@ -3,7 +3,7 @@ set -e
 
 # Ensure pnpm is available (corepack state may not persist across volume mounts)
 corepack enable 2>/dev/null || true
-corepack prepare pnpm@10.18.1 --activate 2>/dev/null || true
+corepack prepare pnpm@10.34.5 --activate 2>/dev/null || true
 
 cd /app
 

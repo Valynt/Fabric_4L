@@ -80,8 +80,6 @@ jobs:
           python -m pip install PyYAML
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
-        with:
-          version: "10.18.1"
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:

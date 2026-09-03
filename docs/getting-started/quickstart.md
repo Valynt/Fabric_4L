@@ -27,7 +27,7 @@ Before starting, ensure you have:
 | Git | 2.40+ | `git --version` |
 | Make | 3.81+ | `make --version` |
 | uv | 0.4+ | `uv --version` |
-| pnpm | 10.18.1 (via corepack) | `pnpm --version` |
+| pnpm | 10.34.5 (via corepack) | `pnpm --version` |
 | OpenAI API Key | — | [Get one here](https://platform.openai.com/api-keys) |
 
 **Estimated Time:** 15 minutes

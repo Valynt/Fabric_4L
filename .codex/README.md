@@ -11,7 +11,7 @@ Codex automatically runs setup scripts when creating a new worktree. This reposi
 - `setup.ps1` - Windows-specific setup script
 
 These scripts:
-- Enable corepack and activate the repo-pinned pnpm version (10.18.1)
+- Enable corepack and activate the repo-pinned pnpm version (10.34.5)
 - Install JavaScript/TypeScript dependencies with pnpm
 - Create `.env` from `.env.example` if it doesn't exist (you'll need to fill in secrets)
 

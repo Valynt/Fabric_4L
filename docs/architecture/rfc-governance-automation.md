@@ -127,7 +127,7 @@ Responsibility: install the canonical Python, Node.js, pnpm, and dependency stac
 Inputs:
 - `python-version` (default: `3.11`)
 - `node-version` (default: `22.18.0`)
-- `pnpm-version` (default: `10.18.1`)
+- `pnpm-version` (default: `10.34.5`)
 - `install-python-deps` (default: `true`) — install `tests/requirements-test.txt`
 - `install-node-deps` (default: `true`) — run `pnpm install --frozen-lockfile`
 - `working-directory` (default: `.`)
@@ -337,7 +337,7 @@ The PoC workflow was exercised in GitHub Actions on branch `poc/governance-autom
 | `workflow_dispatch` with `profile=release-candidate` | `release-candidate` | true | https://github.com/bmsull560/Fabric_4L/actions/runs/29642715112 |
 | `workflow_dispatch` with `profile=production-core` | `production-core` | true | https://github.com/bmsull560/Fabric_4L/actions/runs/29642715781 |
 
-All runs completed successfully after the fail-closed and registry fixes. The `setup-fabric-ci` composite installed Python 3.11, Node.js 22.x, and pnpm 10.18.1, and the `determine-ci-profile` composite emitted the expected profile name and gate list for each context. This validates deterministic context-to-profile routing and step activation; it does not execute infrastructure-dependent gates such as Cosign signing, Kubernetes deployment, Prometheus checks, or backup/restore drills.
+All runs completed successfully after the fail-closed and registry fixes. The `setup-fabric-ci` composite installed Python 3.11, Node.js 22.x, and pnpm 10.34.5, and the `determine-ci-profile` composite emitted the expected profile name and gate list for each context. This validates deterministic context-to-profile routing and step activation; it does not execute infrastructure-dependent gates such as Cosign signing, Kubernetes deployment, Prometheus checks, or backup/restore drills.
 
 Static validation performed locally:
 

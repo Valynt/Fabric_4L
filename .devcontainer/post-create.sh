@@ -7,7 +7,7 @@ cd "$workspace"
 echo "Configuring the pinned JavaScript toolchain..."
 if ! command -v pnpm >/dev/null 2>&1; then
   sudo corepack enable
-  corepack prepare pnpm@10.18.1 --activate
+  corepack prepare pnpm@10.34.5 --activate
 fi
 
 echo "Installing workspace dependencies from the frozen lockfile..."

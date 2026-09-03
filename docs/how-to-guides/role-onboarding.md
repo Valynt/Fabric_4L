@@ -23,7 +23,7 @@ Use this quick map when onboarding to Value Fabric. Each role includes:
 ```bash
 infisical login
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
 make setup
 pnpm env:dev

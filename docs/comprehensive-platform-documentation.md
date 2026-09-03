@@ -860,7 +860,7 @@ System Admin → Tenant Admin → Analyst/Developer → Viewer
 ### Prerequisites
 
 - Python 3.11+
-- Node.js ≥ 22.12.0 and pnpm 10.18.1
+- Node.js ≥ 22.12.0 and pnpm 10.34.5
 - Docker + Docker Compose (v2)
 - `make`
 
@@ -872,7 +872,7 @@ git clone https://github.com/bmsull560/Fabric_4L.git && cd Fabric_4L
 
 # 2. Enable pnpm and install dependencies
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
 
 # 3. Setup Python service dependencies
@@ -1082,7 +1082,7 @@ git clone https://github.com/bmsull560/Fabric_4L.git && cd Fabric_4L
 
 # 2. Enable pnpm and install dependencies
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
 
 # 3. Setup Python service dependencies

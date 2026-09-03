@@ -2,8 +2,8 @@
 
 Canonical Copy-Pasteable Commands for Build, Deploy, Test, and Operations.
 
-**Context:** Vite/React frontend, Python FastAPI backend services, PostgreSQL, Redis, Neo4j, Docker Compose, Kubernetes  
-**Monorepo Standard:** pnpm 10.18.1 (Node.js ≥ 22.12.0), Python 3.11+, Docker Compose v2 (`docker compose`)  
+**Context:** Vite/React frontend, Python FastAPI backend services, PostgreSQL, Redis, Neo4j, Docker Compose, Kubernetes
+**Monorepo Standard:** pnpm 10.34.5 (Node.js ≥ 22.12.0), Python 3.11+, Docker Compose v2 (`docker compose`)
 **Assumptions:** Repository root at `Fabric_4L/`, frontend at `apps/web/`, backend services at `services/layer*-*/`, shared package at `packages/shared/`
 
 ---
@@ -239,7 +239,7 @@ make typecheck-layer4
 
 ## 3. Frontend Build & Startup
 
-The monorepo uses **pnpm** exclusively (`corepack prepare pnpm@10.18.1 --activate`). Do not use `npm` or `yarn`.
+The monorepo uses **pnpm** exclusively (`corepack prepare pnpm@10.34.5 --activate`). Do not use `npm` or `yarn`.
 
 ### 3.1 Install & Build
 
@@ -650,7 +650,7 @@ make lint && make typecheck && make test && echo "✅ Backend pipeline complete"
 ```bash
 # 1. Enable pnpm via corepack
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 
 # 2. Install frontend & workspace dependencies
 pnpm install --frozen-lockfile

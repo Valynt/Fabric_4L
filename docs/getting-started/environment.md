@@ -530,10 +530,10 @@ Use this sequence to match CI prerequisites and execution order:
 ```bash
 # 1) Toolchain parity
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 python3 --version  # expected: 3.11.x
 node --version     # expected: 22.x
-pnpm --version     # expected: 10.18.1
+pnpm --version     # expected: 10.34.5
 
 # 2) Install JavaScript dependencies
 pnpm install --frozen-lockfile

@@ -5,7 +5,7 @@
 ## Important notes
 
 - This is a **contract-first, tenant-safe, layered, provider-agnostic** monorepo. Preserve API contracts, tenant isolation, and layer boundaries when making changes.
-- The repository is **pnpm-only** (pinned `pnpm@10.18.1`). Never use `npm install` or `yarn install`.
+- The repository is **pnpm-only** (pinned `pnpm@10.34.5`). Never use `npm install` or `yarn install`.
 - Backend services require **Python 3.11+**. The `Makefile` is the canonical build, test, migration, and release-gate interface.
 - Frontend changes (`apps/web/`) are governed by `DESIGN.md` — required reading before editing.
 - Tenant isolation, auth, RBAC, and governance middleware are first-class invariants and must never be weakened.
