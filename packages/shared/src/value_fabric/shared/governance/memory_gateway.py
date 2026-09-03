@@ -16,11 +16,17 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 from value_fabric.shared.audit.emitter import emit_audit_event
-from value_fabric.shared.audit.models import AuditAction, AuditOutcome, MemoryAccessRecord
+from value_fabric.shared.audit.models import (
+    AuditAction,
+    AuditOutcome,
+    MemoryAccessRecord,
+)
 from value_fabric.shared.crypto.canonical import canonical_hash
+
+from .facade import PolicyDecisionFacade
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +52,7 @@ class MemoryGateway:
         agent_id: str | None = None,
         trace_id: str | None = None,
         source_blocklist: list[str] | set[str] | None = None,
+        policy_facade: PolicyDecisionFacade | None = None,
     ) -> None:
         self._engine = retrieval_engine
         self._tenant_id = tenant_id
@@ -53,6 +60,56 @@ class MemoryGateway:
         self._trace_id = trace_id
         self._source_blocklist: set[str] = set(source_blocklist or [])
         self._access_log: list[dict[str, Any]] = []
+        self._policy_facade = policy_facade
+
+    @staticmethod
+    def _decision_allows(decision: object) -> bool:
+        """Normalize a policy-facade decision into an allow/deny boolean.
+
+        Accepts the canonical ``Decision`` as well as duck-typed stand-ins
+        used in tests, and fails closed (returns False) for unknown shapes.
+        """
+        effect = getattr(decision, "effect", None)
+        if effect is not None:
+            value = getattr(effect, "value", effect)
+            if isinstance(value, str):
+                normalized = value.strip().upper()
+                if normalized in {"ALLOW", "ALLOWED"}:
+                    return True
+                if normalized in {"DENY", "DENIED", "INDETERMINATE"}:
+                    return False
+
+        allowed = getattr(decision, "allowed", None)
+        if isinstance(allowed, bool):
+            return allowed
+        denied = getattr(decision, "denied", None)
+        if isinstance(denied, bool):
+            return not denied
+        indeterminate = getattr(decision, "indeterminate", None)
+        if isinstance(indeterminate, bool):
+            return not indeterminate
+
+        return False
+
+    async def _enforce_policy(self, *, action: str, resource: str, input_data: dict[str, object]) -> None:
+        """Fail closed before a memory call is allowed through."""
+        tenant_id = self._tenant_id.strip() if isinstance(self._tenant_id, str) else self._tenant_id
+        if not tenant_id or tenant_id in {"unknown", "None", "null"}:
+            raise PermissionError("Memory access denied: tenant context is required.")
+        if self._policy_facade is None:
+            raise PermissionError("Memory access denied: policy enforcement is unavailable.")
+
+        decision = await self._policy_facade.evaluate_action(
+            action=action,
+            resource=resource,
+            tenant_id=self._tenant_id,
+            actor_id=self._agent_id,
+            input_data=input_data,
+            trace_id=self._trace_id,
+        )
+        if not self._decision_allows(decision):
+            reason = getattr(decision, "reason", None) or "Policy denied"
+            raise PermissionError(f"Memory access denied: {reason}")
 
     @property
     def access_log(self) -> list[dict[str, Any]]:
@@ -84,6 +141,18 @@ class MemoryGateway:
         Returns:
             Retrieval result with provenance metadata added.
         """
+        await self._enforce_policy(
+            action="memory.query",
+            resource="memory",
+            input_data={
+                "query_text": query_text,
+                "entity_type": entity_type,
+                "max_hops": max_hops,
+                "min_confidence": min_confidence,
+                "max_results": max_results,
+            },
+        )
+
         # Execute retrieval
         result = await self._engine.query(
             query_text=query_text,
@@ -170,6 +239,16 @@ class MemoryGateway:
         Returns:
             Entity context with provenance metadata.
         """
+        await self._enforce_policy(
+            action="memory.entity_context",
+            resource=f"entity:{entity_id}",
+            input_data={
+                "entity_id": entity_id,
+                "hops": hops,
+                "relationship_types": relationship_types,
+            },
+        )
+
         result = await self._engine.get_entity_context(
             entity_id=entity_id,
             tenant_id=self._tenant_id,
@@ -246,16 +325,17 @@ class MemoryGateway:
         return bool(source_id and source_id in blocklist)
 
     @staticmethod
-    def _build_source_lineage(result_dict: dict[str, Any]) -> list[dict[str, Any]]:
+    def _build_source_lineage(result_dict: dict[str, object]) -> list[dict[str, object]]:
         """Extract source lineage from retrieval results."""
-        lineage: list[dict[str, Any]] = []
+        lineage: list[dict[str, object]] = []
 
         # Extract from sources list
-        for source in result_dict.get("sources", []):
+        for source in cast(list[object], result_dict.get("sources") or []):
             lineage.append({"source": source, "type": "graph_source"})
 
         # Extract entity IDs as lineage
-        for entity in result_dict.get("entities", [])[:5]:  # Cap at 5
+        entities = cast(list[dict[str, object]], result_dict.get("entities") or [])
+        for entity in entities[:5]:  # Cap at 5
             entity_id = entity.get("id") or entity.get("name", "unknown")
             lineage.append({"entity_id": str(entity_id), "type": "entity"})
 
@@ -265,7 +345,7 @@ class MemoryGateway:
         self,
         query: str,
         content_hash: str,
-        source_lineage: list[dict[str, Any]],
+        source_lineage: list[dict[str, object]],
         entity_count: int,
         relationship_count: int,
     ) -> None:
