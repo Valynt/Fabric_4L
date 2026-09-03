@@ -182,7 +182,10 @@ class TestWhitespaceAnalysisWorkflow:
     async def test_identify_gaps_returns_complete_result(self) -> None:
         """_execute_identify_gaps must return a result with all required fields."""
         registry = _make_mock_tool_registry()
-        workflow = WhitespaceAnalysisWorkflow(tool_registry=registry)
+        workflow = WhitespaceAnalysisWorkflow(
+            tool_registry=registry,
+            tool_gateway=_make_passthrough_gateway(registry),
+        )
 
         input_data = {
             "prospect_id": "p-001",
@@ -452,7 +455,10 @@ class TestBusinessCaseGeneratorWorkflow:
                 return BusinessCaseGeneratorWorkflowMockExecuteResult.model_validate({"status": "ok"})
 
         registry.execute = AsyncMock(side_effect=mock_execute)
-        workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
+        workflow = BusinessCaseGeneratorWorkflow(
+            tool_registry=registry,
+            tool_gateway=_make_passthrough_gateway(registry),
+        )
 
         # Build a state with pre-populated gather_inputs and run_roi output
         input_data = {
@@ -533,7 +539,10 @@ class TestBusinessCaseGeneratorWorkflow:
             return BusinessCaseGeneratorWorkflowMockExecuteErrorResult.model_validate({"status": "ok"})
 
         registry.execute = AsyncMock(side_effect=mock_execute_error)
-        workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
+        workflow = BusinessCaseGeneratorWorkflow(
+            tool_registry=registry,
+            tool_gateway=_make_passthrough_gateway(registry),
+        )
 
         input_data = {
             "account_id": "550e8400-e29b-41d4-a716-446655440000",
