@@ -209,45 +209,18 @@ def record_enforcement_decision(
 
 
 def init_telemetry(service_name: str, *, endpoint: str | None = None) -> Any | None:
-    import os
+    """Install process tracing via the shared observability platform client."""
+    from value_fabric.shared.observability.platform import configure_platform
 
-    otel_endpoint = endpoint or os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-    if not otel_endpoint:
-        return None
-
-    try:
-        from opentelemetry import trace
-        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-        from opentelemetry.sdk.resources import SERVICE_NAME, Resource
-        from opentelemetry.sdk.trace import TracerProvider
-        from opentelemetry.sdk.trace.export import BatchSpanProcessor
-        from opentelemetry.sdk.trace.sampling import ParentBasedTraceIdRatio
-    except ImportError:
-        return None
-
-    # Configurable sampling ratio via env var; defaults to 0.01 (1%)
-    # in production to avoid trace volume overload.  Set OTEL_SAMPLE_RATIO=1.0
-    # only in development or for targeted high-fidelity debugging.
-    sample_ratio = float(os.getenv("OTEL_SAMPLE_RATIO", "0.01"))
-    resource = Resource.create({SERVICE_NAME: service_name})
-    sampler = ParentBasedTraceIdRatio(sample_ratio)
-    provider = TracerProvider(resource=resource, sampler=sampler)
-    exporter = OTLPSpanExporter(endpoint=f"{otel_endpoint}/v1/traces")
-    provider.add_span_processor(BatchSpanProcessor(exporter))
-    trace.set_tracer_provider(provider)
-    return provider
+    return configure_platform(service_name, endpoint=endpoint).provider
 
 
-def instrument_fastapi_app(app: FastAPI, *, enabled: bool) -> None:
-    if not enabled:
-        return
+def instrument_fastapi_app(app: FastAPI, *, enabled: bool) -> bool:
+    from value_fabric.shared.observability.platform import (
+        instrument_fastapi_app as instrument_platform_app,
+    )
 
-    try:
-        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-    except ImportError:
-        return
-
-    FastAPIInstrumentor.instrument_app(app)
+    return instrument_platform_app(app, enabled=enabled)
 
 
 def build_health_response(
@@ -485,9 +458,15 @@ def create_fabric_app(
         app.state.sentry_enabled = False
 
     if telemetry_service_name is not None:
-        app.state.telemetry_provider = init_telemetry(telemetry_service_name)
+        from value_fabric.shared.observability.platform import (
+            configure_platform,
+            instrument_fastapi_app as instrument_platform_app,
+        )
+
+        telemetry = configure_platform(telemetry_service_name)
+        app.state.telemetry_provider = telemetry.provider
         if instrument_telemetry:
-            instrument_fastapi_app(app, enabled=app.state.telemetry_provider is not None)
+            instrument_platform_app(app, enabled=telemetry.provider is not None)
 
     if pre_core_middleware_hook is not None:
         pre_core_middleware_hook(app)
