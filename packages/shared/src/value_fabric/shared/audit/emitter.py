@@ -209,6 +209,18 @@ def emit_audit_event(
         background_tasks.add_task(AuditEmitter.write_to_db, event, get_db)
     """
     safe_details = _scrub_details(details or {})
+    try:
+        from value_fabric.shared.observability.platform import correlation_fields
+
+        correlated = correlation_fields()
+    except Exception:
+        correlated = {}
+    if request_id is None:
+        request_id = correlated.get("request_id")
+    for key in ("trace_id", "span_id"):
+        value = correlated.get(key)
+        if value and key not in safe_details:
+            safe_details[key] = value
 
     event = AuditEvent(
         action=action,

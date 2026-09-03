@@ -2,10 +2,10 @@
 #
 # Frozen pre-existing TracerProvider/set_tracer_provider call sites outside
 # the shared framework. New entries are not permitted; migrate sites to use
-# the shared `init_telemetry()` in fastapi_framework/app.py.
+# the shared observability platform client (`configure_platform`).
 #
 # Format: <repo-relative-posix-path>:<line>
-services/layer1-ingestion/src/crawler/telemetry.py:102
-services/layer1-ingestion/src/crawler/telemetry.py:74
-services/layer4-agents/src/api/app_factory.py:32
-services/layer4-agents/src/api/app_factory.py:35
+services/layer1-ingestion/src/layer1_ingestion/crawler/telemetry.py:69
+services/layer1-ingestion/src/layer1_ingestion/crawler/telemetry.py:91
+services/layer4-agents/src/layer4_agents/api/app_factory.py:37
+services/layer4-agents/src/layer4_agents/api/app_factory.py:40
