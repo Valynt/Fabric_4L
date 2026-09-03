@@ -7,6 +7,7 @@ from .adapters import (
     InMemoryMemoryAdapter,
     LangGraphWorkflowEngineAdapter,
     LegacyToolRegistryAdapter,
+    ModelProviderBridge,
     PolicyAuthzPort,
 )
 from .context import RuntimeContextVar, current_context, get_tenant_id, with_context
@@ -82,6 +83,7 @@ __all__ = [
     "LegacyToolRegistryAdapter",
     "Message",
     "ModelConfig",
+    "ModelProviderBridge",
     "ModelProviderPort",
     "ModelResponse",
     "MemoryPort",

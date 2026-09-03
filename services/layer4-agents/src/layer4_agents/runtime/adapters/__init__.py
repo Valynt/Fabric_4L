@@ -3,6 +3,7 @@
 from .authz_policy import PolicyAuthzPort
 from .checkpoint_inmemory import InMemoryCheckpointAdapter
 from .memory_inmemory import InMemoryMemoryAdapter
+from .model_provider_bridge import ModelProviderBridge
 from .registry_bridge import LegacyToolRegistryAdapter
 from .workflow_langgraph import LangGraphWorkflowEngineAdapter
 
@@ -11,6 +12,7 @@ __all__ = [
     "InMemoryMemoryAdapter",
     "LangGraphWorkflowEngineAdapter",
     "LegacyToolRegistryAdapter",
+    "ModelProviderBridge",
     "PolicyAuthzPort",
 ]
 

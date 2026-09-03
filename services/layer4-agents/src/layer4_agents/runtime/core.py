@@ -99,6 +99,19 @@ class AgentRuntimeImpl:
         """Register a model provider adapter."""
         self._model_providers[name] = provider
 
+    def get_model_provider(self, name: str) -> ModelProviderPort:
+        """Resolve a registered model provider, failing closed when absent.
+
+        This is the consumption seam for the execution spine and downstream
+        wiring: engine adapters and tools resolve inference providers by name
+        rather than constructing them directly, keeping orchestration
+        provider-agnostic.
+        """
+        try:
+            return self._model_providers[name]
+        except KeyError:
+            raise ProviderNotFoundError(name) from None
+
     async def submit_run(self, request: RunRequest, ctx: RuntimeContext) -> RunEnvelope:
         """Submit a new run after validating tenant context."""
         if not ctx.tenant_id:
