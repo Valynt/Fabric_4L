@@ -13,7 +13,9 @@ Value Fabric uses a layered command hierarchy. The hierarchy is intentional so c
 
 ## Command Precedence
 
-Use `make` for repo-wide build, test, migration, contract, release, and readiness workflows. The Makefile is the de facto build system and the canonical local interface for broad platform gates.
+Use `make` for repo-wide build, test, migration, contract, release, and readiness workflows. The Makefile is the de facto build system during the compatibility window and remains the canonical local interface for broad platform gates during Phases A-C.
+
+Use `pnpm run fabric -- <task>` to exercise the Phase B shadow facade. The 20 routes in `tools/fabric-cli/tasks.json` are the bounded migration surface. Nx may discover additional pnpm workspace scripts, but those inferred targets are not public facade routes and do not change implementation ownership.
 
 Use `pnpm` for JavaScript and TypeScript package management, frontend workspace scripts, root npm-script parity aliases, and local dev commands that need pnpm workspace resolution. This monorepo is pnpm-only; do not use `npm install`, `npm ci`, `yarn install`, or yarn lockfiles in canonical runtime/workspace directories.
 
@@ -31,7 +33,9 @@ The transition follows these rules:
 - Public Make targets are not considered unused merely because repository search finds no caller. Removal requires an announced deprecation, migration telemetry, and two full quarters of compatibility coverage.
 - Required check names, release evidence paths, failure behavior, and GitHub/Depot command parity remain stable throughout the migration.
 
-Phase A introduces no task-runner dependency. It establishes the complete target inventory, consolidates health-ratchet entry points, and adds control-plane drift checks. Phase B adds the facade and representative shadow tasks. Phase C transfers service-owned implementations incrementally. Phase D removes Make only after the sunset gates in ADR-047 have passed.
+Phase A introduces no task-runner dependency. It establishes the complete target inventory, consolidates health-ratchet entry points, and adds control-plane drift checks. Phase B pins Nx, adds the facade and representative shadow tasks, and configures provider-native smoke coverage without changing Make ownership. Phase C transfers service-owned implementations incrementally only after the Phase B parity gates pass. Phase D removes Make only after the sunset gates in ADR-047 have passed.
+
+The facade disables Nx caching, daemon use, and cloud execution for every native route. Unknown safe task names delegate to Make by default during the compatibility period; `FABRIC_LEGACY_MODE=error` disables that fallback for native-path validation. Use `pnpm run fabric -- list` for the exact route and owner map.
 
 ## Public And Internal Interfaces
 

@@ -19,6 +19,8 @@ Every root `package.json` script is a stable public npm-script interface.
 
 | Script | Command | Category |
 |---|---|---|
+| `fabric` | `node tools/fabric-cli/bin/fabric.mjs` | Phase B task-runner facade and Make compatibility bridge |
+| `test:fabric-cli` | `node --test tools/fabric-cli/tests/*.test.mjs` | Task-runner facade contracts |
 | `auth:dev` | `python scripts/dev_auth_seed.py` | Local auth fixture setup |
 | `generate:contracts` | `python scripts/ci/contract_compliance_gate.py --mode full --refresh-only` | Contract generation |
 | `generate:api` | `pnpm --filter ./apps/web run generate:types` | Frontend API types |
@@ -395,6 +397,43 @@ python scripts/ci/run_root_aggregate_checks.py <gate>
 ```
 
 Supported gates are `typecheck`, `lint`, `test`, `security`, `schema`, `isolation`, `crawler`, `router`, `db-migrate-status`, and `all`. Use these commands only for CI parity debugging or when a workflow maps to the Python runner directly.
+
+## Phase B Task Runner Preview
+
+The public Phase B preview is the repository-owned `fabric` facade. Its bounded surface is the 20 routes in `tools/fabric-cli/tasks.json`; the broader Nx project graph may also discover package scripts, but discovery does not transfer ownership or make those tasks part of the facade.
+
+```bash
+pnpm run fabric -- list
+pnpm run fabric -- check-conflict-markers
+pnpm run fabric -- web:typecheck
+```
+
+Use a second delimiter to forward task arguments: `pnpm run fabric -- web:typecheck -- --configuration=ci`. Unknown safe task names delegate to the matching Make target during the compatibility period. Set `FABRIC_LEGACY_MODE=error` when verifying that a path is graph-native and cannot fall back to Make.
+
+| Facade route | Phase B route | Implementation target |
+|---|---|---|
+| `build` | Nx shadow | `web:build` |
+| `check-conflict-markers` | Nx shadow | `fabric-task-runner:check-conflict-markers` |
+| `check-health-ratchets` | Make delegate | `check-health-ratchets` |
+| `check-no-nul-bytes` | Nx shadow | `fabric-task-runner:check-no-nul-bytes` |
+| `contract-tests` | Make delegate | `contract-tests` |
+| `down` | Make delegate | `down` |
+| `lint` | Make delegate | `lint` |
+| `lint-layer1` | Nx shadow | `layer1-ingestion:lint` |
+| `lint-layer4` | Nx shadow | `layer4-agents:lint` |
+| `migrate` | Make delegate | `migrate` |
+| `platform-contract:typecheck` | Nx shadow | `platform-contract:typecheck` |
+| `test` | Make delegate | `test` |
+| `test-frontend` | Nx shadow | `web:test` |
+| `test-layer1` | Nx shadow | `layer1-ingestion:test` |
+| `typecheck` | Make delegate | `typecheck` |
+| `typecheck-layer1` | Nx shadow | `layer1-ingestion:typecheck` |
+| `typecheck-layer4` | Nx shadow | `layer4-agents:typecheck` |
+| `up` | Make delegate | `up` |
+| `verify` | Make delegate | `verify` |
+| `web:typecheck` | Nx shadow | `web:typecheck` |
+
+All graph routes run with Nx cache, daemon, and cloud execution disabled. Linux CI compares the Make and graph exit status for both static checks and records `artifacts/task-runner/shadow-parity.json`. The native Windows smoke covers task discovery, the facade contracts, both static repository checks, and the platform-contract and web typechecks. The Layer 1/Layer 4 service routes remain Linux shadow routes until a later cohort proves their Windows dependencies.
 
 ## CI To Local Mapping
 

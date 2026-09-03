@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "tasks": {
+    "build": {
+      "kind": "nx",
+      "target": "web:build"
+    },
+    "check-conflict-markers": {
+      "kind": "nx",
+      "target": "fabric-task-runner:check-conflict-markers"
+    },
+    "check-health-ratchets": {
+      "kind": "make_delegate",
+      "target": "check-health-ratchets"
+    },
+    "check-no-nul-bytes": {
+      "kind": "nx",
+      "target": "fabric-task-runner:check-no-nul-bytes"
+    },
+    "contract-tests": {
+      "kind": "make_delegate",
+      "target": "contract-tests"
+    },
+    "down": {
+      "kind": "make_delegate",
+      "target": "down"
+    },
+    "lint": {
+      "kind": "make_delegate",
+      "target": "lint"
+    },
+    "lint-layer1": {
+      "kind": "nx",
+      "target": "layer1-ingestion:lint"
+    },
+    "lint-layer4": {
+      "kind": "nx",
+      "target": "layer4-agents:lint"
+    },
+    "migrate": {
+      "kind": "make_delegate",
+      "target": "migrate"
+    },
+    "platform-contract:typecheck": {
+      "kind": "nx",
+      "target": "platform-contract:typecheck"
+    },
+    "test": {
+      "kind": "make_delegate",
+      "target": "test"
+    },
+    "test-frontend": {
+      "kind": "nx",
+      "target": "web:test"
+    },
+    "test-layer1": {
+      "kind": "nx",
+      "target": "layer1-ingestion:test"
+    },
+    "typecheck": {
+      "kind": "make_delegate",
+      "target": "typecheck"
+    },
+    "typecheck-layer1": {
+      "kind": "nx",
+      "target": "layer1-ingestion:typecheck"
+    },
+    "typecheck-layer4": {
+      "kind": "nx",
+      "target": "layer4-agents:typecheck"
+    },
+    "up": {
+      "kind": "make_delegate",
+      "target": "up"
+    },
+    "verify": {
+      "kind": "make_delegate",
+      "target": "verify"
+    },
+    "web:typecheck": {
+      "kind": "nx",
+      "target": "web:typecheck"
+    }
+  }
+}

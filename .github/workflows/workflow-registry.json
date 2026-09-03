@@ -743,6 +743,7 @@
         "artifacts/shared-boundary-surfaces.txt",
         "artifacts/shared-imports-runtime.json",
         "artifacts/structural-preflight.json",
+        "artifacts/task-runner/shadow-parity.json",
         "artifacts/tenant-isolation/summary.json",
         "artifacts/test-debt-governance.json",
         "artifacts/test-debt-governance.md",

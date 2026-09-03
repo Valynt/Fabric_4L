@@ -5,6 +5,8 @@
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",
   "scripts": {
+    "fabric": "node tools/fabric-cli/bin/fabric.mjs",
+    "test:fabric-cli": "node --test tools/fabric-cli/tests/*.test.mjs",
     "auth:dev": "python scripts/dev_auth_seed.py",
     "generate:contracts": "python scripts/ci/contract_compliance_gate.py --mode full --refresh-only",
     "generate:api": "pnpm --filter ./apps/web run generate:types",
@@ -132,5 +134,8 @@
     "patchedDependencies": {
       "brace-expansion@5.0.9": "patches/brace-expansion@5.0.9.patch"
     }
+  },
+  "devDependencies": {
+    "nx": "23.1.2"
   }
 }

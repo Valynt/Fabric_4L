@@ -75,6 +75,7 @@ artifacts/pytest-check-alembic/
 # Node.js (if used at root)
 node_modules/
 .pnpm-store/
+.nx/
 
 # Python artifacts at root
 __pycache__/

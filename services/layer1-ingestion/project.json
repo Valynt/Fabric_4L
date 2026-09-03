@@ -1,0 +1,35 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "layer1-ingestion",
+  "projectType": "application",
+  "sourceRoot": "services/layer1-ingestion/src",
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "ruff check src/",
+        "cwd": "services/layer1-ingestion",
+        "forwardAllArgs": true
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "python scripts/ci/check_mypy_typed_core.py --service-dir services/layer1-ingestion && python scripts/ci/check_mypy_baseline.py --service-dir services/layer1-ingestion --baseline config/ci/mypy_baseline_layer1.json --paths src",
+        "cwd": ".",
+        "forwardAllArgs": true
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "python -m pytest -v --tb=short --basetemp=../../.tmp/pytest-layer1 -m \"not integration and not postgres and not requires_postgres and not benchmark\" tests/unit",
+        "cwd": "services/layer1-ingestion",
+        "forwardAllArgs": true
+      }
+    }
+  }
+}

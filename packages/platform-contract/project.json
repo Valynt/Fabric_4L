@@ -1,0 +1,17 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "platform-contract",
+  "projectType": "library",
+  "sourceRoot": "packages/platform-contract/src",
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "pnpm run typecheck",
+        "cwd": "packages/platform-contract",
+        "forwardAllArgs": true
+      }
+    }
+  }
+}

@@ -15,6 +15,8 @@ related: ["../../development/BUILD_SYSTEM", "../../development/COMMANDS"]
 
 **Deciders:** Platform Architecture, SRE, and repository maintainers
 
+**Implementation status:** The Phase A controls and Phase B shadow bridge are implemented by the initial DP-3 change series. No Make compatibility target or workflow gate has transferred ownership; Phase C remains gated on passing shadow parity, provider-native smoke coverage, and per-task rollback evidence.
+
 ## Context
 
 The root Makefile is a 76 KB, Bash-bound control plane with 236 named targets, 233 of them public. It supports contributor workflows, CI, release certification, production-readiness gates, and evidence generation. Its size and global `.ONESHELL`/`/bin/bash` assumptions impose onboarding and portability costs, but an abrupt replacement would put required checks and release contracts at unacceptable risk.
@@ -65,6 +67,7 @@ Nx caching is disabled by default. A task may enable caching only after all inpu
 - GitHub and Depot workflow task commands migrate in lockstep.
 - Shadow validation compares exit status, failure behavior, artifacts, environment/argument precedence, dependency order, and skip semantics.
 - A Windows claim requires a native Windows CI job that runs the migrated set with legacy fallback disabled and without Make, Bash, or WSL.
+- The checked-in `tools/fabric-cli/tasks.json` manifest, not Nx's auto-discovered workspace graph, defines the bounded facade and migration surface.
 - Release-factory migration is a separate P0 workstream. It must atomically preserve launch-contract commands, production policy IDs, release-step provenance, evidence schemas, and rollback behavior.
 - A public compatibility command may be removed only after two full quarters of documented deprecation and evidence of no remaining use.
 

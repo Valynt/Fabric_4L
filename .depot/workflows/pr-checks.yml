@@ -2420,6 +2420,62 @@ jobs:
           name: behavior-readiness-audit-report
           path: artifacts/readiness/behavior-readiness-audit.json
           retention-days: 14
+  task-runner-native-smoke:
+    name: Task Runner Native Smoke
+    runs-on: depot-ubuntu-latest # Depot CI provides Linux sandboxes; Windows coverage runs in GitHub Actions.
+    timeout-minutes: 15
+    needs: change-scope
+    if: needs.change-scope.outputs.ci-global == 'true' || needs.change-scope.outputs.ci-tooling == 'true' || needs.change-scope.outputs.deps == 'true'
+    env:
+      CYPRESS_INSTALL_BINARY: "0"
+      FABRIC_LEGACY_MODE: error
+      NX_DAEMON: "false"
+      NX_NO_CLOUD: "true"
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: "3.11"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        with:
+          version: "10.18.1"
+      - name: Set up Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        with:
+          node-version: "22.22.2"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Test the task runner
+        run: pnpm run test:fabric-cli
+      - name: List task routes
+        run: pnpm run fabric -- list
+      - name: Validate static shadow parity
+        if: runner.os == 'Linux'
+        run: python scripts/ci/check_task_runner_shadow_parity.py
+      - name: Upload static shadow parity evidence
+        if: always() && runner.os == 'Linux'
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: task-runner-shadow-parity
+          path: artifacts/task-runner/shadow-parity.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Check conflict markers through the graph
+        run: pnpm run fabric -- check-conflict-markers
+      - name: Check NUL bytes through the graph
+        run: pnpm run fabric -- check-no-nul-bytes
+      - name: Typecheck the platform contract through the graph
+        run: pnpm run fabric -- platform-contract:typecheck
+      - name: Typecheck the web app through the graph
+        run: pnpm run fabric -- web:typecheck
+      - name: Discover the Layer 1 pilot project
+        run: pnpm exec nx show project layer1-ingestion --json
+      - name: Discover the Layer 4 pilot project
+        run: pnpm exec nx show project layer4-agents --json
   gate-engineering:
     name: Gate Engineering Validation
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
@@ -2505,6 +2561,7 @@ jobs:
       - pr-overlap-guard
       - governance-docs-check
       - gate-engineering
+      - task-runner-native-smoke
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       - name: Summarize repository-integrity gates
@@ -2513,10 +2570,12 @@ jobs:
           # pr-overlap-guard only runs on pull_request events; on push and
           # merge_group there is no overlapping PR to guard against.
           SKIPSAFE_PR_OVERLAP_GUARD: ${{ github.event_name != 'pull_request' }}
+          SKIPSAFE_TASK_RUNNER: ${{ needs.change-scope.outputs.ci-global == 'false' && needs.change-scope.outputs.ci-tooling == 'false' && needs.change-scope.outputs.deps == 'false' }}
         run: |
           python3 scripts/ci/aggregate_gate.py \
             --needs-json "$NEEDS_JSON" \
-            --skip-safe pr-overlap-guard=SKIPSAFE_PR_OVERLAP_GUARD
+            --skip-safe pr-overlap-guard=SKIPSAFE_PR_OVERLAP_GUARD \
+            --skip-safe task-runner-native-smoke=SKIPSAFE_TASK_RUNNER
   aggregate-02-code-quality-and-tests:
     name: 02-code-quality-and-tests
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
