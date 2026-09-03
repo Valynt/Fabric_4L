@@ -2,10 +2,10 @@
 """Validate ADR registry, indexes, numbering, and related-code links."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from pathlib import Path
 import re
 import sys
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -68,7 +68,7 @@ def normalize_status(raw: str) -> str:
         return "superseded"
     if text.startswith("deprecated"):
         return "deprecated"
-    if text.startswith("proposed") or text.startswith("draft"):
+    if text.startswith(("proposed", "draft")):
         return "proposed"
     if text.startswith("accepted"):
         return "accepted"

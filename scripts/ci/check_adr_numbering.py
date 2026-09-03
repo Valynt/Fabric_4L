@@ -2,10 +2,9 @@
 """Validate ADR numbering and filename/header consistency."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
-import re
-import sys
 
 ADR_FILENAME_RE = re.compile(r"^ADR-(\d{3})-[a-z0-9][a-z0-9-]*\.md$")
 ADR_HEADER_RE = re.compile(r"^#\s+ADR-(\d{3}):\s+.+$")
