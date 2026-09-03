@@ -1,6 +1,6 @@
 {
   "goal_id": "phase6-runtime-hardening",
-  "status": "building",
+  "status": "inspecting",
   "iteration": 2,
   "builder_model": "GPT:5.6-Luna",
   "inspector_model": "GPT:5.6-Sol",
@@ -11,6 +11,11 @@
       "iteration": 1,
       "verdict": "FAIL",
       "summary": "Contract and verify gates fail; orchestration facade/deferral and required tests are incomplete."
+    },
+    {
+      "iteration": 2,
+      "verdict": "FAIL",
+      "summary": "Runtime tests pass, but make verify and contract freshness fail; Layer 7 contains unrelated drift."
     }
   ]
 }
