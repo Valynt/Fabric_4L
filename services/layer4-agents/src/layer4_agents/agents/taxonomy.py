@@ -56,6 +56,7 @@ class AgentType(str, Enum):
     # Orchestration
     CONVERSATION = "ConversationAgent"
     ORCHESTRATION = "OrchestrationController"
+    AUDIT_ORCHESTRATOR = "AuditOrchestrator"
 
     # ── Deprecated aliases (kept for backward compatibility) ──
     DOCUMENT_INGESTION = "DocumentIngestionAgent"
