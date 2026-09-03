@@ -72,7 +72,11 @@ from .checkpoint_replay import (
     resolve_resume_policy,
 )
 from .execution_checkpointing import persist_interruption_if_needed
-from .execution_dispatch import build_workflow_task, initialize_workflow_run_context
+from .execution_dispatch import (
+    build_orchestration_tool_gateway,
+    build_workflow_task,
+    initialize_workflow_run_context,
+)
 from .execution_helpers import (
     build_lifecycle_context,
     calculate_progress,
@@ -716,14 +720,6 @@ class OrchestrationController:
         schedule_id = f"sched-{datetime.now(UTC).timestamp()}"
 
         execute_time = scheduled_time or datetime.now(UTC)
-        workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
-        initial_state = workflow.create_initial_state(
-            input_data,
-            tenant_id=tenant_id,
-        )
-        initial_state.workflow_id = schedule_id
-        initial_state.status = WorkflowStatus.PENDING
-        initial_state.started_at = execute_time
 
         # Generate canonical run envelope for scheduled workflows
         from uuid import uuid4
@@ -732,6 +728,23 @@ class OrchestrationController:
 
         run_id = str(uuid4())
         trace_id = str(uuid4())
+
+        tool_gateway = build_orchestration_tool_gateway(
+            registry=self.tool_registry,
+            tenant_id=tenant_id,
+            trace_id=trace_id,
+        )
+        workflow = create_workflow(
+            workflow_type, self.tool_registry, self.checkpoint_saver, tool_gateway=tool_gateway
+        )
+        initial_state = workflow.create_initial_state(
+            input_data,
+            tenant_id=tenant_id,
+        )
+        initial_state.workflow_id = schedule_id
+        initial_state.status = WorkflowStatus.PENDING
+        initial_state.started_at = execute_time
+
         envelope = RunEnvelope(
             run_id=run_id,
             workflow_id=schedule_id,
@@ -1104,8 +1117,18 @@ class OrchestrationController:
         if not workflow_type:
             raise WorkflowExecutionError(f"No workflow type found for {workflow_id}")
 
-        # Re-create workflow with checkpoint saver.
-        workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
+        # Re-create workflow with checkpoint saver and policy-enforced gateway.
+        resume_trace_id = (
+            state.run_envelope.trace_id if state.run_envelope else state.trace_id
+        )
+        tool_gateway = build_orchestration_tool_gateway(
+            registry=self.tool_registry,
+            tenant_id=state.tenant_id or None,
+            trace_id=resume_trace_id,
+        )
+        workflow = create_workflow(
+            workflow_type, self.tool_registry, self.checkpoint_saver, tool_gateway=tool_gateway
+        )
 
         # Update metadata
         metadata["resumed_at"] = datetime.now(UTC).isoformat()
@@ -1211,7 +1234,17 @@ class OrchestrationController:
         if not workflow_type:
             raise WorkflowExecutionError(f"No workflow type found for {workflow_id}")
 
-        workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
+        resume_trace_id = (
+            state.run_envelope.trace_id if state.run_envelope else state.trace_id
+        )
+        tool_gateway = build_orchestration_tool_gateway(
+            registry=self.tool_registry,
+            tenant_id=state.tenant_id or None,
+            trace_id=resume_trace_id,
+        )
+        workflow = create_workflow(
+            workflow_type, self.tool_registry, self.checkpoint_saver, tool_gateway=tool_gateway
+        )
 
         metadata["resumed_at"] = datetime.now(UTC).isoformat()
         metadata["resumed_by"] = user_id
