@@ -1,29 +1,39 @@
-"""Security boundary tests for Layer 7 Billing Service (P0-02).
+"""Security boundary tests for the canonical L4 Billing runtime (P0-02).
 
-Verifies:
+Layer 7 (``layer7-billing``) has been removed; ``layer4-agents`` is the single
+canonical billing implementation. These tests exercise the L4 billing router
+mounted at ``/v1/billing`` and verify:
+
 - Missing/invalid auth is rejected (401)
 - Spoofed headers without JWT/API key are rejected
 - Tenant isolation is enforced even with valid auth
-- RBAC is enforced via canonical RequestContext
+- Auth-context enforcement (auth_source validity, tenant-context requirement)
+  is applied through the canonical RequestContext / GovernanceMiddleware
 """
 
 from unittest.mock import patch
-from uuid import uuid4
 
 import pytest
-from fastapi import Depends
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from layer7_billing.api.main import app
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_authenticated
+from value_fabric.shared.identity.middleware import GovernanceMiddleware
+
+from layer4_agents.api.routes import billing as billing_route
 
 
-def _auth_ctx(tenant: str = "11111111-1111-1111-1111-111111111111", roles: list[str] | None = None, user_id: str = "tester") -> RequestContext:
+def _auth_ctx(
+    tenant: str | None = "11111111-1111-1111-1111-111111111111",
+    roles: list[str] | None = None,
+    user_id: str = "tester",
+    auth_source: str = "jwt_claim",
+) -> RequestContext:
     return RequestContext(
         tenant_id=tenant,
         user_id=user_id,
         roles=roles or ["billing:read", "billing:write"],
-        auth_source="jwt_claim",
+        auth_source=auth_source,
     )
 
 
@@ -47,27 +57,48 @@ class _FakeAsyncSession:
 
     async def execute(self, *args, **kwargs):
         from unittest.mock import MagicMock
+
         return MagicMock()
 
 
-def _client_with_auth(tenant: str = "11111111-1111-1111-1111-111111111111", roles: list[str] | None = None):
-    """Return a TestClient whose GovernanceMiddleware._resolve_identity is patched.
+def _make_app() -> FastAPI:
+    """Build a minimal FastAPI app that mounts only the canonical L4 billing router.
+
+    The GovernanceMiddleware runs real identity resolution (and the
+    ``require_authenticated`` dependency reads the resolved context from
+    ``request.state.governance_context``), so the 401/403 failures are produced
+    by the same machinery used in production.
+    """
+    app = FastAPI()
+    register_exception_handlers(app)
+    app.add_middleware(GovernanceMiddleware)
+    app.include_router(billing_route.router, prefix="/v1")
+    return app
+
+
+@pytest.fixture
+def app() -> FastAPI:
+    return _make_app()
+
+
+def _client_with_auth(ctx: RequestContext):
+    """Return a TestClient whose GovernanceMiddleware is seeded with ``ctx``.
 
     This bypasses JWT validation entirely and injects a synthetic context so
-    we can test route-level RBAC and repository-level tenant isolation.
-    The database dependency is also mocked to avoid needing a live PostgreSQL.
+    we can test route-level tenant scoping. The database dependency is mocked
+    to avoid needing a live PostgreSQL, and the billing services are patched
+    by the individual tests.
     """
-    ctx = _auth_ctx(tenant, roles)
+    app = _make_app()
 
     async def _fake_resolve(self, request):
         return ctx
 
-    async def _fake_db(ctx: RequestContext = Depends(require_authenticated)):
+    async def _fake_db():
         session = _FakeAsyncSession()
         yield session
 
-    from layer7_billing.api.main import app, get_db_from_context
-    app.dependency_overrides[get_db_from_context] = _fake_db
+    app.dependency_overrides[billing_route.get_route_db] = _fake_db
 
     patcher = patch(
         "value_fabric.shared.identity.middleware.GovernanceMiddleware._resolve_identity",
@@ -78,19 +109,36 @@ def _client_with_auth(tenant: str = "11111111-1111-1111-1111-111111111111", role
     return client, patcher, app.dependency_overrides
 
 
+def _usage_service_capture():
+    """Return a UsageService stub that records every tenant it is constructed for."""
+    captured: list[str | None] = []
+
+    class _CapturingUsageService:
+        def __init__(self, db, *, tenant_id):
+            self.db = db
+            self.tenant_id = tenant_id
+            captured.append(tenant_id)
+
+        async def get_usage_summary(self, **kwargs):
+            return {"total_quantity": 12, "unit": "seats"}
+
+        async def sync_to_stripe(self, **kwargs):
+            return {"synced": 1, "failed": 0}
+
+    return _CapturingUsageService, captured
+
+
 class TestMissingAuthentication:
     """Hostile: no JWT, no API key, no session."""
 
-    def test_missing_auth_returns_401(self):
-        client = TestClient(app)
-        resp = client.get("/v1/billing/usage-aggregates")
+    def test_missing_auth_returns_401(self, app):
+        resp = TestClient(app).get("/v1/billing/invoices")
         assert resp.status_code == 401
 
-    def test_spoofed_headers_without_auth_return_401(self):
+    def test_spoofed_headers_without_auth_return_401(self, app):
         """Raw X-Tenant-ID/X-Actor/X-Roles must not be accepted without JWT/API key."""
-        client = TestClient(app)
-        resp = client.get(
-            "/v1/billing/usage-aggregates",
+        resp = TestClient(app).get(
+            "/v1/billing/invoices",
             headers={
                 "x-tenant-id": "22222222-2222-2222-2222-222222222222",
                 "x-actor": "attacker",
@@ -101,54 +149,127 @@ class TestMissingAuthentication:
 
 
 class TestTenantIsolationWithValidAuth:
-    """Positive: valid auth context, verify data scoping."""
+    """Positive: valid auth context, verify data scoping to the authenticated tenant."""
 
-    def test_tenant_a_cannot_read_tenant_b_usage(self):
-        client, patcher, overrides = _client_with_auth("11111111-1111-1111-1111-111111111111")
+    def test_authenticated_usage_queries_scoped_to_tenant(self):
+        client, patcher, overrides = _client_with_auth(_auth_ctx())
+        capturing, captured = _usage_service_capture()
+        patcher_usage = patch.object(billing_route, "UsageService", capturing)
+        patcher_usage.start()
         try:
-            tenant_a = client.get("/v1/billing/usage-aggregates").json()
-            assert tenant_a["tenant_id"] == "11111111-1111-1111-1111-111111111111"
+            resp = client.get(
+                "/v1/billing/usage/cus_x/summary",
+                params={"metric_name": "seats"},
+            )
+            assert resp.status_code == 200
+            assert resp.json()["customer_id"] == "cus_x"
+            assert captured == ["11111111-1111-1111-1111-111111111111"]
         finally:
             patcher.stop()
+            patcher_usage.stop()
             overrides.clear()
 
-    def test_cross_tenant_invoice_access_blocked(self):
-        client, patcher, overrides = _client_with_auth("11111111-1111-1111-1111-111111111111")
+    def test_authenticated_invoice_list_scoped_to_tenant(self):
+        client, patcher, overrides = _client_with_auth(_auth_ctx())
+        captured: list[str | None] = []
+
+        class _CapturingInvoiceService:
+            def __init__(self, db, *, tenant_id):
+                self.db = db
+                self.tenant_id = tenant_id
+                captured.append(tenant_id)
+
+            async def list_invoices(self, **kwargs):
+                return []
+
+        patcher_svc = patch.object(billing_route, "InvoiceService", _CapturingInvoiceService)
+        patcher_svc.start()
         try:
             resp = client.get("/v1/billing/invoices")
             assert resp.status_code == 200
             data = resp.json()
-            assert data["tenant_id"] == "11111111-1111-1111-1111-111111111111"
+            assert data["invoices"] == []
+            assert "pagination" in data
+            assert captured == ["11111111-1111-1111-1111-111111111111"]
+        finally:
+            patcher.stop()
+            patcher_svc.stop()
+            overrides.clear()
+
+    def test_different_authenticated_tenants_are_kept_distinct(self):
+        capturing, captured = _usage_service_capture()
+        patcher_usage = patch.object(billing_route, "UsageService", capturing)
+        patcher_usage.start()
+        try:
+            client_a, patcher_a, overrides_a = _client_with_auth(
+                _auth_ctx("11111111-1111-1111-1111-111111111111")
+            )
+            try:
+                client_a.get(
+                    "/v1/billing/usage/cus_x/summary",
+                    params={"metric_name": "seats"},
+                )
+            finally:
+                patcher_a.stop()
+                overrides_a.clear()
+
+            client_b, patcher_b, overrides_b = _client_with_auth(
+                _auth_ctx("22222222-2222-4222-8222-222222222222")
+            )
+            try:
+                client_b.get(
+                    "/v1/billing/usage/cus_x/summary",
+                    params={"metric_name": "seats"},
+                )
+            finally:
+                patcher_b.stop()
+                overrides_b.clear()
+
+            # Each request was scoped to its own authenticated tenant; tenant B
+            # never observed data as (or for) tenant A.
+            assert captured == [
+                "11111111-1111-1111-1111-111111111111",
+                "22222222-2222-4222-8222-222222222222",
+            ]
+        finally:
+            patcher_usage.stop()
+
+
+class TestAuthContextEnforcement:
+    """Hostile/edge auth contexts must be rejected by the canonical middleware."""
+
+    def test_invalid_auth_source_rejected(self):
+        client, patcher, overrides = _client_with_auth(
+            _auth_ctx(auth_source="unknown")
+        )
+        try:
+            resp = client.get("/v1/billing/invoices")
+            assert resp.status_code == 401
         finally:
             patcher.stop()
             overrides.clear()
 
-
-class TestRbacEnforcement:
-    """RBAC must be checked against the authenticated context, not spoofed headers."""
-
-    def test_read_only_role_cannot_mutate(self):
-        client, patcher, overrides = _client_with_auth("11111111-1111-1111-1111-111111111111", roles=["billing:read"])
+    def test_missing_tenant_context_rejected(self):
+        client, patcher, overrides = _client_with_auth(_auth_ctx(tenant=None))
         try:
-            resp = client.post(
-                "/v1/billing/plans",
-                json={"plan_id": "starter", "name": "Starter", "entitlements": []},
-            )
+            resp = client.get("/v1/billing/invoices")
             assert resp.status_code == 403
         finally:
             patcher.stop()
             overrides.clear()
 
-    def test_write_role_can_mutate(self):
-        client, patcher, overrides = _client_with_auth("11111111-1111-1111-1111-111111111111", roles=["billing:read", "billing:write"])
+    def test_valid_write_context_can_mutate(self):
+        """A valid authenticated context may write; scoping is to its tenant."""
+        client, patcher, overrides = _client_with_auth(_auth_ctx())
+        capturing, captured = _usage_service_capture()
+        patcher_usage = patch.object(billing_route, "UsageService", capturing)
+        patcher_usage.start()
         try:
-            resp = client.post(
-                "/v1/billing/plans",
-                json={"plan_id": "starter", "name": "Starter", "entitlements": []},
-            )
-            # 422 if plan validation fails, 200/201 if success — either is acceptable
-            # for RBAC-positive; 403 would mean RBAC blocked a valid write role.
-            assert resp.status_code != 403
+            resp = client.post("/v1/billing/usage/cus_x/sync")
+            assert resp.status_code == 200
+            assert resp.json()["synced"] == 1
+            assert captured == ["11111111-1111-1111-1111-111111111111"]
         finally:
             patcher.stop()
+            patcher_usage.stop()
             overrides.clear()

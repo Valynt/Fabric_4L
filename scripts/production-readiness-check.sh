@@ -73,7 +73,6 @@ check_coverage_thresholds() {
   coverage_check services/layer4-agents
   coverage_check services/layer5-ground-truth
   coverage_check services/layer6-benchmarks
-  coverage_check services/layer7-billing 70
 }
 
 echo "=== Fabric_4L Production Readiness Check ==="

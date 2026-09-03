@@ -36,6 +36,8 @@ from ..interfaces.variable_registry import (
 
 logger = logging.getLogger(__name__)
 
+def _read_json_file(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
 
 # Default path to packs directory — resolved relative to repo root at runtime
 # Uses anchor search for "Fabric_4L" to avoid fragility from parents[N]
@@ -49,7 +51,6 @@ def _find_repo_root(start_path: Path) -> Path:
             return parent
     # Last resort: use 7 levels up (original behavior for compatibility)
     return start_path.parents[7]
-
 
 _DEFAULT_PACKS_DIR = _find_repo_root(Path(__file__)) / "packs"
 
@@ -122,10 +123,7 @@ class PackVariableLoader:
         if not manifest_path.exists():
             raise FileNotFoundError(f"pack-manifest.json not found at {manifest_path}")
 
-        def _read_json(p: Path) -> dict:
-            return json.loads(p.read_text(encoding="utf-8"))
-
-        manifest = await asyncio.to_thread(_read_json, manifest_path)
+        manifest = await asyncio.to_thread(_read_json_file, manifest_path)
 
         results: list[PackLoadResult] = []
         for pack_entry in manifest.get("packs", []):
@@ -181,10 +179,7 @@ class PackVariableLoader:
                 f"variables.json not found for pack '{pack_id}' at {variables_path}"
             )
 
-        def _read_json(p: Path) -> dict:
-            return json.loads(p.read_text(encoding="utf-8"))
-
-        data = await asyncio.to_thread(_read_json, variables_path)
+        data = await asyncio.to_thread(_read_json_file, variables_path)
 
         raw_variables: list[dict[str, Any]] = data.get("variables", [])
         loaded = skipped = failed = 0
@@ -251,18 +246,11 @@ class PackVariableLoader:
         if not formulas_path.exists() or not variables_path.exists():
             return [f"Missing formulas.json or variables.json for pack '{pack_id}'"]
 
-        def _read_json(p: Path) -> dict:
-            return json.loads(p.read_text(encoding="utf-8"))
-
-        var_data = await asyncio.to_thread(_read_json, variables_path)
-        formula_data = await asyncio.to_thread(_read_json, formulas_path)
+        var_data = await asyncio.to_thread(_read_json_file, variables_path)
+        formula_data = await asyncio.to_thread(_read_json_file, formulas_path)
 
         # Build set of valid variable names from the pack file
-        valid_names = {
-            v.get("variable_name", "")
-            for v in var_data.get("variables", [])
-            if v.get("variable_name")
-        }
+        valid_names = {v.get("variable_name", "") for v in var_data.get("variables", []) if v.get("variable_name")}
 
         errors: list[str] = []
         for formula in formula_data.get("formulas", []):
@@ -275,7 +263,8 @@ class PackVariableLoader:
             for ref in refs:
                 if ref not in valid_names:
                     errors.append(
-                        f"[{pack_id}] Formula '{formula_id}' references undefined variable '{ref}'"
+                        f"[{pack_id}] Formula '{formula_id}' references "
+                        f"undefined variable '{ref}'"
                     )
         return errors
 
@@ -304,9 +293,7 @@ class PackVariableLoader:
 
         canonical_name = raw.get("canonicalName") or raw.get("variable_name", "")
         if not canonical_name:
-            raise ValueError(
-                f"Variable '{variable_id}' is missing both 'canonicalName' and 'variable_name'"
-            )
+            raise ValueError(f"Variable '{variable_id}' is missing both 'canonicalName' and 'variable_name'")
         display_name = raw.get("display_name") or raw.get("name") or canonical_name
         description = raw.get("description") or display_name
         raw_type = (raw.get("unit") or raw.get("type") or "string").lower()

@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
+
+# Matches URL userinfo like ``scheme://user:pass@host`` or ``scheme://user@host``
+# so broker/database credentials embedded in connection errors are never logged.
+_URL_USERINFO_RE = re.compile(r"([a-zA-Z][a-zA-Z0-9+.-]*://)[^/@\s]*@")
 
 
 def sanitize_log_error(error: BaseException | str, /) -> str:
@@ -23,7 +28,7 @@ def sanitize_log_error(error: BaseException | str, /) -> str:
     ):
         if pattern in lowered:
             return f"[REDACTED: contains {label}]"
-    return redacted
+    return _URL_USERINFO_RE.sub(r"\1***@", redacted)
 
 
 def build_error_detail(

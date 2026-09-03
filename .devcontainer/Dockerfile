@@ -30,16 +30,16 @@ RUN arch="$(dpkg --print-architecture)" \
       | tar -xz -C /usr/local/bin kustomize \
     && curl -fsSL "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-${arch}" -o /usr/local/bin/cosign \
     && chmod 0755 /usr/local/bin/cosign \
-    && curl -1sLf "https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh" | bash \
-    && apt-get update && apt-get install -y infisical
-
+    && curl -fsSL "https://github.com/Infisical/infisical/releases/download/infisical-cli%2Fv${INFISICAL_VERSION}/infisical_${INFISICAL_VERSION}_linux_${arch}.deb" -o /tmp/infisical.deb \
+    && dpkg -i /tmp/infisical.deb \
+    && rm /tmp/infisical.deb
 
 RUN mkdir -p /workspace/Fabric_4L /workspace-support /run/user/1000 /var/tmp \
     && chown -R vscode:vscode /workspace/Fabric_4L /workspace-support /run/user/1000 /var/tmp \
     && chmod 0700 /run/user/1000 \
     && chmod 1777 /var/tmp
 
-ENV PYTHONPATH=/workspace/Fabric_4L/packages/shared/src:/workspace/Fabric_4L/services/api:/workspace/Fabric_4L/services/layer1-ingestion/src:/workspace/Fabric_4L/services/layer2-extraction/src:/workspace/Fabric_4L/services/layer2-5-signal-refinery/src:/workspace/Fabric_4L/services/layer3-knowledge/src:/workspace/Fabric_4L/services/layer4-agents/src:/workspace/Fabric_4L/services/layer5-ground-truth/src:/workspace/Fabric_4L/services/layer6-benchmarks/src:/workspace/Fabric_4L/services/layer7-billing/src
+ENV PYTHONPATH=/workspace/Fabric_4L/packages/shared/src:/workspace/Fabric_4L/services/api:/workspace/Fabric_4L/services/layer1-ingestion/src:/workspace/Fabric_4L/services/layer2-extraction/src:/workspace/Fabric_4L/services/layer2-5-signal-refinery/src:/workspace/Fabric_4L/services/layer3-knowledge/src:/workspace/Fabric_4L/services/layer4-agents/src:/workspace/Fabric_4L/services/layer5-ground-truth/src:/workspace/Fabric_4L/services/layer6-benchmarks/src
 WORKDIR /workspace/Fabric_4L
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD bash -lc 'test -d /workspace/Fabric_4L && test -w /var/tmp'

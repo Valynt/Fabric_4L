@@ -20,7 +20,7 @@ mkdir -p "$OUTPUT_DIR"
 
 LAYERS=()
 if [[ "$LAYER" == "all" ]]; then
-  LAYERS=(api layer1-ingestion layer2-extraction layer2-5-signal-refinery layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks layer7-billing web)
+  LAYERS=(api layer1-ingestion layer2-extraction layer2-5-signal-refinery layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks web)
 else
   LAYERS=("$LAYER")
 fi
