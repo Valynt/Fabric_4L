@@ -106,7 +106,7 @@ VERIFY_CHECKS := check-health-ratchets \
 	check-workflow-matrix check-workflow-references \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
 	check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
-	check-value-fabric-public-imports check-behavior-readiness-audit verify-structure docs-harness
+	check-value-fabric-public-imports check-behavior-readiness-audit check-governance verify-structure docs-harness
 
 verify: $(VERIFY_CHECKS) ## Run all checks before PR
 	@echo "✅  All checks passed"
@@ -876,8 +876,30 @@ check-risk-register: ## Fail on un-countersigned ACCEPTED P0 risks
 debt-baseline-snapshot: ## Aggregate checked-in debt baselines into config/ci/phase0_debt_baseline.json
 	@$(PYTHON) scripts/ci/debt_baseline_snapshot.py
 
-check-health-ratchets: check-conflict-markers check-no-nul-bytes check-type-escape-ratchet check-structural-fitness-ratchet check-dead-code check-legacy-debt check-operational-debt check-behavior-contract check-compatibility-shims check-temporal-skips check-test-skip-register-uniqueness check-reports-evidence-policy check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency check-risk-register ## Run all fail-on-net-new health ratchets (single entry point)
+check-health-ratchets: check-conflict-markers check-no-nul-bytes check-type-escape-ratchet check-structural-fitness-ratchet check-dead-code check-legacy-debt check-operational-debt check-behavior-contract check-compatibility-shims check-temporal-skips check-test-skip-register-uniqueness check-reports-evidence-policy check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency check-risk-register check-shared-duplication ## Run all fail-on-net-new health ratchets (single entry point)
 	@echo "✅  check-health-ratchets passed"
+
+# ─── Architecture Governance ────────────────────────────────────────────────
+
+.PHONY: check-governance check-import-cycles check-architecture-boundaries check-ownership-registry check-shared-duplication check-governance-baseline
+
+check-governance: ## Run the canonical architecture-governance aggregate (import/cycle/DRY + ownership)
+	@$(PYTHON) scripts/ci/check_governance.py
+
+check-import-cycles: ## Import-cycle enforcement via the structural fitness ratchet
+	@$(PYTHON) scripts/ci/check_governance.py --check check-import-cycles
+
+check-architecture-boundaries: ## Architecture boundary ratchet (model/provider gateway)
+	@$(PYTHON) scripts/ci/check_governance.py --check check-architecture-boundaries
+
+check-ownership-registry: ## Enforce ownership and canonical-import registry
+	@$(PYTHON) scripts/ci/check_governance.py --check check-ownership-registry
+
+check-shared-duplication: ## Fail on net-new duplication within packages/shared (DRY ratchet)
+	@$(PYTHON) scripts/ci/check_shared_duplication.py
+
+check-governance-baseline: ## Validate governance baselines are present and regenerable
+	@$(PYTHON) scripts/ci/check_governance.py --check check-governance-baseline
 
 # ─── Developer Setup ─────────────────────────────────────────────────────────
 

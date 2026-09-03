@@ -1,0 +1,6 @@
+{
+  "description": "Baseline of known duplication clusters in packages/shared. Regenerate only after an approved dedup or waiver decision.",
+  "exact_clusters": [],
+  "normalized_clusters": [],
+  "scope": "packages/shared/src/value_fabric/shared/"
+}
