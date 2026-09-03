@@ -2,7 +2,7 @@
 title: "Architecture Decision Records (ADRs)"
 category: "explanations"
 audience: "advanced"
-last-reviewed: "2026-06-23"
+last-reviewed: "2026-08-31"
 freshness: "current"
 related: ["../why-knowledge-graph", "../../core-concepts/architecture", "../../core-concepts/security-model"]
 ---
@@ -76,7 +76,7 @@ An ADR is ready for review only when it includes:
 | [ADR-019](./ADR-019-replayability-event-envelope-and-layer-4-replay-harness.md) | Replayability Event Envelope and Layer 4 Replay Harness | ✅ Accepted | — |
 | [ADR-020](./ADR-020-layer-2-5-signal-refinery.md) | Layer 2.5 Signal Refinery | ✅ Accepted | 2026-05-22 |
 | [ADR-021](./ADR-021-layer-3-canonical-runtime-path.md) | Layer 3 Canonical Runtime Path | ✅ Accepted | 2026-05-13 |
-| [ADR-022](./ADR-022-layer4-internal-decomposition.md) | Layer 4 Internal Decomposition | ✅ Accepted | 2026-05-22 |
+| [ADR-022](./ADR-022-layer4-internal-decomposition.md) | Layer 4 Internal Decomposition | Superseded by Layer 7 billing ownership rationalization | 2026-05-22 |
 | [ADR-023](./ADR-023-billing-service-extraction.md) | Billing Service Extraction | Superseded by Layer 7 ownership rationalization | 2026-05-29 |
 | [ADR-024](./ADR-024-circuit-breaker-inventory.md) | Circuit Breaker Inventory | ✅ Accepted | 2026-05-27 |
 | [ADR-025](./ADR-025-layer-25-signal-refinery.md) | Layer 2.5 Signal Refinery as Official Architecture Extension | ✅ Accepted | 2026-06-10 |
@@ -97,7 +97,11 @@ An ADR is ready for review only when it includes:
 | [ADR-040](./ADR-040-data-ownership-system-of-record.md) | Data Ownership and System of Record | ✅ Accepted | 2026-07-29 |
 | [ADR-041](./ADR-041-canonical-layer1-ingestion-path.md) | Canonical Layer 1 Ingestion Path | ✅ Accepted | 2026-07-29 |
 | [ADR-042](./ADR-042-claim-benchmark-taxonomy-alignment.md) | Claim Type and Benchmark Taxonomy Alignment | ✅ Accepted | 2026-07-29 |
+| [ADR-043](./ADR-043-gateway-token-rewrapping-with-ed25519-internal-envelopes.md) | Gateway Token Re-wrapping with Ed25519 Internal Envelopes | Accepted | 2026-08-20 |
+| [ADR-044](./ADR-044-clerk-organizations-to-fabric-tenants-mapping.md) | 1:1 Mapping Between Clerk Organizations and Fabric Tenants | Accepted | 2026-08-20 |
+| [ADR-045](./ADR-045-dual-auth-migration-and-rollout-strategy.md) | Zero-Downtime Dual-Auth Migration and Rollout Strategy | Accepted | 2026-08-20 |
 | [ADR-046](./ADR-046-event-catalog.md) | Event Catalog — Semantic Inventory of Record for Domain and Integration Events | ✅ Accepted | 2026-08-21 |
+| [ADR-047](./ADR-047-task-graph-build-orchestration.md) | Task-Graph Build Orchestration | Accepted | 2026-08-31 |
 
 ---
 
@@ -165,6 +169,8 @@ Do not create an ADR for routine implementation details, local refactors that do
 
 Every new ADR must include status, date, deciders or owning roles, context, decision, consequences, alternatives considered, related implementation paths, and validation evidence or the gate that will prove the decision.
 
+Register the ADR in [`docs/decisions/adr-registry.yaml`](../../decisions/adr-registry.yaml) with at least one related code path. Accepted entries may also declare `must_contain` / `must_not_contain` regex rules. `make check-adr` verifies numbering, this index, registry completeness, and those links.
+
 ---
 
 ## Contributing
@@ -178,4 +184,4 @@ To propose a new ADR:
 
 ---
 
-*Last updated: 2026-07-20*
+*Last updated: 2026-08-31*

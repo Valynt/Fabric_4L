@@ -34,10 +34,6 @@ SERVICE_ROOTS: dict[str, tuple[Path, str]] = {
         REPO_ROOT / "services" / "layer6-benchmarks" / "src",
         "layer6_benchmarks",
     ),
-    "layer7-billing": (
-        REPO_ROOT / "services" / "layer7-billing" / "src",
-        "layer7_billing",
-    ),
 }
 
 SERVICE_IMPORT_PREFIXES = {
@@ -90,7 +86,7 @@ def test_runtime_path_governance_tracks_adjacent_services_outside_layer_matrix()
     assert "Adjacent service path matrix" in governance
     assert "not additional" in governance
     assert "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/" in governance
-    assert "services/layer7-billing/src/layer7_billing/" in governance
+    assert "services/layer4-agents/src/layer4_agents/services/billing_service.py" in governance
     assert "Legacy `services/billing/` removed 2026-08-27 (COMPAT-BILL-001)" in governance
 
 
@@ -167,9 +163,18 @@ def test_layer3_entity_routes_do_not_return_raw_neo4j_objects() -> None:
 def test_billing_api_does_not_call_external_provider_sdks_in_request_handlers() -> None:
     violations: list[str] = []
     forbidden_import_roots = {"stripe", "requests", "httpx", "aiohttp", "urllib"}
-    root = REPO_ROOT / "services" / "layer7-billing" / "src" / "layer7_billing" / "api"
+    routes_root = (
+        REPO_ROOT
+        / "services"
+        / "layer4-agents"
+        / "src"
+        / "layer4_agents"
+        / "api"
+        / "routes"
+    )
+    billing_route_files = [p for p in _python_files(routes_root) if p.name.startswith("billing")]
 
-    for path in _python_files(root):
+    for path in billing_route_files:
         rel_path = path.relative_to(REPO_ROOT).as_posix()
         for line_number, imported_root in _imported_roots(path):
             if imported_root in forbidden_import_roots:

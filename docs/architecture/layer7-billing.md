@@ -1,30 +1,33 @@
-# Adjacent Service: Billing
+﻿# Billing Capability
 
-> **Service:** `services/layer7-billing/`
-> **Port:** 8008
-> **Package:** `layer7_billing`
+> **Runtime owner:** `services/layer4-agents/` (Layer 4)
+> **Package:** `layer4_agents.services.billing_service`
+> **Contract:** `contracts/openapi/layer7-billing.json`
+> **Port:** 8004 (served by Layer 4 Agents)
 
 ---
 
 ## Purpose
 
-Billing is the **canonical deployable billing service** and a bounded capability adjacent to the six-layer core pipeline. It owns billing runtime behavior for the platform and handles:
+Billing is a **bounded capability owned entirely by Layer 4** (the Agents service). It owns the platform's money-domain runtime behavior:
 
-1. **Usage Event Ingestion** — Accept and persist usage events from all platform services.
-2. **Plan Entitlement Checks** — Query whether a tenant has remaining quota for a given feature.
-3. **Invoice Listing** — Provide invoice summaries for tenant billing portals.
-4. **Payment State Tracking** — Track subscription status, trial state, and grace periods.
-5. **Stripe-facing Control Plane** — Verify Stripe webhooks and host subscription, checkout, portal, plan, overage, and usage-sync API surfaces as the Layer 4 billing routes migrate to thin proxies.
+1. **Usage Event Ingestion** â€” Accept and persist idempotent usage events from all platform services.
+2. **Plan Entitlement Checks** â€” Query whether a tenant has remaining quota for a given feature.
+3. **Invoice Listing** â€” Provide invoice summaries, charges, and revenue reports for tenant billing portals.
+4. **Payment State Tracking** â€” Track subscription status, trial state, grace periods, and balance.
+5. **Stripe-facing Control Plane** â€” Verify Stripe webhook signatures and host subscription, checkout, portal, plan, overage, invoice, and usage-sync API surfaces.
 
-Billing remains outside the core L1-L6 pipeline layer count. Core services must interact with it through entitlement, usage-event, and webhook contracts; request handlers must not perform synchronous external provider calls except verified webhook or explicitly idempotent callback paths.
+Billing is not an additional horizontal core-pipeline layer; it is a domain that lives inside the Layer 4 service. Core services interact with it through the Layer 4 billing routes (`/v1/billing/*`) and the published `layer7-billing.json` OpenAPI contract. Request handlers must not perform synchronous external provider calls except verified webhook or explicitly idempotent callback paths.
 
-`services/layer7-billing/` is the only deployable billing service. The historical `services/billing/` package (non-deployable compatibility code) was removed on 2026-08-27 (COMPAT-BILL-001); it must not be reintroduced or given Docker/Compose/Kubernetes runtime wiring.
+## Ownership history
 
 | Path | Ownership | Deployable | Stripe Surface |
 |------|-----------|------------|----------------|
-| `services/layer7-billing/` (this doc) | Canonical billing runtime, APIs, tenant-scoped persistence, webhook verification, entitlement decisions, usage metering | Yes | Yes — webhook verification and future checkout/portal/subscription adapters live here |
+| `services/layer4-agents/` (canonical) | Canonical billing runtime, APIs, tenant-scoped persistence, webhook verification, entitlement decisions, usage metering | Yes (Layer 4) | Yes â€” `billing_service.py`, `stripe_client`, webhook verification, checkout/portal/subscription |
 
-The legacy `services/billing/` package was removed 2026-08-27 (COMPAT-BILL-001). The Stripe customer/subscription/webhook domain is owned by `services/layer4-agents/src/layer4_agents/services/billing_service.py`; plans, usage, invoices, and payment state belong here.
+The historical `services/billing/` package (non-deployable compatibility code) was removed on 2026-08-27 (COMPAT-BILL-001); it must not be reintroduced or given Docker/Compose/Kubernetes runtime wiring.
+
+The parallel `services/layer7-billing/` service (a Phase-1 stub with zero production consumers) was **removed on 2026-09-01** (see [ADR-023](../explanations/adr/ADR-023-billing-service-extraction.md)). Layer 4 was ratified as the single canonical owner. The `layer7-billing` name is retained **only** as the filename of the canonical OpenAPI contract (`contracts/openapi/layer7-billing.json`), regenerated as a subset export of Layer 4's own billing surface.
 
 ---
 
@@ -32,202 +35,68 @@ The legacy `services/billing/` package was removed 2026-08-27 (COMPAT-BILL-001).
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│                    Platform Services                        │
-│  L1 Ingestion  L2 Extraction  L3 Graph  L4 Agents  L5 GT   │
-│       │              │            │          │         │    │
-└───────┼──────────────┼────────────┼──────────┼─────────┼────┘
-        │              │            │          │         │
-        └──────────────┴────────────┴──────────┴─────────┘
-                                    │
-                                    ▼
-                    ┌───────────────────────────────┐
-                    │  Billing (port 8008)            │
-                    │  ┌─────────────────────────┐  │
-                    │  │  Usage Event Ingestion   │  │
-                    │  │  Plan Entitlement Check  │  │
-                    │  │  Invoice Listing         │  │
-                    │  │  Payment State Tracking  │  │
-                    │  └─────────────────────────┘  │
-                    └───────────────────────────────┘
-                                    │
-                    ┌───────────────┼───────────────┐
-                    ▼               ▼               ▼
-              PostgreSQL       Redis           Stripe API
-              (events,         (caching,       (via Billing
-               invoices,       rate limits)     adapters/webhooks)
-               entitlements)
+│                     Layer 4 Agents (:8004)                  │
+│                                                             │
+│   api/routes/billing.py (+ usage/overages/webhooks)         │
+│         │                                                   │
+│         ▼                                                   │
+│   services/billing_service.py ── stripe_client              │
+│         │                                                   │
+│     billing_* tables (RLS)                                 │
+└────────────────────────────────────────────────────────────┘
+         │
+         ├─────────────── Stripe API (webhooks, checkout, portal)
+         └─────────────── PostgreSQL (billing_* tables, RLS)
 ```
+
+The full Stripe/subscription/usage implementation lives in Layer 4 and is the only such implementation in the platform. There is no `layer7-billing` runtime or database.
 
 ---
 
 ## API Surface
 
-### REST Endpoints (port 8008)
+### REST Endpoints (port 8004, prefix `/v1/billing`)
 
-Canonical endpoints are exposed under `/v1/billing`. Layer 4 billing routes remain temporary forwarding shims while callers migrate directly to Billing.
+The canonical billing API is declared in `contracts/openapi/layer7-billing.json` (26 `/v1/billing/*` routes, `info.title` = "Layer 4: Billing API", `x-backend-service: layer4-agents`). The Layer 4 billing routers re-register handlers from `layer4_agents.api.routes.billing`; there are **no** forwarding shims to any other service.
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| POST | `/v1/billing/plans` | Upsert a tenant-scoped billing plan and entitlement list |
-| GET | `/v1/billing/entitlements/{plan_id}/decision` | Check whether a feature is allowed for a plan |
-| POST | `/v1/billing/usage-events` | Ingest a single idempotent usage event |
-| GET | `/v1/billing/usage-aggregates` | List tenant usage aggregates |
-| GET | `/v1/billing/invoices` | List tenant invoices |
-| GET | `/v1/billing/payment-state` | Get current tenant payment state |
-| POST | `/v1/billing/webhook` | Receive and verify Stripe billing webhooks |
-| GET | `/v1/billing/subscription` | Get current subscription status for a customer |
-| POST | `/v1/billing/checkout` | Create a checkout session once the Stripe adapter is configured |
-| POST | `/v1/billing/portal` | Create a customer portal session once the Stripe adapter is configured |
-| GET | `/health` | Service health check |
-| GET | `/ready` | Readiness checks, including database probe |
+Key endpoint families:
+
+| Method | Path family | Purpose |
+|--------|-------------|---------|
+| GET/POST | `/v1/billing/subscription` | Current subscription status; create/update/cancel subscriptions |
+| POST | `/v1/billing/checkout` | Create a Stripe Checkout session (subscription mode) |
+| POST | `/v1/billing/portal` | Create a Stripe customer portal session |
+| POST | `/v1/billing/webhook` | Receive and verify Stripe billing webhooks (IP + signature) |
+| POST | `/v1/billing/events` | Ingest idempotent usage events |
+| GET | `/v1/billing/usage` / `overages` | Usage and overage summaries |
+| GET | `/v1/billing/invoices` / `charges` / `revenue` / `balance` | Invoice, charge, revenue, and balance reporting |
+| GET | `/v1/billing/entitlements` | Plan entitlement / quota decisions |
 
 ### Authentication
 
-All endpoints require:
-- `Authorization: Bearer <token>` header (JWT or API key)
-- `X-Tenant-ID: <tenant>` header (RLS-enforced multi-tenancy)
-
----
-
-## Service Structure
-
-```
-services/layer7-billing/
-  src/layer7_billing/
-    api/
-      main.py              # FastAPI app entrypoint
-    models.py              # SQLAlchemy ORM models
-    repository.py          # Data access layer
-    database.py            # Async SQLAlchemy session factory with RLS
-    logging_config.py      # Structured logging
-    webhook_security.py    # Webhook signature verification helpers
-  tests/                   # Unit & integration tests
-  Dockerfile
-  pyproject.toml
-  pytest.ini
-```
+All endpoints require authentication (JWT or API key) and tenant context. Multi-tenancy is enforced end-to-end: the tenant is taken from authenticated context (never from an unverified request body), and every repository query is scoped by `tenant_id`.
 
 ---
 
 ## Data Model
 
-### Core Entities
-
-| Entity | Table | Description |
-|--------|-------|-------------|
-| `UsageEvent` | `usage_events` | Individual usage events (tenant-scoped, timestamped) |
-| `PlanEntitlement` | `plan_entitlements` | Feature quotas per plan tier |
-| `TenantQuota` | `tenant_quotas` | Current consumption vs. limit per tenant |
-| `Invoice` | `invoices` | Invoice header records |
-| `InvoiceLineItem` | `invoice_line_items` | Per-event-type line items |
-| `SubscriptionState` | `subscription_states` | Current subscription status per tenant |
-
-### Key Fields (UsageEvent)
-
-```
-id: UUID (PK)
-tenant_id: str (FK, RLS filter)
-event_type: str       # e.g. "ingestion_job", "llm_call", "agent_run"
-quantity: int         # Units consumed (default 1)
-metadata: JSONB       # Free-form event metadata
-created_at: datetime  # Event timestamp
-```
-
----
-
-## Dependencies
-
-| Dependency | Purpose |
-|------------|---------|
-| PostgreSQL (asyncpg) | Primary persistence with RLS |
-| Redis | Caching entitlement checks and rate limiting |
-| FastAPI + Uvicorn | HTTP API |
-| Alembic | Database migrations |
-| structlog | Structured logging |
-| prometheus-client | Metrics exposure |
-| sentry-sdk | Error tracking |
-
----
-
-## Operational Notes
-
-### Startup
-
-```bash
-# Run migrations
-uv run --package layer7-billing alembic upgrade head
-
-# Start service
-uv run --package layer7-billing uvicorn layer7_billing.api.main:app --port 8008
-```
-
-### Health Check
-
-```bash
-curl http://localhost:8008/health
-```
-
-### Testing
-
-```bash
-# Run all Billing tests
-pytest services/layer7-billing/tests/ -v
-
-# With coverage (≥80% required)
-pytest services/layer7-billing/tests/ --cov=src/layer7_billing --cov-report=term-missing
-```
-
-### Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | — | PostgreSQL connection string |
-| `REDIS_URL` | — | Redis connection string |
-| `JWT_SECRET` | — | Shared JWT secret for auth |
-| `API_PORT` | 8008 | Service listen port |
-| `STRIPE_WEBHOOK_SECRET` | — | Stripe webhook signing secret used by `/v1/billing/webhook` |
-| `STRIPE_WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS` | 300 | Maximum accepted Stripe webhook timestamp skew |
-| `STRIPE_WEBHOOK_RATE_LIMIT_PER_MINUTE` | 100 | Per-source-IP webhook rate limit |
-| `BILLING_USAGE_EVENT_RATE_LIMIT_PER_MINUTE` | 1000 | Per-tenant usage event ingestion rate limit |
-
----
-
-## Entitlement Check Flow
-
-```
-1. L4 Agent calls POST /api/v1/workflows
-2. API Gateway intercepts, injects X-Tenant-ID
-3. Before executing, L4 calls Billing:
-   GET /v1/billing/entitlements/{plan_id}/decision?feature=agent_runs
-4. Billing checks tenant-scoped entitlement state:
-   - If quota/policy allows the feature → HTTP 200 with `allowed: true`, proceed
-   - If quota/policy blocks the feature → HTTP 200 with `allowed: false`; callers enforce the gate
-5. After workflow completes, L4 emits usage event:
-   POST /v1/billing/usage-events {metric: "agent_run", quantity: 1, ...}
-```
+Billing state is persisted in `billing_*` tables owned by Layer 4 (10 migrations), with Row-Level Security enforcing tenant isolation. Core entities include subscription state, plan entitlements, usage events, overages, invoices/charges, and revenue/balance records. See the `layer4_agents` migrations for the authoritative schema.
 
 ---
 
 ## Multi-Tenancy
 
-All data is tenant-isolated via PostgreSQL Row-Level Security (RLS):
-
-```sql
-ALTER TABLE usage_events ENABLE ROW LEVEL SECURITY;
-CREATE POLICY tenant_isolation ON usage_events
-  USING (tenant_id = current_setting('app.current_tenant')::text);
-```
-
-The `tenant_context` middleware sets the RLS variable from the `X-Tenant-ID` header on every request.
+All billing data is tenant-isolated via PostgreSQL Row-Level Security (RLS). The `tenant_context` middleware derives the tenant from authenticated context and scopes every read/write. Cross-tenant access fails closed (hostile-access tests are enforced in the security suite).
 
 ---
 
 ## Related
 
-- [ADR-023: Billing Service Extraction](../explanations/adr/ADR-023-billing-service-extraction.md) — superseded extraction record; current ownership is consolidated in Billing
+- [ADR-023: Billing Service Extraction](../explanations/adr/ADR-023-billing-service-extraction.md) — extract-then-consolidate record; superseded on 2026-09-01 (L4 canonical, L7 removed)
 - [ADR-010: PostgreSQL RLS for Multi-Tenancy](../explanations/adr/ADR-010-postgresql-rls-for-multi-tenancy.md) — Tenant isolation
-- [Compatibility Debt Registry](../governance/compatibility-debt-registry.md) — active L4 billing proxy/shim retirement tracking
+- [Layer Runtime Path Governance](../reference/layer-runtime-path-governance.md) — canonical runtime paths
+- [Compatibility Debt Registry](../governance/compatibility-debt-registry.md) — COMPAT-L4-003 resolved/archived
 
 ---
 
-*Last updated: 2026-08-27*
+*Last updated: 2026-09-01*
