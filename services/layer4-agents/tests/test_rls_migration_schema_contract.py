@@ -76,10 +76,11 @@ def test_revision_018_public_policy_requires_an_exact_tenant_match() -> None:
     public_policy = source.split("CREATE POLICY tenant_isolation_policy", maxsplit=1)[1].split(
         "CREATE POLICY admin_bypass_policy", maxsplit=1
     )[0]
+    normalized_policy = " ".join(public_policy.split())
+    strict_tenant_match = "tenant_id::text = current_setting('app.tenant_id', true)"
 
-    assert public_policy.count(
-        "tenant_id::text = current_setting('app.tenant_id', true)"
-    ) == 2
+    assert f"USING ( {strict_tenant_match} )" in normalized_policy
+    assert f"WITH CHECK ( {strict_tenant_match} )" in normalized_policy
     assert "tenant_id IS NULL" not in public_policy
 
 
