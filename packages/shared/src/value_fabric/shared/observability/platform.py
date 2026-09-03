@@ -108,6 +108,13 @@ def _shutdown_provider(provider: Any | None) -> None:
         return
 
 
+def _otlp_traces_endpoint(raw: str | None) -> str:
+    endpoint = (raw or "").strip().rstrip("/")
+    if endpoint.endswith("/v1/traces"):
+        return endpoint
+    return f"{endpoint}/v1/traces"
+
+
 def _parse_sample_ratio() -> float:
     raw = os.getenv("OTEL_SAMPLE_RATIO", str(DEFAULT_SAMPLE_RATIO))
     try:
@@ -127,9 +134,8 @@ def configure_platform(
     endpoint: str | None = None,
 ) -> PlatformTelemetry:
     """Install the process TracerProvider once. No-op when export is unavailable."""
-    otel_endpoint = endpoint if endpoint is not None else os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-    if not otel_endpoint:
-        return PlatformTelemetry(provider=None, service_name=service_name, layer=layer)
+    raw_endpoint = endpoint if endpoint is not None else os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    otel_endpoint = (raw_endpoint or "").strip()
 
     try:
         from opentelemetry import trace
@@ -153,6 +159,9 @@ def configure_platform(
             sample_ratio=sample_ratio,
         )
 
+    if not otel_endpoint:
+        return PlatformTelemetry(provider=None, service_name=service_name, layer=layer)
+
     provider: Any | None = None
     try:
         attributes: dict[str, Any] = {
@@ -170,7 +179,7 @@ def configure_platform(
         resource = Resource.create(attributes)
         sampler = ParentBasedTraceIdRatio(sample_ratio)
         provider = TracerProvider(resource=resource, sampler=sampler)
-        exporter = OTLPSpanExporter(endpoint=f"{otel_endpoint}/v1/traces")
+        exporter = OTLPSpanExporter(endpoint=_otlp_traces_endpoint(otel_endpoint))
         provider.add_span_processor(BatchSpanProcessor(exporter))
         trace.set_tracer_provider(provider)
         installed = trace.get_tracer_provider()

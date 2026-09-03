@@ -287,6 +287,53 @@ def test_configure_platform_reuses_installed_provider_instead_of_overriding(
     assert installed is first.provider
 
 
+def test_configure_platform_reuses_installed_provider_without_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    otel = pytest.importorskip("opentelemetry")
+    pytest.importorskip("opentelemetry.sdk.trace")
+    _stub_otlp_exporter(monkeypatch)
+
+    first = configure_platform(
+        "layer4-agents",
+        endpoint="http://otel-collector:4318",
+    )
+    monkeypatch.delenv("OTEL_EXPORTER_OTLP_ENDPOINT", raising=False)
+    second = configure_platform("layer5-ground-truth")
+    assert first.provider is not None
+    assert second.provider is first.provider
+    assert otel.trace.get_tracer_provider() is first.provider
+
+
+def test_configure_platform_normalizes_otlp_traces_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("opentelemetry")
+    pytest.importorskip("opentelemetry.sdk.trace")
+    captured: list[str] = []
+
+    class _CapturingExporter(_DummyExporter):
+        def __init__(self, *, endpoint: str) -> None:
+            captured.append(endpoint)
+            super().__init__(endpoint=endpoint)
+
+    exporter_mod = pytest.importorskip(
+        "opentelemetry.exporter.otlp.proto.http.trace_exporter"
+    )
+    monkeypatch.setattr(exporter_mod, "OTLPSpanExporter", _CapturingExporter)
+
+    configure_platform("layer4-agents", endpoint="http://otel-collector:4318/")
+    _reset_otel_tracer_provider()
+    configure_platform(
+        "layer4-agents",
+        endpoint="http://otel-collector:4318/v1/traces",
+    )
+    assert captured == [
+        "http://otel-collector:4318/v1/traces",
+        "http://otel-collector:4318/v1/traces",
+    ]
+
+
 def test_correlation_fields_use_active_span_when_unbound() -> None:
     otel = pytest.importorskip("opentelemetry")
     pytest.importorskip("opentelemetry.sdk.trace")
