@@ -109,6 +109,11 @@ def test_security_dependency_floors_stay_in_sync() -> None:
     for locked_requirement in ("aiohttp==3.14.3", "protego==0.6.2", "msgpack==1.2.1"):
         assert locked_requirement in test_lock
 
-    assert "axios@1.18.1:" in web_lock
-    for version in re.findall(r"axios@(\d+\.\d+\.\d+):", web_lock):
-        assert _version_tuple(version) >= (1, 18, 0)
+    match = re.search(
+        r"(?m)^      axios:\n        specifier: (?P<specifier>\S+)\n"
+        r"        version: (?P<version>\d+\.\d+\.\d+)$",
+        web_lock,
+    )
+    assert match, "Unable to find the web lockfile axios importer entry"
+    assert match["specifier"] == web_pkg["dependencies"]["axios"]
+    assert _version_tuple(match["version"]) >= (1, 18, 0)

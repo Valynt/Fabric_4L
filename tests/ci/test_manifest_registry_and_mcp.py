@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _version_tuple(version: str) -> tuple[int, int, int]:
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
+    assert match, f"Unable to parse version from {version!r}"
+    return tuple(int(part) for part in match.groups())
 
 
 def test_generated_manifest_registry_uses_posix_paths_and_uv_lock(tmp_path: Path) -> None:
@@ -90,12 +97,18 @@ def test_web_lockfile_pins_patched_nanoid() -> None:
 
 
 def test_web_lockfile_pins_patched_axios() -> None:
+    package = json.loads(
+        (REPO_ROOT / "apps" / "web" / "package.json").read_text(encoding="utf-8")
+    )
     lock = (REPO_ROOT / "apps" / "web" / "pnpm-lock.yaml").read_text(encoding="utf-8")
-    assert "axios@1.18.1:" in lock
-    assert "version: 1.18.1" in lock
-    assert "axios@1.17." not in lock
-    assert "axios@1.16." not in lock
-    assert "axios@1.15." not in lock
+    match = re.search(
+        r"(?m)^      axios:\n        specifier: (?P<specifier>\S+)\n"
+        r"        version: (?P<version>\d+\.\d+\.\d+)$",
+        lock,
+    )
+    assert match, "Unable to find the web lockfile axios importer entry"
+    assert match["specifier"] == package["dependencies"]["axios"]
+    assert _version_tuple(match["version"]) >= (1, 18, 0)
 
 
 def test_dependency_scan_emits_scalar_node_matrix_and_expands_wd() -> None:

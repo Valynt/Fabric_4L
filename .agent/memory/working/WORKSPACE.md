@@ -1,9 +1,9 @@
 # Workspace (live task state)
 
 ## Active task
-- Goal: Complete the fail-closed policy decision facade work: centralize tenant/RBAC/LLM-safety enforcement while preserving the repo's governance stack and layer boundaries.
-- Status: COMPLETE — the fail-closed enforcement flow is implemented in the repo and validated with the targeted governance suite.
-- Validation: `python -m pytest tests/shared/governance/test_gate_phase2.py tests/shared/governance/test_gate_phase3.py -q` passed with 52/52 tests passing.
+- Goal: Resolve review comments by making axios lockfile tests compare the lockfile importer specifier with apps/web/package.json and enforce the minimum resolved version.
+- Status: COMPLETE — both axios lockfile tests now compare the importer specifier with package.json and enforce a >=1.18.0 resolved version; the stale web lockfile entry was aligned to axios 1.19.0.
+- Validation: Focused axios tests passed (2/2); the full pair of test files has one unrelated pre-existing MCP authorization assertion failure.
 
 ## Archived tasks
 - Goal: Remediate Trivy HIGH/CRITICAL findings in the Layer 3 SBOM and restore security-gate health.
