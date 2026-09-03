@@ -141,3 +141,16 @@ def test_duplication_error_is_not_replaced_by_stale_envelope(tmp_path, monkeypat
     assert sub_check["status"] == "error"
     assert sub_check["details"][0]["exit_code"] == 2
     assert sub_check["violations"] == []
+
+
+def test_single_check_uses_isolated_default_artifacts(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(gov, "ARTIFACT_DIR", tmp_path)
+    monkeypatch.setattr(
+        gov,
+        "run_governance",
+        lambda only: {"name": "test", "status": "pass", "sub_checks": []},
+    )
+    monkeypatch.setattr(gov, "render_markdown", lambda report: "ok\n")
+    assert gov.main(["--check", "check-ownership-registry"]) == 0
+    assert (tmp_path / "check-ownership-registry.json").exists()
+    assert (tmp_path / "check-ownership-registry.md").exists()

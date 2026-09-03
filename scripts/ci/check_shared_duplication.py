@@ -292,8 +292,8 @@ def scan(root: Path) -> tuple[list[tuple[str, list[str]]], list[tuple[str, list[
         path = root / f
         try:
             source = path.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
+        except OSError as exc:
+            raise RuntimeError(f"Unable to read tracked Python file: {f}") from exc
         all_defs.extend(
             (f"{module}::{name}", node) for name, node in collect_defs(source, filename=f)
         )

@@ -291,7 +291,9 @@ def run_governance(runner=run_argv, only: str | None = None) -> dict:
         elif spec["check_id"] == "check-governance-baseline":
             results.append(_duplication_regenerable(runner))
             status = _aggregate(results)
-            baseline_present = _baseline_present(spec["baseline"])
+            baseline_present = _baseline_present(
+                spec["baseline"]
+            ) and _baseline_present("config/ci/shared_duplication_baseline.json")
             violations = []
         else:
             status = _aggregate(results)
@@ -373,13 +375,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--json",
         type=Path,
-        default=ARTIFACT_DIR / "check-governance.json",
+        default=None,
         help="Write the machine-readable envelope here.",
     )
     parser.add_argument(
         "--md",
         type=Path,
-        default=ARTIFACT_DIR / "check-governance.md",
+        default=None,
         help="Write the human-readable summary here.",
     )
     parser.add_argument(
@@ -391,8 +393,11 @@ def main(argv: list[str] | None = None) -> int:
 
     report = run_governance(only=args.check)
 
-    json_path = args.json if args.json.is_absolute() else REPO_ROOT / args.json
-    md_path = args.md if args.md.is_absolute() else REPO_ROOT / args.md
+    default_stem = args.check or "check-governance"
+    json_arg = args.json or ARTIFACT_DIR / f"{default_stem}.json"
+    md_arg = args.md or ARTIFACT_DIR / f"{default_stem}.md"
+    json_path = json_arg if json_arg.is_absolute() else REPO_ROOT / json_arg
+    md_path = md_arg if md_arg.is_absolute() else REPO_ROOT / md_arg
     json_path.parent.mkdir(parents=True, exist_ok=True)
     md_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(
