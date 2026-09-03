@@ -24,7 +24,7 @@ def _reset_otel_tracer_provider() -> None:
         from opentelemetry import trace
     except ImportError:
         return
-    trace._TRACER_PROVIDER = None  # type: ignore[attr-defined]
+    trace._TRACER_PROVIDER = None
     once = getattr(trace, "_TRACER_PROVIDER_SET_ONCE", None)
     if once is not None:
         once._done = False

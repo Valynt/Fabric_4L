@@ -10,7 +10,6 @@ import math
 import os
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any
 
 SERVICE_NAMESPACE = "fabric4l"
 
@@ -28,7 +27,7 @@ DEFAULT_SAMPLE_RATIO = 0.01
 
 @dataclass(frozen=True)
 class PlatformTelemetry:
-    provider: Any | None
+    provider: object | None
     service_name: str
     layer: str | None = None
     sample_ratio: float | None = None
@@ -98,7 +97,7 @@ def correlation_fields() -> dict[str, str]:
     return fields
 
 
-def _shutdown_provider(provider: Any | None) -> None:
+def _shutdown_provider(provider: object | None) -> None:
     shutdown = getattr(provider, "shutdown", None)
     if not callable(shutdown):
         return
@@ -162,9 +161,9 @@ def configure_platform(
     if not otel_endpoint:
         return PlatformTelemetry(provider=None, service_name=service_name, layer=layer)
 
-    provider: Any | None = None
+    provider: TracerProvider | None = None
     try:
-        attributes: dict[str, Any] = {
+        attributes: dict[str, str] = {
             SERVICE_NAME: service_name,
             "service.namespace": SERVICE_NAMESPACE,
         }
@@ -207,7 +206,7 @@ def configure_platform(
         )
 
 
-def instrument_fastapi_app(app: Any, *, enabled: bool) -> bool:
+def instrument_fastapi_app(app: object, *, enabled: bool) -> bool:
     if not enabled:
         return False
     try:
