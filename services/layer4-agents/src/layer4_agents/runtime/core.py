@@ -263,6 +263,8 @@ class AgentRuntimeImpl:
 
     async def get_run(self, run_id: str, tenant_id: str) -> RunResult | None:
         """Tenant-scoped run lookup; returns None for missing or inaccessible runs."""
+        if not tenant_id:
+            raise TenantRequiredError(details={"run_id": run_id})
         result = self._runs.get(run_id)
         if result is None or result.tenant_id != tenant_id:
             return None
@@ -270,6 +272,8 @@ class AgentRuntimeImpl:
 
     async def cancel_run(self, run_id: str, tenant_id: str) -> RunResult:
         """Cancel a run if it belongs to the tenant."""
+        if not tenant_id:
+            raise TenantRequiredError(details={"run_id": run_id})
         result = await self.get_run(run_id, tenant_id)
         if result is None:
             raise RunNotFoundError(run_id)
@@ -286,6 +290,8 @@ class AgentRuntimeImpl:
         status: str | None = None,
     ) -> list[RunSummary]:
         """List runs scoped to tenant with optional filters."""
+        if not tenant_id:
+            raise TenantRequiredError()
         summaries: list[RunSummary] = []
         for run in self._runs.values():
             if run.tenant_id != tenant_id:
@@ -365,6 +371,8 @@ class AgentRuntimeImpl:
 
     async def call_tool(self, name: str, arguments: dict[str, Any], ctx: RuntimeContext) -> ToolResult:
         """Execute a tool through the registry, enforcing authz and tenant context."""
+        if not ctx.tenant_id:
+            raise TenantRequiredError(details={"tool_name": name})
         try:
             await self.authorize_tool(name, ctx)
         except ToolForbiddenError:
