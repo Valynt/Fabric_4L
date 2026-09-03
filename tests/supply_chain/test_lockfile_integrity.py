@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -10,6 +11,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 def load_package_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _version_tuple(version: str) -> tuple[int, int, int]:
+    match = re.search(r"(\d+)\.(\d+)\.(\d+)", version)
+    assert match, f"Unable to parse version from {version!r}"
+    return tuple(int(part) for part in match.groups())
 
 
 def test_supply_chain_package_scripts_are_registered() -> None:
@@ -77,3 +84,31 @@ def test_audit_ci_gate_passes_static_policy_checks() -> None:
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_security_dependency_floors_stay_in_sync() -> None:
+    root_pkg = load_package_json(REPO_ROOT / "package.json")
+    web_pkg = load_package_json(REPO_ROOT / "apps/web/package.json")
+    test_requirements = (REPO_ROOT / "tests/requirements-test.txt").read_text(encoding="utf-8")
+    test_lock = (REPO_ROOT / "tests/requirements-test.lock").read_text(encoding="utf-8")
+    pytest_policy = (REPO_ROOT / "config/ci/pytest_policy.yaml").read_text(encoding="utf-8")
+    layer3_pyproject = (REPO_ROOT / "services/layer3-knowledge/pyproject.toml").read_text(
+        encoding="utf-8"
+    )
+    web_lock = (REPO_ROOT / "apps/web/pnpm-lock.yaml").read_text(encoding="utf-8")
+
+    assert web_pkg["packageManager"] == root_pkg["packageManager"]
+    assert _version_tuple(web_pkg["dependencies"]["axios"]) >= (1, 18, 0)
+
+    for requirement in ("aiohttp>=3.14.3", "protego>=0.6.2", "msgpack>=1.2.1"):
+        assert requirement in test_requirements
+
+    assert "aiohttp>=3.14.3" in pytest_policy
+    assert '"msgpack>=1.2.1"' in layer3_pyproject
+
+    for locked_requirement in ("aiohttp==3.14.3", "protego==0.6.2", "msgpack==1.2.1"):
+        assert locked_requirement in test_lock
+
+    assert "axios@1.18.1:" in web_lock
+    for version in re.findall(r"axios@(\d+\.\d+\.\d+):", web_lock):
+        assert _version_tuple(version) >= (1, 18, 0)

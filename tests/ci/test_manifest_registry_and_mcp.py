@@ -89,6 +89,15 @@ def test_web_lockfile_pins_patched_nanoid() -> None:
     assert "tailwindcss>nanoid: 3.3.18" in lock
 
 
+def test_web_lockfile_pins_patched_axios() -> None:
+    lock = (REPO_ROOT / "apps" / "web" / "pnpm-lock.yaml").read_text(encoding="utf-8")
+    assert "axios@1.18.1:" in lock
+    assert "version: 1.18.1" in lock
+    assert "axios@1.17." not in lock
+    assert "axios@1.16." not in lock
+    assert "axios@1.15." not in lock
+
+
 def test_dependency_scan_emits_scalar_node_matrix_and_expands_wd() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "dependency-scan.yml").read_text(
         encoding="utf-8"
