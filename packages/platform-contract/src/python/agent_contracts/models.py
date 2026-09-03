@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence
 
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
@@ -96,8 +96,10 @@ class AgentPermission(BaseModel):
 
     read_paths: List[str] = Field(default_factory=list)
     write_paths: List[str] = Field(default_factory=list)
-    network: List[str] = Field(default_factory=list)
-    isolation_level: str
+    network: List[Literal["none", "internal_only", "restricted_external", "external"]] = Field(
+        default_factory=list
+    )
+    isolation_level: Literal["tenant_strict", "tenant_preferred", "shared_read_only", "shared"]
 
 
 class EvalTarget(BaseModel):
@@ -113,7 +115,7 @@ class AgentOperatingContract(BaseModel):
 
     id: str
     version: str
-    kind: str
+    kind: Literal["agent_contract"]
     owner: Optional[str] = None
     risk_class: Optional[str] = None
     description: Optional[str] = None

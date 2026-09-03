@@ -86,7 +86,7 @@ class PromptTemplate:
         return {
             "prompt_id": self.prompt_id,
             "version": self.version,
-            "reasoning_policy_id": reasoning_policy_id or self.output_schema,
+            "reasoning_policy_id": reasoning_policy_id,
             "content_hash": self.content_hash,
         }
 
@@ -102,7 +102,7 @@ def _default_baselines_root() -> Path:
     The registry lives under services/layer4-agents/src/layer4_agents/harness/;
     the repo root is four parents above that.
     """
-    return Path(__file__).resolve().parents[4] / "evals" / "baselines"
+    return Path(__file__).resolve().parents[5] / "evals" / "baselines"
 
 
 # ---------------------------------------------------------------------------

@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from .schema_assertions import SchemaValidationError, assert_matches_schema
+from .schema_assertions import assert_matches_schema
 from .test_prompt_contracts import _inline_external_refs, _load_json
 
 

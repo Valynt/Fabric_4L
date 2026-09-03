@@ -41,7 +41,6 @@ from typing import Any, Iterable
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REGISTRY_ROOT = REPO_ROOT / "contracts" / "agent-registry"
-EVALS_BASELINES_ROOT = REPO_ROOT / "evals" / "baselines"
 
 SEMVER_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")

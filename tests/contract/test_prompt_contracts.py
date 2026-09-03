@@ -14,13 +14,12 @@ from pathlib import Path
 
 import pytest
 
-from .schema_assertions import SchemaValidationError, assert_matches_schema
+from .schema_assertions import assert_matches_schema
 
 
 CONTRACTS_DIR = Path(__file__).resolve().parents[2] / "contracts" / "agent-registry"
 PROMPTS_DIR = CONTRACTS_DIR / "prompts"
 SCHEMA_PATH = CONTRACTS_DIR / "schemas" / "prompt.schema.json"
-REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _load_json(path: Path) -> dict:

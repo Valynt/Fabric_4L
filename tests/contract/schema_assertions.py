@@ -17,7 +17,14 @@ class SchemaValidationError(AssertionError):
 
 
 def _is_rfc3339_datetime(value: str) -> bool:
-    """Return True if ``value`` is a lenient RFC 3339 date-time string."""
+    """Return True if ``value`` is a lenient RFC 3339 date-time string.
+
+    A date-time string must include a time component separated by ``T`` (or
+    lowercase ``t``); a bare date such as ``2026-09-01`` is a date, not a
+    date-time, and is rejected here.
+    """
+    if "T" not in value and "t" not in value:
+        return False
     candidate = value[:-1] + "+00:00" if value.endswith("Z") else value
     try:
         datetime.fromisoformat(candidate)

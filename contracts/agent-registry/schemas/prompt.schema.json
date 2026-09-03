@@ -64,7 +64,7 @@
     "content_hash": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$",
-      "description": "SHA-256 hex digest of the referenced prompt file body."
+      "description": "SHA-256 hex digest of the referenced prompt file's full raw bytes."
     },
     "eval_baseline": {
       "type": "object",
@@ -91,7 +91,8 @@
       "required": [
         "score",
         "eval_set_id",
-        "recorded_at"
+        "recorded_at",
+        "baseline_file"
       ],
       "additionalProperties": false
     }

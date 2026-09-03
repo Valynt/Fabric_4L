@@ -65,8 +65,8 @@ def _write_contract(tmp_path: Path, name: str, **overrides: Any) -> Path:
         "permissions": {
             "read_paths": ["contracts/"],
             "write_paths": [],
-            "network": ["internal"],
-            "isolation_level": "tenant",
+            "network": ["internal_only"],
+            "isolation_level": "tenant_strict",
         },
         "eval_target": {"suite_id": "default-suite", "min_score": 0.5},
     }
@@ -128,7 +128,7 @@ def test_generic_env_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
         risk_class="critical",
         tools=[],
         memory_scopes=[],
-        permissions={"read_paths": [], "write_paths": [], "network": [], "isolation_level": "tenant"},
+        permissions={"read_paths": [], "write_paths": [], "network": [], "isolation_level": "tenant_strict"},
         eval_target={"suite_id": "x", "min_score": 0.0},
     )
 
@@ -147,7 +147,7 @@ def test_specific_env_beats_generic_override(
         "risk_class": "critical",
         "tools": [],
         "memory_scopes": [],
-        "permissions": {"read_paths": [], "write_paths": [], "network": [], "isolation_level": "tenant"},
+        "permissions": {"read_paths": [], "write_paths": [], "network": [], "isolation_level": "tenant_strict"},
         "eval_target": {"suite_id": "x", "min_score": 0.0},
     }
     generic = _write_contract(
