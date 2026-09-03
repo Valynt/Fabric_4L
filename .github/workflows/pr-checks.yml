@@ -2037,6 +2037,10 @@ jobs:
         run: |
           python scripts/ci/check_tool_contracts.py services/layer4-agents/src/layer4_agents/tools/
 
+      - name: Run prompt registry validation
+        run: |
+          python scripts/ci/check_prompt_registry.py
+
       - name: Run endpoint-hook coverage validation
         run: |
           python scripts/ci/check_endpoint_coverage.py \

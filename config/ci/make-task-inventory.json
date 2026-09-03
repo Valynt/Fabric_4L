@@ -1,12 +1,12 @@
 {
   "metadata": {
     "internal_target_count": 3,
-    "phony_target_count": 236,
-    "public_target_count": 233,
+    "phony_target_count": 237,
+    "public_target_count": 234,
     "schema_version": 1,
     "source": "Makefile",
-    "source_sha256": "13c5294ccb3104111af38c93e3cf71cbdda5e7f9dc059dfc03f3eeebdcec0111",
-    "target_count": 236
+    "source_sha256": "28eafb0eafc67cd17e57eb947a0f13071b8d6ef26ec20471f9e409ad8061e4ef",
+    "target_count": 237
   },
   "targets": [
     {
@@ -16,7 +16,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 923,
+      "line": 928,
       "name": "architecture-readiness-gate",
       "owner": "make",
       "owners": [
@@ -110,7 +110,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 989,
+      "line": 994,
       "name": "build-release-evidence",
       "owner": "make",
       "owners": [
@@ -133,7 +133,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1026,
+      "line": 1031,
       "name": "build-reproducibility-check",
       "owner": "make",
       "owners": [
@@ -202,7 +202,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 985,
+      "line": 990,
       "name": "certify-release-candidate",
       "owner": "make",
       "owners": [
@@ -271,7 +271,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 860,
+      "line": 865,
       "name": "check-compatibility-shims",
       "owner": "make",
       "owners": [
@@ -363,7 +363,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 855,
+      "line": 860,
       "name": "check-deprecated-tracer-imports",
       "owner": "make",
       "owners": [
@@ -478,7 +478,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 871,
+      "line": 876,
       "name": "check-health-ratchets",
       "owner": "make",
       "owners": [
@@ -1026,6 +1026,29 @@
     {
       "artifacts": "undeclared",
       "cache_policy": "disabled",
+      "description": "CI gate \u2014 validate prompt-version contracts and agent operating contracts",
+      "environment_inputs": "ambient-unbounded",
+      "implementation": "native",
+      "lifecycle": "active",
+      "line": 855,
+      "name": "check-prompt-registry",
+      "owner": "make",
+      "owners": [
+        "@value-fabric/sre-leads",
+        "@value-fabric/maintainers"
+      ],
+      "phony": true,
+      "portability": "posix-bash",
+      "prerequisites": [],
+      "public": true,
+      "recipe_line_count": 3,
+      "recipe_sha256": "b4940d3ba7163d79d81027129baae040385c4a06dd4e7c9fdda5eebde76c9840",
+      "side_effects": "unbounded",
+      "visibility": "public"
+    },
+    {
+      "artifacts": "undeclared",
+      "cache_policy": "disabled",
       "description": "Reconcile subordinate pytest collection evidence with canonical static governance",
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
@@ -1053,7 +1076,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1315,
+      "line": 1320,
       "name": "check-raw-http-exception-usage",
       "owner": "make",
       "owners": [
@@ -1122,7 +1145,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 865,
+      "line": 870,
       "name": "check-risk-register",
       "owner": "make",
       "owners": [
@@ -1329,7 +1352,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1311,
+      "line": 1316,
       "name": "check-value-fabric-public-imports",
       "owner": "make",
       "owners": [
@@ -1421,7 +1444,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1266,
+      "line": 1271,
       "name": "clean",
       "owner": "make",
       "owners": [
@@ -1444,7 +1467,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1274,
+      "line": 1279,
       "name": "clean-root-debris",
       "owner": "make",
       "owners": [
@@ -1467,7 +1490,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1035,
+      "line": 1040,
       "name": "collect-95-plus-evidence",
       "owner": "make",
       "owners": [
@@ -1492,7 +1515,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1032,
+      "line": 1037,
       "name": "collect-95-plus-evidence-focused",
       "owner": "make",
       "owners": [
@@ -1517,7 +1540,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1006,
+      "line": 1011,
       "name": "compose-config-validate",
       "owner": "make",
       "owners": [
@@ -1612,7 +1635,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1254,
+      "line": 1259,
       "name": "contract-lint",
       "owner": "make",
       "owners": [
@@ -1727,7 +1750,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 965,
+      "line": 970,
       "name": "db-production-readiness-gate",
       "owner": "make",
       "owners": [
@@ -1750,7 +1773,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 868,
+      "line": 873,
       "name": "debt-baseline-snapshot",
       "owner": "make",
       "owners": [
@@ -1819,7 +1842,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1306,
+      "line": 1311,
       "name": "docs-harness",
       "owner": "make",
       "owners": [
@@ -1911,7 +1934,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1188,
+      "line": 1193,
       "name": "gate-agent",
       "owner": "make",
       "owners": [
@@ -1934,7 +1957,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 938,
+      "line": 943,
       "name": "gate-all",
       "owner": "make",
       "owners": [
@@ -1955,11 +1978,11 @@
     {
       "artifacts": "undeclared",
       "cache_policy": "disabled",
-      "description": "Gate: API/platform contract compliance and tool contract structure",
+      "description": "Gate: API/platform contract compliance, tool contract structure, and prompt-version registry",
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1098,
+      "line": 1103,
       "name": "gate-api-contracts",
       "owner": "make",
       "owners": [
@@ -1971,7 +1994,8 @@
       "prerequisites": [
         "contract-tests",
         "platform-contract-lint",
-        "check-tool-contracts"
+        "check-tool-contracts",
+        "check-prompt-registry"
       ],
       "public": true,
       "recipe_line_count": 3,
@@ -1986,7 +2010,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 918,
+      "line": 923,
       "name": "gate-arch",
       "owner": "make",
       "owners": [
@@ -2009,7 +2033,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1103,
+      "line": 1108,
       "name": "gate-auth-readiness",
       "owner": "make",
       "owners": [
@@ -2034,7 +2058,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1092,
+      "line": 1097,
       "name": "gate-backup-restore-readiness",
       "owner": "make",
       "owners": [
@@ -2057,7 +2081,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1109,
+      "line": 1114,
       "name": "gate-behavior-readiness",
       "owner": "make",
       "owners": [
@@ -2080,7 +2104,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1169,
+      "line": 1174,
       "name": "gate-chaos",
       "owner": "make",
       "owners": [
@@ -2103,7 +2127,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1158,
+      "line": 1163,
       "name": "gate-compliance-readiness",
       "owner": "make",
       "owners": [
@@ -2126,7 +2150,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 926,
+      "line": 931,
       "name": "gate-config",
       "owner": "make",
       "owners": [
@@ -2149,7 +2173,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1153,
+      "line": 1158,
       "name": "gate-data-governance-readiness",
       "owner": "make",
       "owners": [
@@ -2227,7 +2251,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1085,
+      "line": 1090,
       "name": "gate-database-readiness",
       "owner": "make",
       "owners": [
@@ -2250,7 +2274,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1122,
+      "line": 1127,
       "name": "gate-deployment-readiness",
       "owner": "make",
       "owners": [
@@ -2273,7 +2297,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1137,
+      "line": 1142,
       "name": "gate-frontend-readiness",
       "owner": "make",
       "owners": [
@@ -2296,7 +2320,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1164,
+      "line": 1169,
       "name": "gate-incident-response-readiness",
       "owner": "make",
       "owners": [
@@ -2319,7 +2343,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1130,
+      "line": 1135,
       "name": "gate-launch-blockers",
       "owner": "make",
       "owners": [
@@ -2347,7 +2371,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1062,
+      "line": 1067,
       "name": "gate-lint",
       "owner": "make",
       "owners": [
@@ -2377,7 +2401,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 931,
+      "line": 936,
       "name": "gate-local",
       "owner": "make",
       "owners": [
@@ -2402,7 +2426,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 934,
+      "line": 939,
       "name": "gate-local-production-subset",
       "owner": "make",
       "owners": [
@@ -2428,7 +2452,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 891,
+      "line": 896,
       "name": "gate-mandatory-security-regression",
       "owner": "make",
       "owners": [
@@ -2451,7 +2475,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1079,
+      "line": 1084,
       "name": "gate-migration-readiness",
       "owner": "make",
       "owners": [
@@ -2478,7 +2502,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1199,
+      "line": 1204,
       "name": "gate-obs",
       "owner": "make",
       "owners": [
@@ -2501,7 +2525,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1150,
+      "line": 1155,
       "name": "gate-performance-readiness",
       "owner": "make",
       "owners": [
@@ -2527,7 +2551,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1068,
+      "line": 1073,
       "name": "gate-policy",
       "owner": "make",
       "owners": [
@@ -2550,7 +2574,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 947,
+      "line": 952,
       "name": "gate-production",
       "owner": "make",
       "owners": [
@@ -2575,7 +2599,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 953,
+      "line": 958,
       "name": "gate-production-core",
       "owner": "make",
       "owners": [
@@ -2598,7 +2622,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1210,
+      "line": 1215,
       "name": "gate-release-policy",
       "owner": "make",
       "owners": [
@@ -2621,7 +2645,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1142,
+      "line": 1147,
       "name": "gate-reliability-readiness",
       "owner": "make",
       "owners": [
@@ -2647,7 +2671,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1145,
+      "line": 1150,
       "name": "gate-rollback-readiness",
       "owner": "make",
       "owners": [
@@ -2672,7 +2696,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1115,
+      "line": 1120,
       "name": "gate-secrets-readiness",
       "owner": "make",
       "owners": [
@@ -2699,7 +2723,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 901,
+      "line": 906,
       "name": "gate-security",
       "owner": "make",
       "owners": [
@@ -2724,7 +2748,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 908,
+      "line": 913,
       "name": "gate-security-broad",
       "owner": "make",
       "owners": [
@@ -2747,7 +2771,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1222,
+      "line": 1227,
       "name": "gate-sign-manifest",
       "owner": "make",
       "owners": [
@@ -2770,7 +2794,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1180,
+      "line": 1185,
       "name": "gate-smoke",
       "owner": "make",
       "owners": [
@@ -2793,7 +2817,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 913,
+      "line": 918,
       "name": "gate-state",
       "owner": "make",
       "owners": [
@@ -2816,7 +2840,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1241,
+      "line": 1246,
       "name": "gate-summary",
       "owner": "make",
       "owners": [
@@ -2839,7 +2863,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 896,
+      "line": 901,
       "name": "gate-tenant-isolation",
       "owner": "make",
       "owners": [
@@ -2862,7 +2886,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1247,
+      "line": 1252,
       "name": "gates-render-summary",
       "owner": "make",
       "owners": [
@@ -2887,7 +2911,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1238,
+      "line": 1243,
       "name": "gates-sign-manifest",
       "owner": "make",
       "owners": [
@@ -2912,7 +2936,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1076,
+      "line": 1081,
       "name": "gates-validate-policy",
       "owner": "make",
       "owners": [
@@ -2937,7 +2961,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 995,
+      "line": 1000,
       "name": "generate-sbom-and-provenance",
       "owner": "make",
       "owners": [
@@ -2960,7 +2984,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1303,
+      "line": 1308,
       "name": "harness-check",
       "owner": "make",
       "owners": [
@@ -2986,7 +3010,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1299,
+      "line": 1304,
       "name": "harness-guard",
       "owner": "make",
       "owners": [
@@ -3009,7 +3033,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1295,
+      "line": 1300,
       "name": "harness-task",
       "owner": "make",
       "owners": [
@@ -3032,7 +3056,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1009,
+      "line": 1014,
       "name": "helm-dependency-validate",
       "owner": "make",
       "owners": [
@@ -3078,7 +3102,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1023,
+      "line": 1028,
       "name": "k8s-manifest-consistency-check",
       "owner": "make",
       "owners": [
@@ -3101,7 +3125,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1020,
+      "line": 1025,
       "name": "k8s-production-overlay-validate",
       "owner": "make",
       "owners": [
@@ -3124,7 +3148,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "internal",
-      "line": 1329,
+      "line": 1334,
       "name": "k8s-validate",
       "owner": "make",
       "owners": [
@@ -3331,7 +3355,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1065,
+      "line": 1070,
       "name": "lint-release",
       "owner": "make",
       "owners": [
@@ -3793,7 +3817,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "internal",
-      "line": 1325,
+      "line": 1330,
       "name": "pip-audit-all",
       "owner": "make",
       "owners": [
@@ -3816,7 +3840,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1287,
+      "line": 1292,
       "name": "platform-contract-lint",
       "owner": "make",
       "owners": [
@@ -3885,7 +3909,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 941,
+      "line": 946,
       "name": "production-readiness-gate",
       "owner": "make",
       "owners": [
@@ -3908,7 +3932,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1040,
+      "line": 1045,
       "name": "promote-staging",
       "owner": "make",
       "owners": [
@@ -3934,7 +3958,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 982,
+      "line": 987,
       "name": "release-baseline",
       "owner": "make",
       "owners": [
@@ -3957,7 +3981,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 974,
+      "line": 979,
       "name": "release-evidence-packet",
       "owner": "make",
       "owners": [
@@ -3980,7 +4004,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1250,
+      "line": 1255,
       "name": "release-gate",
       "owner": "make",
       "owners": [
@@ -4049,7 +4073,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "internal",
-      "line": 1321,
+      "line": 1326,
       "name": "secret-scan",
       "owner": "make",
       "owners": [
@@ -4095,7 +4119,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 905,
+      "line": 910,
       "name": "security-readiness-gate",
       "owner": "make",
       "owners": [
@@ -4329,7 +4353,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 876,
+      "line": 881,
       "name": "setup-hooks",
       "owner": "make",
       "owners": [
@@ -4475,7 +4499,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1260,
+      "line": 1265,
       "name": "test-backup-drills",
       "owner": "make",
       "owners": [
@@ -5096,7 +5120,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 956,
+      "line": 961,
       "name": "tier0-production-safety-gate",
       "owner": "make",
       "owners": [
@@ -5119,7 +5143,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 959,
+      "line": 964,
       "name": "tier1-beta-readiness-gate",
       "owner": "make",
       "owners": [
@@ -5142,7 +5166,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 962,
+      "line": 967,
       "name": "tier2-enterprise-readiness-gate",
       "owner": "make",
       "owners": [
@@ -5420,7 +5444,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 979,
+      "line": 984,
       "name": "validate-launch-contract",
       "owner": "make",
       "owners": [
@@ -5443,7 +5467,7 @@
       "environment_inputs": "ambient-unbounded",
       "implementation": "native",
       "lifecycle": "active",
-      "line": 1029,
+      "line": 1034,
       "name": "validate-monitoring-stack",
       "owner": "make",
       "owners": [

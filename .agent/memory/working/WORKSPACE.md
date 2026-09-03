@@ -1,10 +1,14 @@
 # Workspace (live task state)
 
 ## Active task
-- Goal: Resolve the PR feedback for the Layer 4 billing de-duplication: align future-dated ownership metadata to the actual 2026-09-01 removal date and ensure the billing contract gate/test behavior remains deterministic.
-- Status: IN PROGRESS — governance ADRs and architecture docs were corrected to the actual removal date; contract check/test guardrail was not changed beyond the existing teardown fix already present in the worktree.
-- Validation: `python3 -m py_compile tests/contract/test_billing_contracts.py` succeeded; repo grep confirmed no remaining `2026-10-15`/`2026:10- 15` billing metadata markers.
+- Goal: Complete the fail-closed policy decision facade work: centralize tenant/RBAC/LLM-safety enforcement while preserving the repo's governance stack and layer boundaries.
+- Status: COMPLETE — the fail-closed enforcement flow is implemented in the repo and validated with the targeted governance suite.
+- Validation: `python -m pytest tests/shared/governance/test_gate_phase2.py tests/shared/governance/test_gate_phase3.py -q` passed with 52/52 tests passing.
+
+## Archived tasks
+- Goal: Remediate Trivy HIGH/CRITICAL findings in the Layer 3 SBOM and restore security-gate health.
+- Status: COMPLETE — refreshed the pinned Python base digest across maintained service Dockerfiles and build documentation.
+- Validation: Structural preflight and workflow-reference checks passed; Layer 3 Docker build reached dependency installation but local PyPI TLS interception prevented completion; secret scan found no secrets.
 
 ## Active hypotheses
-- The remaining branch drift is documentation-only; the contract test teardown guard and gate config already reflect the L4 canonical owner.
-
+- The repo contains the intended fail-closed enforcement logic; the remaining work is to maintain this contract and validate changes with the targeted governance tests before broader releases.
