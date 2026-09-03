@@ -29,7 +29,7 @@ pytest-json-report>=1.5.0
 # Async / HTTP
 # ---------------------------------------------------------------------------
 httpx>=0.27.0
-anyio>=4.0.0
+anyio>=4.14.2
 aiohttp>=3.14.3       # Async HTTP client used by L4 notification tests at collection time
 aiosqlite>=0.20.0      # Async SQLite driver used by Layer 5 in-memory tenant isolation tests
 respx>=0.21.0          # HTTP mocking for httpx — mandatory for L1 crawler tests
