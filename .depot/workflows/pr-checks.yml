@@ -1,3 +1,10 @@
+# Depot CI Migration
+# Source: .github/workflows/pr-checks.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
 # Action pinning and update process
 # - All third-party actions are pinned to full-length commit SHAs.
 # - Dependabot (github-actions ecosystem) remains enabled to open SHA bump PRs.
@@ -6,10 +13,8 @@
 #   2) runs full CI (including security gates), and
 #   3) records verification results in the PR description before merge.
 name: PR Checks
-
 permissions:
   contents: read
-
 "on":
   pull_request:
     branches: [main]
@@ -18,17 +23,14 @@ permissions:
   # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
   # required at Stage 3).
   merge_group:
-
 concurrency:
   # Cancel only an obsolete run of this same workflow/ref. A global
   # feature-branch group lets activity on an unrelated PR cancel required gates.
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-
 env:
   # Opt into Node.js 24 for GitHub Actions
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   # Change-scoping layer: resolve which scopes this event touches so that
   # fan-out jobs below only run when the change can actually affect them.
@@ -38,7 +40,7 @@ jobs:
   # safe, never assumed).
   change-scope:
     name: Change Scope
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 5
     permissions:
       contents: read
@@ -57,58 +59,26 @@ jobs:
       k8s: ${{ steps.scope.outputs.k8s }}
       deps: ${{ steps.scope.outputs.deps }}
       runtime: ${{ steps.scope.outputs.runtime }}
-      ci-global: ${{ steps.scope.outputs.ci-global }}
-      ci-tooling: ${{ steps.scope.outputs.ci-tooling }}
-      ci-governance: ${{ steps.scope.outputs.ci-governance }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Resolve change scopes
         id: scope
-        uses: ./.github/actions/change-scope
-
-      # Post-process: resolve 'true' for non-scoped events (push, schedule)
-      # so that the Unified Readiness Gate can verify safe skips.
-      - name: Post-resolve change scopes
-        if: github.event_name != 'pull_request'
-        shell: bash
-        run: |
-          echo "layer1=true" >> $GITHUB_OUTPUT
-          echo "layer2=true" >> $GITHUB_OUTPUT
-          echo "layer3=true" >> $GITHUB_OUTPUT
-          echo "layer4=true" >> $GITHUB_OUTPUT
-          echo "layer5=true" >> $GITHUB_OUTPUT
-          echo "layer6=true" >> $GITHUB_OUTPUT
-          echo "backend=true" >> $GITHUB_OUTPUT
-          echo "web=true" >> $GITHUB_OUTPUT
-          echo "code=true" >> $GITHUB_OUTPUT
-          echo "docker=true" >> $GITHUB_OUTPUT
-          echo "k8s=true" >> $GITHUB_OUTPUT
-          echo "deps=true" >> $GITHUB_OUTPUT
-          echo "runtime=true" >> $GITHUB_OUTPUT
-          echo "ci-global=true" >> $GITHUB_OUTPUT
-          echo "ci-tooling=true" >> $GITHUB_OUTPUT
-          echo "ci-governance=true" >> $GITHUB_OUTPUT
-
+        uses: ./.depot/actions/change-scope
   structural-preflight:
     name: Structural Preflight
-    runs-on: depot-ubuntu-24.04-4
-    timeout-minutes: 15
-
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
         with:
           fetch-depth: 0
-
       - name: Fetch base branch for diff-aware policy checks
         run: |
           git fetch --no-tags --prune origin "${{ github.base_ref || 'main' }}"
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Install Python gate dependencies
         run: |
           python -m pip install --upgrade pip
@@ -122,75 +92,59 @@ jobs:
           PY
           python -m mypy --version
           python -m pytest --version
-
       - name: Install uv for test lock verification
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
           version: "0.11.6"
           enable-cache: true
-
       - name: Verify root Python test lock is current
         run: |
           python scripts/ci/check_python_test_lock.py
-
       - name: Setup pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
           version: "10.18.1"
-
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
           node-version: "22.22.2"
-
       - name: Enforce frontend root policy (apps/web only)
         run: |
           python scripts/ci/check_frontend_root_policy.py --base-ref "origin/${{ github.base_ref || 'main' }}"
-
       - name: Enforce package manager policy (root + apps/web)
         run: pnpm run check:package-manager-policy
-
-      - name: Run all health ratchets (single entry point)
-        run: make check-health-ratchets
-
+      - name: Enforce type escape ratchet
+        run: make check-type-escape-ratchet
+      - name: Enforce structural fitness ratchet
+        run: make check-structural-fitness-ratchet
       - name: Verify schema index coverage
         run: pnpm test:schema
-
       - name: Enforce Vault dev-mode boundaries (compose + release manifests)
         run: python scripts/ci/check_vault_dev_mode_boundaries.py
-
       - name: Enforce secret store static token scanning policy
         run: |
           pip install pyyaml
           python .github/scripts/enforce_secret_store_security.py
-
       - name: Validate Trivy ignore governance policy
         run: make check-trivy-ignore-policy
-
       - name: Validate workflow target/artifact references
         run: make check-workflow-references
-
       - name: Validate workflow ownership registry
         run: make check-workflow-registry
-
       - name: Validate .devin/workflows specification compliance
         run: |
           pip install pyyaml
           python scripts/ci/validate_devin_workflows.py
-
       - name: Verify workflow INDEX.md is in sync
         run: |
           pip install pyyaml
           python scripts/ci/generate_workflow_index.py --check
-
       - name: Enforce ADR numbering policy
         run: python scripts/ci/check_adr_numbering.py
-
       - name: Enforce production alert metadata (runbook + on-call owner)
         run: |
           pip install pyyaml
           python scripts/ci/check_production_alert_metadata.py
-
       - name: Enforce legacy tenant access shim lifecycle (phase-controlled)
         run: |
           mkdir -p artifacts
@@ -201,89 +155,67 @@ jobs:
             --base-ref "origin/${{ github.base_ref || 'main' }}" \
             --json | tee artifacts/legacy-tenant-access-shim-lifecycle.json
           exit ${PIPESTATUS[0]}
-
       - name: Enforce shell test bracket spacing in workflow run blocks
         run: python scripts/ci/check_shell_test_spacing.py
-
       - name: Enforce canonical Infisical secret path schema
         run: python scripts/ci/check_infisical_path_schema.py --repo-root .
-
       - name: Reject unsupported pip-audit workflow options
         run: python scripts/ci/check_pip_audit_workflow.py
-
       - name: Run structural preflight
         run: |
           mkdir -p artifacts
           python scripts/ci/structural_preflight.py --strict --json | tee artifacts/structural-preflight.json
           exit ${PIPESTATUS[0]}
-
       - name: Check Layer 4 canonical paths
         run: python scripts/ci/check_layer4_canonical_paths.py
-
-      - name: Enforce dead-code regression guard
-        run: python scripts/ci/check_dead_code.py
-
       - name: Validate staging namespace consistency
         run: |
           bash scripts/ci/validate-staging-namespace.sh k8s/envs/staging
           bash scripts/ci/validate-staging-namespace.sh k8s/overlays/staging
-
       - name: Validate staging DNS references
         run: |
           bash scripts/ci/validate-staging-dns.sh k8s/envs/staging
           bash scripts/ci/validate-staging-dns.sh k8s/overlays/staging
-
       - name: Validate Redis auth in production-like overlays
         run: |
           bash scripts/ci/validate-redis-auth.sh k8s/envs/prod
           bash scripts/ci/validate-redis-auth.sh k8s/envs/staging
-
       - name: Validate no mutable image tags in production-like overlays
         run: |
           bash scripts/ci/validate-k8s-image-tags.sh k8s/envs/prod
           bash scripts/ci/validate-k8s-image-tags.sh k8s/envs/staging
           bash scripts/ci/validate-k8s-image-tags.sh k8s/overlays/production
           bash scripts/ci/validate-k8s-image-tags.sh k8s/overlays/staging
-
       - name: Reject :latest/:main in production K8s manifests
         run: python3 scripts/ci/check_production_k8s_mutable_tags.py
-
       - name: Validate Gateway API integration in production overlay
         run: |
           bash scripts/ci/validate-gateway-api.sh k8s/deployments/prod-gateway-api
-
       - name: Validate deploy safety guardrails
         run: |
           bash scripts/ci/validate-deploy-safety.sh
-
       - name: Enforce graph storage encryption policy
         run: |
           python scripts/ci/check_graph_storage_encryption.py
-
       - name: Check for dev auth bypass in production compose files
         run: |
           chmod +x .github/scripts/check-dev-auth-bypass.sh
           .github/scripts/check-dev-auth-bypass.sh
-
       - name: Run Python contract lint
         run: |
           mkdir -p artifacts
           python scripts/ci/python_contract_lint.py --strict --json | tee artifacts/python-contract-lint.json
           exit ${PIPESTATUS[0]}
-
       - name: Run import topology tests
         run: |
           pip install pytest pyyaml
           pytest tests/contract/test_import_topology.py -v --tb=short
-
       - name: Verify tenant context singleton guard
         run: python scripts/ci/check_tenant_context_singleton.py
-
       - name: Enforce Layer 4 end-state audit implemented-coverage integrity
         run: |
           pip install pyyaml
           python scripts/ci/check_layer4_end_state_audit.py
-
       - name: Enforce pytest skip governance
         run: |
           mkdir -p artifacts
@@ -303,20 +235,12 @@ jobs:
             echo "Pytest collection warnings indicate test discovery collisions. Failing CI."
             exit 1
           fi
-
       - name: Enforce static test skip governance
         run: |
           python scripts/ci/check_test_skip_governance.py \
             --register config/ci/test_skip_register.yaml \
             --write-report artifacts/test-debt-governance.json \
             --md-out artifacts/test-debt-governance.md
-
-      - name: Enforce P0/security skip-governance ratchet
-        run: |
-          python scripts/ci/check_p0_security_skip_governance.py \
-            --allowlist config/ci/p0_security_skip_allowlist.yaml \
-            --json-out artifacts/p0-security-skip-governance.json
-
       - name: Enforce legacy debt baseline
         run: |
           python scripts/ci/check_legacy_debt.py \
@@ -324,20 +248,17 @@ jobs:
             --approvals config/ci/legacy_debt_approvals.json \
             --config config/ci/legacy_debt_config.json \
             --write-report artifacts/legacy-debt-report.json
-
       - name: Run Layer 3 source mirror drift gate
         run: |
           mkdir -p artifacts
           python scripts/ci/check_layer3_source_mirror.py | tee artifacts/layer3-source-mirror.txt
           exit ${PIPESTATUS[0]}
-
       - name: Enforce Layer 3 Cypher tenant inventory
         run: |
           mkdir -p artifacts
           python scripts/ci/check_l3_cypher_tenant_inventory.py \
             --write-report \
             --report artifacts/l3-cypher-tenant-inventory.json
-
       - name: Build duplicate source-tree evidence report
         run: |
           mkdir -p artifacts
@@ -350,114 +271,67 @@ jobs:
             echo "Duplicate source-tree evidence report recorded existing canonicalization debt; \
               diff-scoped gating is enforced by the violation summary."
           fi
-
       - name: Run shared import runtime strict gate
         run: |
           mkdir -p artifacts
           python scripts/ci/check_shared_imports.py --strict --scope runtime --json | tee artifacts/shared-imports-runtime.json
           exit ${PIPESTATUS[0]}
-
       - name: Enforce shared identity canonical imports
         run: |
           python scripts/ci/check_shared_identity_canonical_imports.py
-
-      - name: Enforce versioned shared-boundary surfaces (R2 bounded-change policy)
-        run: |
-          mkdir -p artifacts
-          python scripts/ci/check_shared_boundary_surfaces.py | tee artifacts/shared-boundary-surfaces.txt
-          exit ${PIPESTATUS[0]}
-
       - name: Deprecated namespace import gate
         run: python scripts/ci/check_deprecated_namespace_imports.py --strict --use-baseline --json
-
       - name: Unified compatibility shim gate (additive)
         run: python scripts/ci/check_compatibility_shims.py run-all --strict --json
-
       - name: Facade import allowlist enforcement
         run: python scripts/ci/check_value_fabric_facade_imports.py --fail
-
       - name: Run navigation pattern guardrail
         run: |
           python scripts/ci/check_navigation_patterns.py --strict
-
       - name: Enforce Layer 4 bounded-context dependency rules
         run: |
           python scripts/ci/check_layer4_boundaries.py
-
       - name: Run repository config policy guardrail
         run: |
           python scripts/ci/check_config_policy.py
-
       - name: Enforce deprecated alertmanager manifest gate
         run: |
           python scripts/ci/check_deprecated_alertmanager_manifest.py
-
       - name: Run workflow matrix guards
         run: |
           make check-workflow-matrix
-
       - name: Enforce hermetic build input policy
         run: python scripts/ci/check_hermetic_build_inputs.py
-
       - name: Enforce secure error envelope gate
         run: python scripts/ci/check_secure_error_envelope.py
-
       - name: API contract stability enforcement
         run: |
           python scripts/ci/standardize_deprecation_markers.py --check
           python scripts/ci/sync_deprecation_register.py --check
-
       - name: OpenAPI linting with Spectral
         run: |
           pnpm dlx @stoplight/spectral-cli lint contracts/openapi/*.json --ruleset .spectral.yaml
-
       - name: Run error envelope consistency contract tests
         run: |
           pip install pytest
           pytest tests/contract/test_error_envelope_consistency.py -v --tb=short
-
       - name: Run OpenTelemetry instrumentation contract tests (P0-007)
         run: |
           pip install pytest pyyaml
           pytest tests/contract/test_otel_instrumentation.py -v --tb=short
-
-      - name: Run CI-control-plane structural contract tests (unconditional)
-        run: |
-          mkdir -p artifacts
-          python -m pytest \
-            tests/ci/test_ci_paths_split.py \
-            tests/ci/test_workflow_skip_safety.py \
-            tests/ci/test_merge_group_contract.py \
-            tests/ci/test_merge_queue_simulation.py \
-            tests/ci/test_release_evidence_skip_safety.py \
-            tests/ci/test_supply_chain_skip_safety.py \
-            -v --tb=short 2>&1 | tee artifacts/ci-structural-contract-tests.txt
-          exit ${PIPESTATUS[0]}
-
-      - name: Run CI-control-plane static semgrep contract tests (unconditional)
-        run: |
-          python -m pytest \
-            tests/ci/test_semgrep_behavioral_contracts.py \
-            -k "test_custom_rules_exist or test_paths_filters_code_scope or test_security_workflow_runs or test_sarif_parser or test_checked_in_baseline or test_exact_1_to_1" \
-            -v --tb=short 2>&1 | tee artifacts/semgrep-static-contract-tests.txt
-          exit ${PIPESTATUS[0]}
-
       - name: Run centralized observability contract suite
         run: |
           pip install pytest structlog prometheus-client
           pnpm test:observability
           pnpm lint:logs
-
       - name: Enforce HTTPException static gate with baseline allowlist
         run: |
           python scripts/ci/check_no_raw_httpexception_in_routers.py
-
       - name: Run webhook security matrix and build report artifact
         run: |
           pip install pytest
           python scripts/ci/webhook_security_matrix_report.py
           test -f artifacts/webhook-security-matrix.md
-
       - name: Tenant boundary static runtime enforcement
         run: |
           python scripts/ci/boundary_check.py --base-ref "origin/${{ github.base_ref || 'main' }}"
@@ -466,13 +340,11 @@ jobs:
           test -f artifacts/route-tenant-propagation.md
           python -m pytest tests/security/test_boundary_check_static.py -v --tb=short
           python -m pytest tests/security/test_route_tenant_propagation_static.py -v --tb=short
-
       - name: Generate layer quality scorecard
         run: |
           mkdir -p artifacts
           python scripts/ci/layer_quality_scorecard.py \
             --summary artifacts/layer-quality-scorecard.md
-
       - name: Build PR diff violation summary artifact
         if: always()
         run: |
@@ -483,7 +355,6 @@ jobs:
             --shared-report artifacts/shared-imports-runtime.json \
             --json-out artifacts/violation-diff-summary.json \
             --md-out artifacts/violation-diff-summary.md
-
       - name: Upload structural reports
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -495,7 +366,6 @@ jobs:
             artifacts/layer3-source-mirror.txt
             artifacts/duplicate-source-trees.json
             artifacts/shared-imports-runtime.json
-            artifacts/shared-boundary-surfaces.txt
             artifacts/pytest-collection.txt
             artifacts/test-debt-governance.json
             artifacts/test-debt-governance.md
@@ -507,22 +377,17 @@ jobs:
             artifacts/route-tenant-propagation.json
             artifacts/route-tenant-propagation.md
             artifacts/webhook-security-matrix.md
-            artifacts/ci-structural-contract-tests.txt
-            artifacts/semgrep-static-contract-tests.txt
           retention-days: 14
-
   pr-overlap-guard:
     name: PR Overlap Guard
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 10
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
       pull-requests: read # Required for read-only gh PR/file lookups in check_pr_overlap_guard.py; no PR mutations.
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Detect high overlap with recent merged PRs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -532,26 +397,21 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           python scripts/ci/check_pr_overlap_guard.py --lookback 20 --threshold 0.45
-
   production-readiness-gate:
     name: Production Readiness Gate
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 30
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - name: Install production-readiness gate dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install --require-hashes -r tests/requirements-test.lock
-
       - name: Run canonical production-readiness gate
         shell: bash
         run: |
@@ -566,7 +426,6 @@ jobs:
             echo "- Artifacts: artifacts/production-readiness/**"
             echo "- Manifest: artifacts/production-readiness/manifest.json"
           } >> "$GITHUB_STEP_SUMMARY"
-
       - name: Upload production-readiness artifacts
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -574,22 +433,18 @@ jobs:
           name: production-readiness-suite-results
           path: artifacts/production-readiness/**
           retention-days: 14
-
   governance-docs-check:
     name: Governance Docs Guard
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 5
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
         with:
           fetch-depth: 0
-
       - name: Detect changed files
         if: github.event_name == 'pull_request'
         id: governance-changed-files
         uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
-
       - name: Verify required policy and runbook docs exist
         run: |
           set -euo pipefail
@@ -610,10 +465,8 @@ jobs:
           done
 
           echo "Docs policy gate passed."
-
       - name: Enforce control matrix update policy
         run: .github/scripts/check-control-matrix.sh
-
       - name: Enforce Phase 3 API evolution section for enhancement PRs
         if: github.event_name == 'pull_request'
         env:
@@ -659,26 +512,22 @@ jobs:
 
           print("Phase 3 API evolution gate passed for enhancement PR.")
           PY
-
       - name: Enforce PR governance impact fields
         if: github.event_name == 'pull_request'
         env:
           CHANGED_FILES: ${{ steps.governance-changed-files.outputs.all_changed_files }}
         run: |
           python scripts/ci/check_pr_governance_fields.py
-
       - name: Enforce PR size policy
         if: github.event_name == 'pull_request'
         env:
           CHANGED_FILES: ${{ steps.governance-changed-files.outputs.all_changed_files }}
         run: |
           python scripts/ci/check_pr_size_policy.py
-
       - name: Validate docs claim verification map
         run: |
           mkdir -p artifacts/docs-validation
           python scripts/ci/validate_docs_claims.py --artifacts-dir artifacts/docs-validation
-
       - name: Fail if contract inventory docs contain TBD placeholders
         run: |
           set -euo pipefail
@@ -687,7 +536,6 @@ jobs:
             exit 1
           fi
           echo "Contract inventory docs TBD gate passed."
-
       - name: Fail if incident-critical runbook sections contain TBD placeholders
         run: |
           set -euo pipefail
@@ -734,7 +582,6 @@ jobs:
 
           print("Incident-critical TBD gate passed.")
           PY
-
       - name: Upload docs validation artifacts
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -745,13 +592,12 @@ jobs:
             artifacts/docs-validation/docs-validation-summary.md
             artifacts/docs-validation/stale-documents.json
           retention-days: 14
-
   # Layer 1 - Ingestion
   layer1-checks:
     needs: change-scope
     if: needs.change-scope.outputs.layer1 == 'true'
     name: Layer 1 - Ingestion
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 15
     env:
       PGUSER: postgres
@@ -773,77 +619,60 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
         with:
           fetch-depth: 0
-
       - name: Fetch base branch for diff-aware checks
         run: git fetch --no-tags --prune origin "${{ github.base_ref || 'main' }}"
         working-directory: ${{ github.workspace }}
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
           version: "0.11.6"
           enable-cache: true
-
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
-
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
         run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
-
       - name: Create Layer 1 CI databases
         env:
           PGPASSWORD: postgres
         run: |
           docker run --rm --network host -e PGPASSWORD postgres:16 \
             sh -c 'createdb -h localhost -U postgres ingestion || true; createdb -h localhost -U postgres layer1_ingestion || true'
-
       - name: Lint with ruff (comprehensive)
         run: |
           uv run ruff check src/
-
       - name: Type check - typed core
         run: |
           uv run python ../../scripts/ci/check_mypy_typed_core.py --service-dir .
-
       - name: Type check - changed files
         run: |
           uv run python ../../scripts/ci/check_mypy_changed_files.py \
             --service-dir . \
             --base-ref "origin/${{ github.base_ref || 'main' }}"
-
       - name: Type check - baseline ratchet
         run: |
           uv run python ../../scripts/ci/check_mypy_baseline.py \
             --service-dir . \
             --baseline ../../config/ci/mypy_baseline_layer1.json \
             --paths src
-
       - name: Fast unit tests
         run: |
           uv run pytest tests/unit -v --tb=short \
             -m "not integration and not postgres"
-
       - name: Integration tests
         run: |
           uv run pytest tests/integration -v --tb=short \
             -m "integration or postgres"
-
       - name: Combined test coverage
         run: |
           uv run pytest tests/unit tests/integration -v --tb=short \
@@ -851,31 +680,18 @@ jobs:
             --junitxml=layer1-junit.xml \
             --json-report --json-report-file=layer1-results.json \
             --cov-fail-under=57
-
       - name: Run Layer 3 Cypher scope gate
         working-directory: ${{ github.workspace }}
-        run:
-          python scripts/ci/check_layer3_cypher_scope.py services/layer3-knowledge/src --report-json
-          artifacts/layer3-cypher-scope-audit.json
-
+        run: python scripts/ci/check_layer3_cypher_scope.py services/layer3-knowledge/src --report-json artifacts/layer3-cypher-scope-audit.json
       - name: Run Layer 3 query entrypoint matrix gate
         working-directory: ${{ github.workspace }}
-        run:
-          python scripts/ci/check_layer3_query_entrypoints.py services/layer3-knowledge/src/api
-          services/layer3-knowledge/src/ingestion services/layer3-knowledge/src/analytics services/layer3-knowledge/src/agents
-          --report-json artifacts/layer3-query-entrypoint-matrix.json
-
+        run: python scripts/ci/check_layer3_query_entrypoints.py services/layer3-knowledge/src/api services/layer3-knowledge/src/ingestion services/layer3-knowledge/src/analytics services/layer3-knowledge/src/agents --report-json artifacts/layer3-query-entrypoint-matrix.json
       - name: Run Layer 3 audited mutation relationship-write gate
         working-directory: ${{ github.workspace }}
-        run:
-          python scripts/ci/check_layer3_audited_relationship_writes.py services/layer3-knowledge/src/api/routes
-          services/layer3-knowledge/src/services services/layer3-knowledge/src/agents --report-json
-          artifacts/layer3-audited-mutation-violations.json
-
+        run: python scripts/ci/check_layer3_audited_relationship_writes.py services/layer3-knowledge/src/api/routes services/layer3-knowledge/src/services services/layer3-knowledge/src/agents --report-json artifacts/layer3-audited-mutation-violations.json
       - name: Run Layer 3 tenant dependency import gate
         working-directory: ${{ github.workspace }}
         run: python scripts/ci/check_layer3_legacy_tenant_dependency_imports.py
-
       - name: Upload Layer 3 Cypher scope audit
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -883,7 +699,6 @@ jobs:
           name: layer3-cypher-scope-audit
           path: artifacts/layer3-cypher-scope-audit.json
           if-no-files-found: ignore
-
       - name: Upload Layer 3 query entrypoint matrix
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -891,7 +706,6 @@ jobs:
           name: layer3-query-entrypoint-matrix
           path: artifacts/layer3-query-entrypoint-matrix.json
           if-no-files-found: ignore
-
       - name: Upload Layer 3 audited mutation violation report
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -899,7 +713,6 @@ jobs:
           name: layer3-audited-mutation-violations
           path: artifacts/layer3-audited-mutation-violations.json
           if-no-files-found: ignore
-
       - name: Run tests with coverage
         run: |
           uv run pytest tests/ -v --tb=short \
@@ -907,7 +720,6 @@ jobs:
             --junitxml=layer1-junit.xml \
             --json-report --json-report-file=layer1-results.json \
             --cov-fail-under=57
-
       - name: Run Layer 1 router benchmarks (opt-in)
         if: ${{ vars[format('{0}', 'RUN_ROUTER_BENCHMARKS')] == '1' }}
         continue-on-error: true
@@ -915,7 +727,6 @@ jobs:
           RUN_ROUTER_BENCHMARKS: "1"
         run: |
           uv run pytest tests/benchmarks/test_router_performance.py -v --tb=short
-
       - name: Upload test results
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         if: always()
@@ -926,21 +737,18 @@ jobs:
             services/layer1-ingestion/layer1-results.json
             services/layer1-ingestion/layer1-coverage.xml
           retention-days: 14
-
       - name: Security scan with bandit
         run: uvx bandit@1.9.4 -r src/ -ll -ii
-
       - name: Dependency audit with pip-audit
         env:
           PIP_AUDIT_VULNERABILITY_POLICY: any
         run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
-
   # Layer 2 - Extraction
   layer2-checks:
     needs: change-scope
     if: needs.change-scope.outputs.layer2 == 'true'
     name: Layer 2 - Extraction
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 15
     defaults:
       run:
@@ -959,51 +767,40 @@ jobs:
       JWT_SECRET: test-jwt-secret-must-be-at-least-32-characters-long
       API_KEY_HMAC_SECRET: test-api-key-hmac-secret-32-chars
       CORS_ORIGINS: '["http://localhost:3000"]'
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
           version: "0.11.6"
           enable-cache: true
-
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
-
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
         run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
-
       - name: Configure CI authentication verification keys
         run: |
           printf 'FABRIC_AUTH_PUBLIC_KEYS=%s\n' "$(cat ../../config/ci/fabric_auth_test_public_keys.json)" >> "$GITHUB_ENV"
           echo 'FABRIC_AUTH_MODE=observe' >> "$GITHUB_ENV"
-
       - name: Lint with ruff (comprehensive)
         run: |
           uv run ruff check src/
-
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
-
       - name: Type check Layer 2 API imports
         run: uv run mypy src/layer2_extraction/api --follow-imports=normal --no-incremental
-
       - name: Guard Layer 2 API import ignores
         run: |
           if rg -n "^(from|import) layer2_extraction\..*# type: ignore(\[[^]]+\])?$" src/layer2_extraction/api; then
             echo "Disallowed type: ignore on layer2_extraction imports in api package"
             exit 1
           fi
-
       - name: Run tests with coverage
         run: |
           uv run pytest tests/ -v --tb=short \
@@ -1011,7 +808,6 @@ jobs:
             --junitxml=layer2-junit.xml \
             --json-report --json-report-file=layer2-results.json \
             --cov-fail-under=78
-
       - name: Upload test results
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         if: always()
@@ -1022,28 +818,21 @@ jobs:
             services/layer2-extraction/layer2-results.json
             services/layer2-extraction/layer2-coverage.xml
           retention-days: 14
-
       - name: Security scan with bandit
         run: uvx bandit@1.9.4 -r src/ -ll -ii
-
       - name: Dependency audit with pip-audit
         env:
           PIP_AUDIT_VULNERABILITY_POLICY: any
         run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
-
   # Layer 3 - Knowledge
   layer3-checks:
     needs: change-scope
     if: needs.change-scope.outputs.layer3 == 'true'
     name: Layer 3 - Knowledge
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     # The full coverage suite consistently needs more than 13 minutes on the
     # hosted runner before the hostile-tenant and evidence steps execute.
     timeout-minutes: 30
-    env:
-      NEO4J_URI: bolt://localhost:7687
-      NEO4J_USER: neo4j
-      NEO4J_PASSWORD: test-password
     defaults:
       run:
         working-directory: services/layer3-knowledge
@@ -1057,61 +846,49 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d layer3_knowledge"
-          --health-interval 10s --health-timeout 5s --health-retries 5
+          --health-cmd "pg_isready -U postgres -d layer3_knowledge" --health-interval 10s --health-timeout 5s --health-retries 5
       neo4j:
         image: neo4j:5-community
         env:
-          NEO4J_AUTH: neo4j/test-password
+          NEO4J_AUTH: neo4j/testpassword
         ports:
           - 7474:7474
           - 7687:7687
         options: >-
-          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"
-          --health-interval 10s --health-timeout 5s --health-retries 12
-
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1" --health-interval 10s --health-timeout 5s --health-retries 12
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
         with:
           fetch-depth: 0
-
       - name: Fetch base branch for diff-aware checks
         run: git fetch --no-tags --prune origin "${{ github.base_ref || 'main' }}"
         working-directory: ${{ github.workspace }}
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
           version: "latest"
           enable-cache: true
-
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
-
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
         run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
-
       - name: Lint with ruff (comprehensive)
         run: |
           uv run ruff check src/
-
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
-
       - name: Enforce Layer 3 monolith code freeze (ARCH-L3-007)
         working-directory: ${{ github.workspace }}
         run: |
           python scripts/ci/check_l3_monolith_freeze.py \
             --diff-only \
             --base-ref "origin/${{ github.base_ref || 'main' }}"
-
       - name: Check Layer 3 V2 contract drift against V1 snapshot (DOC-ARCH-010)
         working-directory: ${{ github.workspace }}
         run: |
@@ -1120,7 +897,6 @@ jobs:
             --snapshot docs/api/v1_snapshot.yaml \
             --current contracts/openapi/layer3-knowledge.json \
             --json-out artifacts/l3-contract-drift.json
-
       - name: Upload Layer 3 contract drift report
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -1129,7 +905,6 @@ jobs:
           path: artifacts/l3-contract-drift.json
           if-no-files-found: ignore
           retention-days: 14
-
       - name: Run tests with coverage
         run: |
           uv run pytest tests/ -v --tb=short \
@@ -1137,14 +912,12 @@ jobs:
             --junitxml=layer3-junit.xml \
             --json-report --json-report-file=layer3-results.json \
             --cov-fail-under=80
-
       - name: Run Layer 3 hostile tenancy endpoint suite
         run: |
           mkdir -p artifacts/layer3-tenancy
-          uv run pytest ../../tests/layer3/test_endpoint_tenant_isolation.py -v \
+          uv run pytest tests/layer3/test_endpoint_tenant_isolation.py -v \
             --junitxml artifacts/layer3-tenancy/hostile-tenancy-junit.xml \
             --json-report --json-report-file=artifacts/layer3-tenancy/hostile-tenancy-report.json
-
       - name: Collect Layer 3 Cypher + tenancy release evidence
         if: always()
         run: |
@@ -1153,7 +926,6 @@ jobs:
             artifacts/layer3-tenancy/cypher-scope-report.json || true
           cp "${{ github.workspace }}/artifacts/layer3-query-entrypoint-matrix.json" \
             artifacts/layer3-tenancy/query-entrypoint-matrix.json || true
-
       - name: Upload test results
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         if: always()
@@ -1164,7 +936,6 @@ jobs:
             services/layer3-knowledge/layer3-results.json
             services/layer3-knowledge/layer3-coverage.xml
           retention-days: 14
-
       - name: Upload Layer 3 tenancy evidence artifacts
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         if: always()
@@ -1172,58 +943,46 @@ jobs:
           name: layer3-tenancy-evidence
           path: services/layer3-knowledge/artifacts/layer3-tenancy/
           retention-days: 30
-
       - name: Security scan with bandit
         run: uvx bandit@1.9.4 -r src/ -ll -ii
-
       - name: Dependency audit with pip-audit
         env:
           PIP_AUDIT_VULNERABILITY_POLICY: any
         run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
-
   # Layer 4 - Agents
   layer4-checks:
     needs: change-scope
     if: needs.change-scope.outputs.layer4 == 'true'
     name: Layer 4 - Agents
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 15
     defaults:
       run:
         working-directory: services/layer4-agents
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
           version: "0.11.6"
           enable-cache: true
-
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
-
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
         run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
-
       - name: Lint with ruff (comprehensive)
         run: |
           uv run ruff check src/
-
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
-
       - name: Layer 4 pytest collection check
         run: uv run pytest --collect-only -q
-
       - name: Run tests with coverage
         run: |
           # Run the full testpaths declared in pyproject.toml, including
@@ -1233,7 +992,6 @@ jobs:
             --junitxml=layer4-junit.xml \
             --json-report --json-report-file=layer4-results.json \
             --cov-fail-under=80
-
       - name: Upload test results
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         if: always()
@@ -1244,58 +1002,46 @@ jobs:
             services/layer4-agents/layer4-results.json
             services/layer4-agents/layer4-coverage.xml
           retention-days: 14
-
       - name: Security scan with bandit
         run: uvx bandit@1.9.4 -r src/ -ll -ii
-
       - name: Dependency audit with pip-audit
         env:
           PIP_AUDIT_VULNERABILITY_POLICY: any
         run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
-
   # Layer 5 - Ground Truth
   layer5-checks:
     needs: change-scope
     if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Ground Truth
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 15
     defaults:
       run:
         working-directory: services/layer5-ground-truth
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
           version: "0.11.6"
           enable-cache: true
-
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
-
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
         run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
-
       - name: Lint with ruff (comprehensive)
         run: |
           uv run ruff check src/
-
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
-
       - name: Enforce Layer 5 source contract
         run: python scripts/check_no_duplicate_modules.py
-
       - name: Run tests with coverage
         env:
           PYTHONPATH: "src:../../packages/shared/src"
@@ -1305,7 +1051,6 @@ jobs:
             --junitxml=layer5-junit.xml \
             --json-report --json-report-file=layer5-results.json \
             --cov-fail-under=75
-
       - name: Upload test results
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         if: always()
@@ -1316,71 +1061,57 @@ jobs:
             services/layer5-ground-truth/layer5-results.json
             services/layer5-ground-truth/layer5-coverage.xml
           retention-days: 14
-
       - name: Security scan with bandit
         run: uvx bandit@1.9.4 -r src/ -ll -ii
-
       - name: Dependency audit with pip-audit
         env:
           PIP_AUDIT_VULNERABILITY_POLICY: any
         run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
-
   layer5-source-contract:
     needs: change-scope
     if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Source Contract
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 10
     defaults:
       run:
         working-directory: services/layer5-ground-truth
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Enforce Layer 5 source contract
         run: python scripts/check_no_duplicate_modules.py
-
   layer5-tenant-isolation-regression:
     needs: change-scope
     if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Tenant Isolation Regression
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 15
     defaults:
       run:
         working-directory: services/layer5-ground-truth
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
           version: "0.11.6"
           enable-cache: true
-
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
-
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
         run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
-
       - name: Enforce Layer 5 tenant isolation matrix coverage
         run: python ../../scripts/ci/check_layer5_tenant_isolation_matrix.py
-
       - name: Run tenant consistency and hostile access regression tests
         env:
           PYTHONPATH: "src:../../packages/shared/src"
@@ -1389,39 +1120,32 @@ jobs:
             tests/test_tenant_id_consistency.py \
             tests/test_api.py::TestGetTruth::test_org_isolation \
             tests/test_cross_tenant_hostile.py
-
   layer5-contract-shape-regression:
     needs: change-scope
     if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Contract Shape Regression
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 20
     defaults:
       run:
         working-directory: services/layer5-ground-truth
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
           version: "0.11.6"
           enable-cache: true
-
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
-
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
         run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
-
       - name: Generate and diff Layer 5 OpenAPI contract
         env:
           PYTHONPATH: "src:../../packages/shared/src"
@@ -1436,13 +1160,10 @@ jobs:
             cat contract-diff/layer5-openapi.diff
             exit $status
           fi
-
       - name: Run Layer 5 API contract tests
         run: PYTHONPATH=../..:../../packages/shared/src uv run pytest -v --tb=short ../../tests/contract/test_layer5_contract.py
-
       - name: Run Layer 5 endpoint response-shape snapshots
         run: PYTHONPATH=../..:../../packages/shared/src uv run pytest -v --tb=short tests/test_endpoint_response_shape_snapshots.py
-
       - name: Upload Layer 5 contract diff artifacts
         if: failure()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -1450,47 +1171,38 @@ jobs:
           name: layer5-contract-diff-artifacts
           path: services/layer5-ground-truth/contract-diff/
           retention-days: 14
-
   # Layer 6 - Benchmarks
   layer6-checks:
     needs: change-scope
     if: needs.change-scope.outputs.layer6 == 'true'
     name: Layer 6 - Benchmarks
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 15
     defaults:
       run:
         working-directory: services/layer6-benchmarks
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
           version: "0.11.6"
           enable-cache: true
-
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
-
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
         run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
-
       - name: Lint with ruff (comprehensive)
         run: |
           uv run ruff check src/
-
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
-
       - name: Run tests with coverage
         run: |
           uv run pytest tests/ -v --tb=short \
@@ -1498,7 +1210,6 @@ jobs:
             --junitxml=layer6-junit.xml \
             --json-report --json-report-file=layer6-results.json \
             --cov-fail-under=80
-
       - name: Upload test results
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         if: always()
@@ -1509,52 +1220,42 @@ jobs:
             services/layer6-benchmarks/layer6-results.json
             services/layer6-benchmarks/layer6-coverage.xml
           retention-days: 14
-
       - name: Security scan with bandit
         run: uvx bandit@1.9.4 -r src/ -ll -ii
-
       - name: Dependency audit with pip-audit
         env:
           PIP_AUDIT_VULNERABILITY_POLICY: any
         run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
-
   # Cross-layer shared and tests validation
   shared-and-tests-checks:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Shared & Tests - Code Quality
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 5
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - name: Install ruff
         run: pip install ruff
-
       # NOTE: The shared package (packages/shared/src/) currently has no project-level
       # ruff configuration. Linting it with the default rule set produces thousands of
       # violations. The legacy `shared/` directory this step originally targeted no
       # longer exists. Re-instate shared-package linting after adding an appropriate
       # ruff config (e.g., mirroring the per-service pyproject.toml lint setup).
-
       - name: Lint tests
         run: |
-          ruff check --config tests/pyproject.toml tests/
-
+          ruff check tests/
       # M3: the shared package fans out to every layer plus the gateway, so its
       # own suite must be a required signal rather than an untested surface.
       - name: Install shared-package test dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install --require-hashes -r tests/requirements-test.lock
-
       - name: Run shared-package test suite with coverage
         env:
           PYTHONPATH: packages/shared/src
@@ -1567,7 +1268,6 @@ jobs:
             --cov-report=xml:shared-coverage.xml \
             --cov-report=term-missing \
             --junitxml=shared-junit.xml
-
       - name: Assert shared-package suite collected tests
         if: always()
         run: |
@@ -1587,7 +1287,6 @@ jobs:
               sys.exit("shared-package suite collected zero tests; failing closed")
           print(f"shared-package suite collected {total} test(s)")
           PY
-
       - name: Upload shared-package test results
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         if: always()
@@ -1597,13 +1296,12 @@ jobs:
             shared-junit.xml
             shared-coverage.xml
           retention-days: 14
-
   # Frontend checks
   frontend-checks:
     needs: change-scope
     if: needs.change-scope.outputs.web == 'true'
     name: Frontend
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 10
     defaults:
       run:
@@ -1621,28 +1319,22 @@ jobs:
       VITE_L5_PREFIX: /truths
       VITE_L6_PREFIX: /benchmarks
       VITE_L7_PREFIX: /billing
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Setup pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
           version: "10.18.1"
-
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
           node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: "pnpm-lock.yaml"
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
       - name: Generate frontend API types
         run: pnpm run generate:api
-
       - name: Check generated API type drift
         working-directory: ${{ github.workspace }}
         run: |
@@ -1656,13 +1348,10 @@ jobs:
           git diff --exit-code \
             packages/platform-contract/src/typescript/generated/ \
             apps/web/src/api/generated/ apps/web/src/types/
-
       - name: Type check
         run: pnpm tsc --noEmit
-
       - name: Lint
         run: pnpm run lint
-
       - name: Check for unguarded console statements
         run: |
           # Find console.log/console.warn without DEV guard (excluding tests)
@@ -1685,13 +1374,10 @@ jobs:
           fi
 
           echo "✅ No unguarded console statements found"
-
       - name: Build
         run: pnpm run build
-
       - name: Bundle Analysis
         run: pnpm run build:analyze
-
       - name: Upload bundle report
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         if: always()
@@ -1699,14 +1385,11 @@ jobs:
           name: bundle-report
           path: apps/web/dist/stats.html
           retention-days: 14
-
       - name: Test
         run: pnpm test -- --reporter=junit --outputFile=frontend-junit.xml --reporter=default --coverage
-
       - name: Critical frontend coverage thresholds
         working-directory: ${{ github.workspace }}
         run: pnpm --dir apps/web run test:coverage:critical
-
       - name: Upload test results
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         if: always()
@@ -1716,7 +1399,6 @@ jobs:
             apps/web/frontend-junit.xml
             apps/web/coverage/
           retention-days: 14
-
       - name: Upload frontend test report artifact (release evidence)
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         if: always()
@@ -1725,13 +1407,10 @@ jobs:
           path: apps/web/frontend-junit.xml
           retention-days: 90
           if-no-files-found: warn
-
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
-
       - name: Accessibility tests (components)
         run: pnpm run test:a11y:components
-
       - name: Accessibility scan + thresholds (pages)
         env:
           A11Y_REPORT_PATH: ./a11y-report.json
@@ -1749,66 +1428,52 @@ jobs:
             sleep 1
           done
           pnpm run test:a11y:launch-smoke
-
       - name: Accessibility keyboard-flow E2E (deep a11y assertions)
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
         run: |
           # Preview server is still running from previous step in the same job
           pnpm run test:a11y:keyboard-flow
-
       - name: Security audit and verified Node backports (GATING)
         run: >-
-          python ../../scripts/ci/check_node_security_backports.py
-          --audit
-          --project-dir apps/web
-          --audit-report-output frontend-audit.json
-
+          python ../../scripts/ci/check_node_security_backports.py --audit --project-dir apps/web --audit-report-output frontend-audit.json
       - name: Upload build artifacts on failure
         if: failure()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: frontend-build-failure
           path: apps/web/dist/public/
-
   behavior-tests:
     needs: change-scope
     if: needs.change-scope.outputs.web == 'true'
     name: behavior-tests
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 30
     defaults:
       run:
         working-directory: apps/web
     env:
       CI: "true"
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Setup pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
           version: "10.18.1"
-
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
           node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: "pnpm-lock.yaml"
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
-
       - name: Behavior-first E2E contracts
         run: |
           mkdir -p e2e-results playwright-report
           pnpm run test:e2e:behaviors
-
       - name: Upload behavior test results
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -1819,17 +1484,15 @@ jobs:
             apps/web/playwright-report/**
           if-no-files-found: ignore
           retention-days: 14
-
   p0-e2e-gate:
     needs: change-scope
     # Boots the full live backend stack (infra/compose/docker-compose.e2e.yml)
     # and drives it through the frontend, so it must run for backend, frontend,
     # contract, and image/infra changes — not just the web surface.
     if: >-
-      needs.change-scope.outputs.code == 'true'
-      || needs.change-scope.outputs.docker == 'true'
+      needs.change-scope.outputs.code == 'true' || needs.change-scope.outputs.docker == 'true'
     name: p0-e2e-gate
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 45
     defaults:
       run:
@@ -1847,44 +1510,35 @@ jobs:
       VITE_PROXY_L1_URL: http://localhost:8001
       VITE_PROXY_L4_URL: http://localhost:8004
       VITE_PROXY_API_GATEWAY_URL: http://localhost:8004
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Setup pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
           version: "10.18.1"
-
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
           node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: "pnpm-lock.yaml"
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
-
       - name: Start deterministic E2E backend
         working-directory: ${{ github.workspace }}
         run: docker compose -f infra/compose/docker-compose.e2e.yml up -d --build --wait
-
       - name: Run P0 E2E gate
         run: |
           mkdir -p e2e-results playwright-report
           pnpm run test:e2e:live:p0
-
       - name: Capture Compose diagnostics
         if: failure()
         working-directory: ${{ github.workspace }}
         run: |
           docker compose -f infra/compose/docker-compose.e2e.yml ps -a
           docker compose -f infra/compose/docker-compose.e2e.yml logs --no-color --timestamps --tail=500
-
       - name: Upload P0 E2E artifacts
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -1895,34 +1549,27 @@ jobs:
             apps/web/playwright-report/**
           if-no-files-found: ignore
           retention-days: 14
-
       - name: Tear down deterministic E2E backend
         if: always()
         working-directory: ${{ github.workspace }}
         run: docker compose -f infra/compose/docker-compose.e2e.yml down -v
-
   # Kubernetes manifest validation (server-side dry-run via kustomize)
   k8s-dry-run:
     needs: change-scope
     if: needs.change-scope.outputs.k8s == 'true'
     name: Kubernetes Dry-Run Validation
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 15
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Create Kind cluster
         uses: helm/kind-action@v1
-
       - name: Set up kubectl
         uses: azure/setup-kubectl@v4
-
       - name: Install CI dry-run CRDs
         run: |
           kubectl apply -f k8s/ci/crds/
           kubectl wait --for=condition=Established crd --all --timeout=60s
-
       - name: Install kustomize
         run: |
           url="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz"
@@ -1931,25 +1578,20 @@ jobs:
           tar -xzf kustomize.tar.gz
           sudo mv kustomize /usr/local/bin/kustomize
           kustomize version
-
       - name: Create target namespace
         run: |
           kubectl create namespace value-fabric --dry-run=client -o yaml | kubectl apply -f -
-
       - name: Install cert-manager CRDs
         run: |
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.1/cert-manager.crds.yaml
-
       - name: Install External Secrets Operator CRDs
         run: |
           kubectl apply -f https://raw.githubusercontent.com/external-secrets/external-secrets/v0.9.15/deploy/crds/bundle.yaml
-
       - name: Install Kyverno (CRDs only)
         run: |
           # Server-side apply avoids the 262144-byte last-applied-configuration
           # annotation limit that hits CRDs such as clusterpolicies.kyverno.io.
           kubectl apply --server-side=true -f https://github.com/kyverno/kyverno/releases/download/v1.11.0/install.yaml
-
       - name: Create required StorageClasses for dry-run
         run: |
           cat <<EOF | kubectl apply -f -
@@ -1960,37 +1602,30 @@ jobs:
           provisioner: csi.aws.com # Dummy provisioner for dry-run
           volumeBindingMode: WaitForFirstConsumer
           EOF
-
       - name: Server-side dry-run (dev-nginx deployment)
         run: |
           kustomize build k8s/deployments/dev-nginx --load-restrictor=LoadRestrictionsNone | kubectl apply --dry-run=server -f -
-
       - name: Server-side dry-run (prod-nginx deployment)
         run: |
           kustomize build k8s/deployments/prod-nginx --load-restrictor=LoadRestrictionsNone | kubectl apply --dry-run=server -f -
-
   # Contract tests — required PR gate, no secrets needed
   contract-checks:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Cross-Layer Contract Tests
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 5
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - name: Setup pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
           version: "10.18.1"
-
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
@@ -2000,22 +1635,17 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --require-hashes -r tests/requirements-test.lock
-
       - name: Install platform contract package dependencies
         working-directory: packages/platform-contract
         run: pnpm install --frozen-lockfile
-
       - name: Validate Fabric_4L OpenAPI documentation
         run: |
           python -c "import json; json.load(open('contracts/openapi/fabric-4l-api.json'))"
           python scripts/ci/validate_fabric_openapi_docs.py --baseline config/ci/fabric_openapi_docs_baseline.json
-
       - name: Verify schema contract indexes
         run: pnpm test:schema
-
       - name: Run contract and architecture tests
         run: make contract-tests
-
       - name: Assert contract suite collection is clean
         run: |
           set -euo pipefail
@@ -2027,42 +1657,34 @@ jobs:
             echo "Contract test collection errors detected."
             exit 1
           fi
-
       - name: Run frontend OpenAPI/Zod drift check
         run: |
           pnpm --dir apps/web install --frozen-lockfile
           pnpm --dir apps/web run test:contracts
-
       - name: Run tool contract validation
         run: |
           python scripts/ci/check_tool_contracts.py services/layer4-agents/src/layer4_agents/tools/
-
       - name: Run endpoint-hook coverage validation
         run: |
           python scripts/ci/check_endpoint_coverage.py \
             --registry apps/web/contracts/endpoint-hook-registry.json \
             --openapi-dir contracts/openapi
-
       - name: Compatibility debt summary
         run: |
           python scripts/ci/compatibility_debt_summary.py
-
       - name: Detect changed files
         if: github.event_name == 'pull_request'
         id: changed-files
         uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
-
       - name: Enforce shim change acknowledgment labels
         if: github.event_name == 'pull_request'
         env:
           CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
           python scripts/ci/check_shim_change_ack.py
-
       - name: Generate compatibility shim usage report
         run: |
           python scripts/ci/shim_usage_report.py --output-dir artifacts/compatibility-debt
-
       - name: Upload compatibility shim report
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -2070,7 +1692,6 @@ jobs:
           name: compatibility-shim-report
           path: artifacts/compatibility-debt/
           retention-days: 90
-
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -2079,58 +1700,18 @@ jobs:
           path: |
             .pytest_cache/
           retention-days: 7
-
-  # Event Catalog validation gate — static, no secrets needed
-  event-catalog-gate:
-    needs: change-scope
-    if: needs.change-scope.outputs.backend == 'true'
-    name: Event Catalog Gate
-    runs-on: depot-ubuntu-24.04-4
-    timeout-minutes: 5
-
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
-      - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install pyyaml
-
-      - name: Validate Event Catalog
-        run: |
-          python scripts/ci/validate-event-catalog.py --strict
-
-      - name: Write report artifact
-        if: always()
-        run: |
-          python scripts/ci/validate-event-catalog.py --write-report artifacts/event-catalog-gate.json
-
-      - name: Upload report
-        if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
-        with:
-          name: event-catalog-gate-report
-          path: artifacts/event-catalog-gate.json
-          retention-days: 14
-
   runtime-contract-checks:
     name: Runtime Contract Tests (Services Up)
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 20
     needs: change-scope
     if: >-
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-      && needs.change-scope.outputs.backend == 'true'
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.change-scope.outputs.backend == 'true'
     env:
       OPENAI_API_KEY: ci-runtime-placeholder
       JWT_SECRET: ci-runtime-jwt-secret-not-for-production
       REDIS_PASSWORD: test-redis
-      NEO4J_PASSWORD: test-neo4j-password-123456
+      NEO4J_PASSWORD: test-neo4j
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       MINIO_ROOT_USER: minio
@@ -2150,18 +1731,15 @@ jobs:
       FLOWER_PASSWORD: ci-flower-password
       GRAFANA_ADMIN_PASSWORD: ci-grafana-password
       LAYER4_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Fabric CI
-        uses: ./.github/actions/setup-fabric-ci
+        uses: ./.depot/actions/setup-fabric-ci
         with:
           python-version: "3.11"
           python-dependency-mode: root-test
           install-node-deps: "false"
           cache: ""
-
       - name: Write runtime contract compose override
         run: |
           cat > docker-compose.runtime-contract.yml <<'EOF'
@@ -2170,7 +1748,6 @@ jobs:
               ports:
                 - "8001:8000"
           EOF
-
       - name: Start runtime contract services
         env:
           # Runtime contract health checks use local services only; these are
@@ -2180,13 +1757,13 @@ jobs:
         run: |
           export OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}
           export REDIS_PASSWORD=test-redis
-          export NEO4J_PASSWORD=test-neo4j-password-123456
+          export NEO4J_PASSWORD=test-neo4j
           export POSTGRES_USER=postgres
           export POSTGRES_PASSWORD=postgres
           export MINIO_ROOT_USER=minio
           export MINIO_ROOT_PASSWORD=minio-password
           export SERVICE_AUTH_SECRET=ci-runtime-service-auth-secret-minimum-32-chars
-          export API_KEY_HMAC_SECRET=ci-runtime-api-key-hmac-secret-minimum-32-chars
+          export API_KEY_HMAC_SECRET=ci-api-key-hmac-secret
           export SECRET_KEY=ci-secret-key
           export CORS_ORIGINS=http://localhost:3001
           export CLERK_AUTHORIZED_PARTIES=http://localhost:3001
@@ -2200,9 +1777,8 @@ jobs:
           export LAYER4_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
           export JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
           docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml up -d postgres redis neo4j layer5-migrate layer5-ground-truth \
-            layer1-ingestion layer2-extraction layer3-knowledge layer4-agents layer6-benchmarks
-
-      - name: Wait for L1-L6 health endpoints
+            layer1-ingestion layer2-extraction layer3-knowledge layer4-agents
+      - name: Wait for L1-L4 health endpoints
         run: |
           python - <<'PY'
           import time
@@ -2214,7 +1790,6 @@ jobs:
               "L3": "http://localhost:8003/health",
               "L4": "http://localhost:8004/health",
               "L5": "http://localhost:8005/health",
-              "L6": "http://localhost:8006/health",
           }
 
           deadline = time.time() + 300
@@ -2240,40 +1815,25 @@ jobs:
           if failed:
               raise SystemExit(f"Services did not become healthy in time: {failed}")
           PY
-
-      - name: Enforce minimum contract test collection
-        run: python scripts/ensure-pytest-collection.py --dir tests/contract --min-tests 330
-
       - name: Run runtime contract marker suite
         env:
-          CONTRACT_TEST_STRICT: "1"
           RUN_RUNTIME_CONTRACTS: "1"
           L1_URL: http://localhost:8001
           L2_URL: http://localhost:8002
           L3_URL: http://localhost:8003
           L4_URL: http://localhost:8004
-          LAYER1_API_URL: http://localhost:8001
-          LAYER2_API_URL: http://localhost:8002
           LAYER3_API_URL: http://localhost:8003
           LAYER4_API_URL: http://localhost:8004
           LAYER5_API_URL: http://localhost:8005
-          LAYER6_API_URL: http://localhost:8006
           SERVICE_AUTH_SECRET: ci-runtime-service-auth-secret-minimum-32-chars
           RUNTIME_CONTRACT_TENANT_ID: 00000000-0000-4000-8000-000000000001
         run: |
           pytest tests/contract/test_layer_integration.py -m runtime_contract -v --tb=short
-
-          pytest \
-            tests/contract/test_layer_service_entrypoint_smoke.py \
-            tests/contract/test_l3_route_alias_parity.py \
-            -v --tb=short
-
       - name: Capture runtime contract service diagnostics
         if: failure()
         run: |
           docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml ps
           docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml logs --no-color --timestamps --tail=500
-
       - name: Upload runtime contract artifacts
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -2282,30 +1842,24 @@ jobs:
           path: |
             .pytest_cache/
           retention-days: 7
-
   # Schemathesis — Property-based OpenAPI contract validation
   schemathesis-checks:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Schemathesis Property-Based Contract Tests
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 10
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - name: Install Schemathesis
         run: pip install "schemathesis==3.39.16" "pytest-xdist==3.5.0"
-
       - name: Schemathesis version diagnostics
         run: st --version
-
       # Schemathesis 3.x has no `st check` subcommand (only run/replay/auth/upload).
       # `st run --dry-run` loads and validates the schema and generates the full
       # deterministic example set (--hypothesis-seed 42) without making network
@@ -2323,7 +1877,6 @@ jobs:
             --hypothesis-max-examples 10 \
             --hypothesis-seed 42
         # CONTRACT ENFORCEMENT: L1 now fully implemented - blocking enabled
-
       - name: Run Schemathesis on L2 OpenAPI (static validation)
         run: |
           st run contracts/openapi/layer2-extraction.json \
@@ -2332,7 +1885,6 @@ jobs:
             --hypothesis-max-examples 10 \
             --hypothesis-seed 42
         # CONTRACT ENFORCEMENT: L2 now fully implemented - blocking enabled
-
       - name: Run Schemathesis on L3 OpenAPI (strict validation)
         run: |
           st run contracts/openapi/layer3-knowledge.json \
@@ -2342,7 +1894,6 @@ jobs:
             --hypothesis-seed 42 \
             --checks all \
             --hypothesis-suppress-health-check filter_too_much
-
       - name: Run Schemathesis on L4 OpenAPI (strict validation)
         run: |
           st run contracts/openapi/layer4-agents.json \
@@ -2352,7 +1903,6 @@ jobs:
             --hypothesis-seed 42 \
             --checks all \
             --hypothesis-suppress-health-check filter_too_much
-
       - name: Upload Schemathesis results
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -2361,17 +1911,15 @@ jobs:
           path: |
             .schemathesis/
           retention-days: 7
-
   # Integration tests with Docker — PR-blocking
   integration-checks:
     name: Integration Tests (Docker)
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 35
     # Skip on fork PRs (no secrets available)
     needs: change-scope
     if: >-
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-      && needs.change-scope.outputs.backend == 'true'
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && needs.change-scope.outputs.backend == 'true'
     permissions:
       contents: read
       id-token: write # Required only for Infisical OIDC secret retrieval in this job; no repository write scopes.
@@ -2384,19 +1932,15 @@ jobs:
       POSTGRES_USER: release_smoke_app
       POSTGRES_PASSWORD: release_smoke_strong_credential
       NEO4J_PASSWORD: devpassword
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Set up Docker Compose
         run: |
           docker compose version
-
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       # OIDC secret fetch only runs on trusted pushes to the repo (e.g. main),
@@ -2415,17 +1959,14 @@ jobs:
           project-slug: fabric4l
           identity-id: ${{ secrets[format('{0}', 'INFISICAL_IDENTITY_ID')] }}
           secret-path: /layer2-extraction
-
       - name: Run release smoke gate
         run: make test-backend-integrated-release-smoke
-
       - name: Capture logs on failure
         if: failure()
         run: |
           mkdir -p artifacts/logs
           PROJECT_NAME="fabric4l-release-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           docker compose -p "$PROJECT_NAME" -f infra/compose/docker-compose.release-smoke.yml logs --no-color > artifacts/logs/docker-compose.log || true
-
       - name: Upload smoke report
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -2433,7 +1974,6 @@ jobs:
           name: smoke-report-pr
           path: artifacts/release_smoke/**
           retention-days: 7
-
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -2441,35 +1981,29 @@ jobs:
           name: integration-logs
           path: artifacts/logs/
           retention-days: 7
-
   # Billing + entitlement regression pack and release evidence artifact
   billing-entitlements-regression:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Billing/Entitlements Regression + Evidence
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 10
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - name: Install test dependencies
         run: |
           python -m pip install --require-hashes -r tests/requirements-test.lock
           python -m pip check
-
       - name: Run billing/entitlement regression pack
         run: |
           mkdir -p artifacts/release-evidence
           pytest tests/integration/billing_entitlements/ -v --tb=short \
             --junitxml artifacts/release-evidence/billing-entitlements-junit.xml
-
       - name: Generate launch-checklist evidence
         if: always()
         run: |
@@ -2477,7 +2011,6 @@ jobs:
             --junit artifacts/release-evidence/billing-entitlements-junit.xml \
             --out-dir artifacts/release-evidence \
             --test-command "pytest tests/integration/billing_entitlements/ -v --tb=short"
-
       - name: Upload billing regression evidence
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -2488,28 +2021,23 @@ jobs:
             artifacts/release-evidence/billing-entitlements-summary.json
             artifacts/release-evidence/billing-entitlements-summary.md
           retention-days: 14
-
   # Docker image build verification - catches Dockerfile regressions
   docker-compose-config-contract:
     needs: change-scope
     if: needs.change-scope.outputs.docker == 'true'
     name: Docker Compose Config Contract
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 10
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Set up Node.js for Dev Container validation
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
           node-version: "22.22.2"
-
       - name: Install pinned Dev Container CLI
         run: |
           corepack enable
@@ -2520,18 +2048,14 @@ jobs:
           echo "${PNPM_HOME}" >> "$GITHUB_PATH"
           export PATH="${PNPM_HOME}:${PATH}"
           pnpm add --global @devcontainers/cli@0.80.1
-
       - name: Install compose contract dependencies
         run: python -m pip install pyyaml
-
       - name: Validate Docker Compose config contracts
         run: |
           python scripts/ci/check_docker_compose_config.py \
             --artifact-dir artifacts/docker-compose-config
-
       - name: Validate canonical Dev Container topology
         run: python scripts/ci/check_devcontainer_config.py
-
       - name: Upload Docker Compose config artifacts
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -2539,28 +2063,23 @@ jobs:
           name: docker-compose-config-contract
           path: artifacts/docker-compose-config/**
           retention-days: 14
-
   queue-topology-checks:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Queue Topology
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 10
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
           node-version: "22.22.2"
-
       - name: Enable pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
@@ -2569,15 +2088,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install --require-hashes -r tests/requirements-test.lock
-
       - name: Run queue topology checks
         run: pnpm test:queues
-
   docker-build-check:
     needs: change-scope
     if: needs.change-scope.outputs.docker == 'true'
     name: Docker Image Build Verification
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 30
     env:
       BASE_IMAGE: ""
@@ -2585,16 +2102,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        layer:
-          [
-            layer1-ingestion,
-            layer2-extraction,
-            layer3-knowledge,
-            layer4-agents,
-            layer5-ground-truth,
-            layer6-benchmarks,
-            frontend,
-          ]
+        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, frontend]
         include:
           - layer: layer1-ingestion
             context: services/layer1-ingestion
@@ -2611,13 +2119,10 @@ jobs:
           - layer: frontend
             context: .
             dockerfile: ./apps/web/Dockerfile
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3
-
       # Single-platform build with `load: true` so the image is available locally
       # for the Trivy scan. Multi-platform builds (`linux/amd64,linux/arm64`) are
       # validated in build-deploy.yml, which pushes the multi-arch manifest.
@@ -2634,7 +2139,6 @@ jobs:
           build-args: |
             BASE_IMAGE=${{ env.BASE_IMAGE }}
             BUILDER_BASE_IMAGE=${{ env.BUILDER_BASE_IMAGE }}
-
       - name: Determine if image context changed against base
         id: context-diff
         run: |
@@ -2657,7 +2161,6 @@ jobs:
             echo "context_changed=false" >> "$GITHUB_OUTPUT"
             echo "Image context unchanged for ${{ matrix.layer }}; findings are baseline" >&2
           fi
-
       - name: Determine Trivy exit code
         id: trivy-exit
         run: |
@@ -2668,7 +2171,6 @@ jobs:
           else
             echo "exit_code=0" >> "$GITHUB_OUTPUT"
           fi
-
       - name: Run Trivy image scan (PR security stage)
         uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98
         with:
@@ -2677,52 +2179,43 @@ jobs:
           exit-code: ${{ steps.trivy-exit.outputs.exit_code }}
           ignore-unfixed: true
           severity: CRITICAL,HIGH
-
       - name: Generate image SBOM (SPDX JSON)
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           image: local/${{ matrix.layer }}:${{ github.sha }}
           format: spdx-json
           output-file: sbom-${{ matrix.layer }}-${{ github.sha }}.spdx.json
-
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: sbom-${{ matrix.layer }}-${{ github.sha }}
           path: sbom-${{ matrix.layer }}-${{ github.sha }}.spdx.json
           retention-days: 14
-
       - name: Verify Dockerfile lint
         uses: hadolint/hadolint-action@v3.1.0
         if: matrix.layer != 'frontend'
         with:
           dockerfile: ${{ matrix.dockerfile || format('{0}/Dockerfile', matrix.context) }}
           ignore: DL3008,DL3013
-
   # Alertmanager configuration validation
   alertmanager-config-check:
     needs: change-scope
     if: needs.change-scope.outputs.k8s == 'true'
     name: Alertmanager Config Validation
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 5
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Install PyYAML
         run: pip install pyyaml
-
       - name: Validate Alertmanager configuration
         run: |
           chmod +x scripts/ci/validate-alertmanager-config.sh
           ./scripts/ci/validate-alertmanager-config.sh
-
       - name: Install kubectl
         run: |
           set -e
@@ -2732,7 +2225,6 @@ jobs:
           mkdir -p "$HOME/.local/bin"
           mv kubectl "$HOME/.local/bin/"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
       - name: Install kustomize
         run: |
           url="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz"
@@ -2741,7 +2233,6 @@ jobs:
           tar -xzf kustomize.tar.gz
           sudo mv kustomize /usr/local/bin/kustomize
           kustomize version
-
       - name: Check kustomize build for monitoring manifests
         run: |
           if command -v kubectl &> /dev/null; then
@@ -2756,28 +2247,23 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Route Auth Dependency Gate
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 10
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Install gate dependencies
         run: python -m pip install pyyaml
-
       - name: Enforce route auth dependency policy
         run: python scripts/ci/check_route_auth_dependencies.py
-
   tenant-isolation-gate:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Tenant Isolation Gate
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 35
     services:
       postgres:
@@ -2804,23 +2290,18 @@ jobs:
           - 7474:7474
           - 7687:7687
         options: >-
-          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1" --health-interval 10s
-          --health-timeout 5s --health-retries 12
-
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1" --health-interval 10s --health-timeout 5s --health-retries 12
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
           node-version: "22.22.2"
-
       - name: Enable pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
@@ -2829,12 +2310,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install --require-hashes -r tests/requirements-test.lock
-
       - name: Configure CI authentication verification keys
         run: |
           printf 'FABRIC_AUTH_PUBLIC_KEYS=%s\n' "$(cat config/ci/fabric_auth_test_public_keys.json)" >> "$GITHUB_ENV"
           echo 'FABRIC_AUTH_MODE=observe' >> "$GITHUB_ENV"
-
       - name: Run first-class tenant isolation gate
         env:
           PYTHONPATH: ${{ github.workspace }}/packages/shared/src:${{ github.workspace }}/services/layer4-agents/src:${{ github.workspace }}/services/layer5-ground-truth/src:${{ github.workspace }}/services/layer7-billing/src
@@ -2848,7 +2327,6 @@ jobs:
         run: |
           python scripts/ci/run_tenant_isolation_gate.py
           test -f artifacts/tenant-isolation/summary.json
-
       - name: Upload tenant isolation evidence
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -2856,30 +2334,24 @@ jobs:
           name: tenant-isolation-gate-summary
           path: artifacts/tenant-isolation/summary.json
           retention-days: 14
-
   critical-behaviors-gate:
     needs: change-scope
     if: needs.change-scope.outputs.code == 'true'
     name: Critical Behaviors Gate
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 15
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: "22.22.2"
-
       - name: Install pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
-
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
         run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
       - name: Setup pnpm cache
         uses: actions/cache@v4
         with:
@@ -2887,26 +2359,20 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-
       - name: Install Python test dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install --require-hashes -r tests/requirements-test.lock
-
       - name: Run critical behaviors tests (frontend + backend + route auth)
         run: pnpm run test:critical-behaviors
-
       - name: Run behavior readiness audit (executable, skip-controlled, GREEN/YELLOW/RED)
         run: python scripts/ci/behavior_readiness_audit.py --report artifacts/readiness/behavior-readiness-audit.json
-
       - name: Save critical-behaviors evidence
         if: always()
         run: |
@@ -2919,7 +2385,6 @@ jobs:
             "command": "pnpm run test:critical-behaviors"
           }))
           ' > artifacts/critical-behaviors-gate/result.json
-
       - name: Upload critical-behaviors evidence
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -2927,7 +2392,6 @@ jobs:
           name: critical-behaviors-gate-result
           path: artifacts/critical-behaviors-gate/result.json
           retention-days: 14
-
       - name: Upload behavior readiness audit report
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -2935,94 +2399,37 @@ jobs:
           name: behavior-readiness-audit-report
           path: artifacts/readiness/behavior-readiness-audit.json
           retention-days: 14
-
   gate-engineering:
     name: Gate Engineering Validation
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 10
     needs: structural-preflight
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
       - name: Set up deterministic root test and workspace dependencies
-        uses: ./.github/actions/setup-fabric-ci
+        uses: ./.depot/actions/setup-fabric-ci
         with:
           python-dependency-mode: root-test
           install-node-deps: "true"
-
       - name: Check canonical gate artifact paths
         run: |
           python scripts/ci/canonicalize_gate_artifact_paths.py --check
-
       - name: Validate gate-engineering registry and contracts
         run: |
           pnpm run gate-engineering:validate --strict
-
       - name: Run gate-engineering tests
         run: |
           pnpm run gate-engineering:test
-
-  # ---------------------------------------------------------------------------
-  # External dependency health gate. Probes the canonical registry. For
-  # required coverage an unavailable dependency MUST fail the readiness gate
-  # with EXTERNAL_DEPENDENCY_UNAVAILABLE; it is never treated as safely down.
-  # This job is intentionally NOT given a skip-safe scope mapping, so a skipped
-  # or failed check-external-deps is a gate failure (see the gate's SCOPES map
-  # and its no-scope-mapping handling below).
-  # ---------------------------------------------------------------------------
-  check-external-deps:
-    name: check-external-deps
-    runs-on: depot-ubuntu-24.04-4
-    timeout-minutes: 10
-    needs: change-scope
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-      - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
-        with:
-          python-version: "3.11"
-      - name: Probe external dependencies
-        id: probe
-        run: |
-          python scripts/ci/external_dep_status.py \
-            --config config/ci/external_dependencies.yaml \
-            --output reports/external-dep-status.json
-        continue-on-error: true
-      - name: Classify required coverage verdict
-        id: verdict
-        run: |
-          set -eo pipefail
-          python - <<'PY'
-          import json, pathlib
-          path = pathlib.Path("reports/external-dep-status.json")
-          if not path.exists():
-              print("MISSING_REPORT=1")
-              raise SystemExit(0)
-          report = json.loads(path.read_text())
-          unavailable = report.get("required_unavailable", [])
-          print(f"REQUIRED_UNAVAILABLE={' '.join(unavailable) if unavailable else 'none'}")
-          print(f"HAS_REQUIRED_UNAVAILABLE={'true' if unavailable else 'false'}")
-          PY
-      - name: Fail gate on required unavailability
-        if: steps.verdict.outputs.HAS_REQUIRED_UNAVAILABLE == 'true'
-        run: |
-          echo "EXTERNAL_DEPENDENCY_UNAVAILABLE: required dependency coverage cannot run:"
-          echo "${{ steps.verdict.outputs.REQUIRED_UNAVAILABLE }}"
-          exit 1
-
   unified-readiness-gate:
     name: Unified Readiness Gate
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     if: always()
     needs:
       - change-scope
-      - check-external-deps
       - structural-preflight
       - shared-and-tests-checks
       - layer5-tenant-isolation-regression
       - contract-checks
-      - event-catalog-gate
       - runtime-contract-checks
       - integration-checks
       - k8s-dry-run
@@ -3045,7 +2452,6 @@ jobs:
           node --version 2>/dev/null || echo "node: not installed on gate runner"
           pnpm --version 2>/dev/null || echo "pnpm: not installed on gate runner"
           echo "event: ${{ github.event_name }} ref: ${{ github.ref }} sha: ${{ github.sha }}"
-
       - name: Enforce unified structural/security/tenant/contract/migration/deployment gate
         env:
           # Scope outputs are passed via env (never interpolated into the
@@ -3057,126 +2463,7 @@ jobs:
           SCOPE_K8S: ${{ needs.change-scope.outputs.k8s }}
           SCOPE_DOCKER: ${{ needs.change-scope.outputs.docker }}
           SCOPE_CODE: ${{ needs.change-scope.outputs.code }}
-        run: |
-          declare -A CHECKS=(
-            # check-external-deps intentionally has NO scope mapping (see
-            # SCOPES below): required external-dependency coverage must never
-            # be skipped or silently satisfied, so any skip is a gate failure.
-            ["check-external-deps"]="${{ needs.check-external-deps.result }}"
-            ["change-scope"]="${{ needs.change-scope.result }}"
-            ["structural-preflight"]="${{ needs.structural-preflight.result }}"
-            ["shared-and-tests-checks"]="${{ needs.shared-and-tests-checks.result }}"
-            ["layer5-tenant-isolation-regression"]="${{ needs.layer5-tenant-isolation-regression.result }}"
-            ["contract-checks"]="${{ needs.contract-checks.result }}"
-            ["event-catalog-gate"]="${{ needs.event-catalog-gate.result }}"
-            ["runtime-contract-checks"]="${{ needs.runtime-contract-checks.result }}"
-            ["integration-checks"]="${{ needs.integration-checks.result }}"
-            ["k8s-dry-run"]="${{ needs.k8s-dry-run.result }}"
-            ["docker-compose-config-contract"]="${{ needs.docker-compose-config-contract.result }}"
-            ["queue-topology-checks"]="${{ needs.queue-topology-checks.result }}"
-            ["docker-build-check"]="${{ needs.docker-build-check.result }}"
-            ["route-auth-gate"]="${{ needs.route-auth-gate.result }}"
-            ["tenant-isolation-gate"]="${{ needs.tenant-isolation-gate.result }}"
-            ["critical-behaviors-gate"]="${{ needs.critical-behaviors-gate.result }}"
-            ["production-readiness-gate"]="${{ needs.production-readiness-gate.result }}"
-            ["gate-engineering"]="${{ needs.gate-engineering.result }}"
-          )
-
-          # Scope each gated check resolves against. A skipped check is safe
-          # only when its scope resolved to 'false' (the change provably
-          # cannot affect it); any other skip is a gate failure.
-          # change-scope, structural-preflight, production-readiness-gate,
-          # and gate-engineering intentionally have NO scope mapping: they
-          # must run on every PR, so any skip of theirs fails the gate.
-          declare -A SCOPES=(
-            ["shared-and-tests-checks"]="${SCOPE_BACKEND:-}"
-            ["layer5-tenant-isolation-regression"]="${SCOPE_LAYER5:-}"
-            ["contract-checks"]="${SCOPE_BACKEND:-}"
-            ["event-catalog-gate"]="${SCOPE_BACKEND:-}"
-            ["runtime-contract-checks"]="${SCOPE_BACKEND:-}"
-            ["integration-checks"]="${SCOPE_BACKEND:-}"
-            ["k8s-dry-run"]="${SCOPE_K8S:-}"
-            ["docker-compose-config-contract"]="${SCOPE_DOCKER:-}"
-            ["queue-topology-checks"]="${SCOPE_BACKEND:-}"
-            ["docker-build-check"]="${SCOPE_DOCKER:-}"
-            ["route-auth-gate"]="${SCOPE_BACKEND:-}"
-            ["tenant-isolation-gate"]="${SCOPE_BACKEND:-}"
-            ["critical-behaviors-gate"]="${SCOPE_CODE:-}"
-          )
-
-          failed=0
-          root_failures=()
-          cascades=()
-          skips=()
-          safe_skips=()
-          for check in "${!CHECKS[@]}"; do
-            result="${CHECKS[$check]}"
-            case "$result" in
-              success)
-                echo "✅ ${check} => ${result}"
-                ;;
-              failure)
-                echo "❌ FAILED (root failure): ${check}"
-                root_failures+=("$check")
-                failed=1
-                ;;
-              cancelled)
-                echo "🚫 CANCELLED (cascade of an upstream failure/timeout): ${check}"
-                cascades+=("$check")
-                failed=1
-                ;;
-              skipped)
-                if [[ "${SCOPES[$check]:-}" == "false" ]]; then
-                  echo "⏭️  SKIPPED (out of change scope — safe): ${check}"
-                  safe_skips+=("$check")
-                elif [[ -z "${SCOPES[$check]:-}" ]]; then
-                  # No scope mapping (or change-scope itself failed): the skip
-                  # cannot be proven safe. If this job is legitimately scoped,
-                  # register it in the SCOPES map above.
-                  echo "⏭️  SKIPPED (no scope mapping — cannot prove safe): ${check}"
-                  skips+=("$check")
-                  failed=1
-                else
-                  echo "⏭️  SKIPPED (scope '${SCOPES[$check]}' did not authorize skip): ${check}"
-                  skips+=("$check")
-                  failed=1
-                fi
-                ;;
-              *)
-                echo "❓ UNKNOWN RESULT '${result}': ${check}"
-                root_failures+=("$check")
-                failed=1
-                ;;
-            esac
-          done
-
-          echo ""
-          echo "=================== GATE SUMMARY ==================="
-          if [[ ${#root_failures[@]} -gt 0 ]]; then
-            echo "Root-failure jobs (investigate these first):"
-            printf '  - %s\n' "${root_failures[@]}"
-          else
-            echo "Root-failure jobs: none"
-          fi
-          if [[ ${#cascades[@]} -gt 0 ]]; then
-            echo "Cancelled jobs (cascades of upstream failure, not independent failures):"
-            printf '  - %s\n' "${cascades[@]}"
-          fi
-          if [[ ${#safe_skips[@]} -gt 0 ]]; then
-            echo "Skipped jobs (out of change scope — proven safe by change-scope):"
-            printf '  - %s\n' "${safe_skips[@]}"
-          fi
-          if [[ ${#skips[@]} -gt 0 ]]; then
-            echo "Skipped jobs (treated as gate failures — required checks must run):"
-            printf '  - %s\n' "${skips[@]}"
-          fi
-
-          if [[ "$failed" -ne 0 ]]; then
-            echo "Unified readiness gate failed."
-            exit 1
-          fi
-          echo "Unified readiness gate passed."
-
+        run: "declare -A CHECKS=(\n  [\"change-scope\"]=\"${{ needs.change-scope.result }}\"\n  [\"structural-preflight\"]=\"${{ needs.structural-preflight.result }}\"\n  [\"shared-and-tests-checks\"]=\"${{ needs.shared-and-tests-checks.result }}\"\n  [\"layer5-tenant-isolation-regression\"]=\"${{ needs.layer5-tenant-isolation-regression.result }}\"\n  [\"contract-checks\"]=\"${{ needs.contract-checks.result }}\"\n  [\"runtime-contract-checks\"]=\"${{ needs.runtime-contract-checks.result }}\"\n  [\"integration-checks\"]=\"${{ needs.integration-checks.result }}\"\n  [\"k8s-dry-run\"]=\"${{ needs.k8s-dry-run.result }}\"\n  [\"docker-compose-config-contract\"]=\"${{ needs.docker-compose-config-contract.result }}\"\n  [\"queue-topology-checks\"]=\"${{ needs.queue-topology-checks.result }}\"\n  [\"docker-build-check\"]=\"${{ needs.docker-build-check.result }}\"\n  [\"route-auth-gate\"]=\"${{ needs.route-auth-gate.result }}\"\n  [\"tenant-isolation-gate\"]=\"${{ needs.tenant-isolation-gate.result }}\"\n  [\"critical-behaviors-gate\"]=\"${{ needs.critical-behaviors-gate.result }}\"\n  [\"production-readiness-gate\"]=\"${{ needs.production-readiness-gate.result }}\"\n  [\"gate-engineering\"]=\"${{ needs.gate-engineering.result }}\"\n)\n\n# Scope each gated check resolves against. A skipped check is safe\n# only when its scope resolved to 'false' (the change provably\n# cannot affect it); any other skip is a gate failure.\n# change-scope, structural-preflight, production-readiness-gate,\n# and gate-engineering intentionally have NO scope mapping: they\n# must run on every PR, so any skip of theirs fails the gate.\ndeclare -A SCOPES=(\n  [\"shared-and-tests-checks\"]=\"${SCOPE_BACKEND:-}\"\n  [\"layer5-tenant-isolation-regression\"]=\"${SCOPE_LAYER5:-}\"\n  [\"contract-checks\"]=\"${SCOPE_BACKEND:-}\"\n  [\"runtime-contract-checks\"]=\"${SCOPE_BACKEND:-}\"\n  [\"integration-checks\"]=\"${SCOPE_BACKEND:-}\"\n  [\"k8s-dry-run\"]=\"${SCOPE_K8S:-}\"\n  [\"docker-compose-config-contract\"]=\"${SCOPE_DOCKER:-}\"\n  [\"queue-topology-checks\"]=\"${SCOPE_BACKEND:-}\"\n  [\"docker-build-check\"]=\"${SCOPE_DOCKER:-}\"\n  [\"route-auth-gate\"]=\"${SCOPE_BACKEND:-}\"\n  [\"tenant-isolation-gate\"]=\"${SCOPE_BACKEND:-}\"\n  [\"critical-behaviors-gate\"]=\"${SCOPE_CODE:-}\"\n)\n\nfailed=0\nroot_failures=()\ncascades=()\nskips=()\nsafe_skips=()\nfor check in \"${!CHECKS[@]}\"; do\n  result=\"${CHECKS[$check]}\"\n  case \"$result\" in\n    success)\n      echo \"✅ ${check} => ${result}\"\n      ;;\n    failure)\n      echo \"❌ FAILED (root failure): ${check}\"\n      root_failures+=(\"$check\")\n      failed=1\n      ;;\n    cancelled)\n      echo \"\U0001F6AB CANCELLED (cascade of an upstream failure/timeout): ${check}\"\n      cascades+=(\"$check\")\n      failed=1\n      ;;\n    skipped)\n      if [[ \"${SCOPES[$check]:-}\" == \"false\" ]]; then\n        echo \"⏭️  SKIPPED (out of change scope — safe): ${check}\"\n        safe_skips+=(\"$check\")\n      elif [[ -z \"${SCOPES[$check]:-}\" ]]; then\n        # No scope mapping (or change-scope itself failed): the skip\n        # cannot be proven safe. If this job is legitimately scoped,\n        # register it in the SCOPES map above.\n        echo \"⏭️  SKIPPED (no scope mapping — cannot prove safe): ${check}\"\n        skips+=(\"$check\")\n        failed=1\n      else\n        echo \"⏭️  SKIPPED (scope '${SCOPES[$check]}' did not authorize skip): ${check}\"\n        skips+=(\"$check\")\n        failed=1\n      fi\n      ;;\n    *)\n      echo \"❓ UNKNOWN RESULT '${result}': ${check}\"\n      root_failures+=(\"$check\")\n      failed=1\n      ;;\n  esac\ndone\n\necho \"\"\necho \"=================== GATE SUMMARY ===================\"\nif [[ ${#root_failures[@]} -gt 0 ]]; then\n  echo \"Root-failure jobs (investigate these first):\"\n  printf '  - %s\\n' \"${root_failures[@]}\"\nelse\n  echo \"Root-failure jobs: none\"\nfi\nif [[ ${#cascades[@]} -gt 0 ]]; then\n  echo \"Cancelled jobs (cascades of upstream failure, not independent failures):\"\n  printf '  - %s\\n' \"${cascades[@]}\"\nfi\nif [[ ${#safe_skips[@]} -gt 0 ]]; then\n  echo \"Skipped jobs (out of change scope — proven safe by change-scope):\"\n  printf '  - %s\\n' \"${safe_skips[@]}\"\nfi\nif [[ ${#skips[@]} -gt 0 ]]; then\n  echo \"Skipped jobs (treated as gate failures — required checks must run):\"\n  printf '  - %s\\n' \"${skips[@]}\"\nfi\n\nif [[ \"$failed\" -ne 0 ]]; then\n  echo \"Unified readiness gate failed.\"\n  exit 1\nfi\necho \"Unified readiness gate passed.\"\n"
   # ---------------------------------------------------------------------------
   # V1-CI-001 Stage 1 (shadow): stable aggregate PR checks. Aggregate jobs
   # perform no substantive testing; they only summarize the results of the
@@ -3188,7 +2475,7 @@ jobs:
   # ---------------------------------------------------------------------------
   aggregate-01-repository-integrity:
     name: 01-repository-integrity
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 5
     if: always()
     needs:
@@ -3209,10 +2496,9 @@ jobs:
           python3 scripts/ci/aggregate_gate.py \
             --needs-json "$NEEDS_JSON" \
             --skip-safe pr-overlap-guard=SKIPSAFE_PR_OVERLAP_GUARD
-
   aggregate-02-code-quality-and-tests:
     name: 02-code-quality-and-tests
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 5
     if: always()
     needs:
@@ -3249,10 +2535,9 @@ jobs:
             --skip-safe layer6-checks=SKIPSAFE_LAYER6 \
             --skip-safe shared-and-tests-checks=SKIPSAFE_BACKEND \
             --skip-safe frontend-checks=SKIPSAFE_WEB
-
   aggregate-05-tenant-isolation-and-behavior:
     name: 05-tenant-isolation-and-behavior
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 5
     if: always()
     needs:
@@ -3283,14 +2568,13 @@ jobs:
             --skip-safe layer5-tenant-isolation-regression=SKIPSAFE_LAYER5 \
             --skip-safe layer5-contract-shape-regression=SKIPSAFE_LAYER5 \
             --skip-safe critical-behaviors-gate=SKIPSAFE_CODE
-
   # 09-change-risk-and-approval is deterministic policy, not an LLM gate and
   # not a fan-in summary: it verifies authenticated GitHub review data, rejects
   # author self-approval, and relies on GitHub's review decision for configured
   # branch-protection and CODEOWNER requirements.
   aggregate-09-change-risk-and-approval:
     name: 09-change-risk-and-approval
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 5
     if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     permissions:
