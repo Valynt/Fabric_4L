@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from value_fabric.shared.governance.abom import AgentBillOfMaterials
 from value_fabric.shared.models.typed_dict import TypedDictModel
@@ -36,7 +36,8 @@ except Exception:  # pragma: no cover - runtime remains warning-only if package 
     build_agent_output_envelope = None  # type: ignore[assignment]
     validate_agent_output = None  # type: ignore[assignment]
 
-from .operating_contract import AgentOperatingContract, load_operating_contract
+if TYPE_CHECKING:
+    from .operating_contract import AgentOperatingContract
 
 logger = logging.getLogger(__name__)
 SEMANTIC_CONTRACT_VERSION = "2.0.0"
@@ -215,6 +216,13 @@ class BaseAgent(ABC):
         contract is present.
         """
         try:
+            # Imported lazily to avoid a circular import: base.py is also
+            # loaded directly by the harness (registered as ``agents.base``),
+            # and a top-of-file ``from .operating_contract import ...`` would
+            # re-trigger ``agents/__init__.py`` while this module is still
+            # partially initialized.
+            from .operating_contract import load_operating_contract
+
             self.contract = load_operating_contract(self.agent_type)
         except Exception as exc:
             mode = os.getenv("AGENT_OPERATING_CONTRACT_MODE", "warn").strip().lower()

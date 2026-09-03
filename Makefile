@@ -54,7 +54,7 @@
 	test-layer1-security-postgres test-layer5 test-layer6 test-shared test-e2e \
 	security-smoke security-test-gating security-test security-test-isolation \
 	security-test-rbac security-test-owasp security-test-injection security-coverage \
-	evals-full perf-test-journeys check-tool-contracts check-deprecated-tracer-imports \
+	evals-full perf-test-journeys check-tool-contracts check-prompt-registry check-deprecated-tracer-imports \
 	check-risk-register debt-baseline-snapshot check-health-ratchets gate-tenant-isolation \
 	promote-staging lint-release clean-root-debris check-value-fabric-public-imports
 
