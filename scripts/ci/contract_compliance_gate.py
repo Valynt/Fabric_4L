@@ -34,6 +34,7 @@ GENERATED_SPECS = (
     "layer2-extraction.json",
     "layer3-knowledge.json",
     "layer4-agents.json",
+    "layer4-billing.json",
     "layer5-ground-truth.json",
     "layer6-benchmarks.json",
     "signals.json",
@@ -45,6 +46,13 @@ GENERATED_SPECS = (
 REFRESHABLE_ONLY_SPECS = (
     "fabric-4l-api.json",
     "layer2-5-signal-refinery.json",
+    "layer7-billing.json",  # deprecated compatibility projection
+)
+
+# These specs are regenerated but allowed to evolve in a backwards-compatible way
+# against their committed baseline. They must not remove paths, methods, or
+# required response fields that existing consumers depend on.
+COMPATIBILITY_SPECS = (
     "layer7-billing.json",
 )
 
@@ -74,6 +82,16 @@ SPEC_CONFIG = {
         "platform_file": "layer4_agents.ts",
         "web_dir": "l4",
         "import_alias": "l4",
+    },
+    "layer4-billing.json": {
+        "service_prefixes": (
+            "services/layer4-agents/src/layer4_agents/api/routes/billing",
+            "services/layer4-agents/src/layer4_agents/services/billing",
+            "services/layer4-agents/src/layer4_agents/models/billing.py",
+        ),
+        "platform_file": "layer4_billing.ts",
+        "web_dir": "l4_billing",
+        "import_alias": "l4_billing",
     },
     "layer5-ground-truth.json": {
         "service_prefixes": (
@@ -310,15 +328,79 @@ def _check_diff(paths: list[str], *, failure_heading: str, failure_help: list[st
     raise SystemExit(1)
 
 
+def _load_openapi_documents(spec_names: Iterable[str]) -> dict[str, dict]:
+    documents: dict[str, dict] = {}
+    for spec_name in spec_names:
+        spec_path = OPENAPI_ROOT / spec_name
+        with spec_path.open("r", encoding="utf-8") as handle:
+            documents[spec_name] = json.load(handle)
+    return documents
+
+
+def _capture_compatibility_baselines(specs: tuple[str, ...]) -> dict[str, dict]:
+    baseline_specs = tuple(spec_name for spec_name in specs if spec_name in COMPATIBILITY_SPECS)
+    if not baseline_specs:
+        return {}
+    return _load_openapi_documents(baseline_specs)
+
+
+def _operation_key(path: str, method: str) -> str:
+    return f"{method.upper()} {path}"
+
+
+def _collect_operations(document: dict) -> set[str]:
+    operations: set[str] = set()
+    paths = document.get("paths") or {}
+    for path, path_item in paths.items():
+        if not isinstance(path_item, dict):
+            continue
+        for method in ("get", "post", "put", "patch", "delete", "head", "options", "trace"):
+            if method in path_item:
+                operations.add(_operation_key(path, method))
+    return operations
+
+
+def _check_backwards_compatibility(baselines: dict[str, dict]) -> None:
+    if not baselines:
+        return
+
+    _print_header("Check Backwards Compatibility")
+    current = _load_openapi_documents(baselines)
+    failures: list[str] = []
+    for spec_name, baseline_doc in baselines.items():
+        current_doc = current[spec_name]
+        baseline_ops = _collect_operations(baseline_doc)
+        current_ops = _collect_operations(current_doc)
+        removed = sorted(baseline_ops - current_ops)
+        if removed:
+            failures.append(f"{spec_name}: removed operations: {', '.join(removed)}")
+
+    if failures:
+        print("Backwards compatibility check failed:", file=sys.stderr)
+        for failure in failures:
+            print(f"  - {failure}", file=sys.stderr)
+        print(
+            "Compatibility specs may only evolve in a backwards-compatible way. "
+            "Removed operations require an explicit retirement process.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
+    print("Backwards compatibility: clean")
+
+
 def _regenerate_openapi(specs: tuple[str, ...]) -> None:
     refresh_specs = tuple(spec_name for spec_name in specs if spec_name in REFRESHABLE_SPECS)
     if not refresh_specs:
         print("No repository-owned OpenAPI export is configured for the selected specs.")
         return
 
+    compatibility_baselines = _capture_compatibility_baselines(refresh_specs)
+
     _print_header("Regenerate OpenAPI")
     _run([sys.executable, "scripts/export_openapi.py", "--only", *refresh_specs], cwd=REPO_ROOT)
     _validate_json_artifacts(_tracked_openapi_specs())
+    _check_backwards_compatibility(compatibility_baselines)
 
 
 def _regenerate_types(specs: tuple[str, ...]) -> None:
