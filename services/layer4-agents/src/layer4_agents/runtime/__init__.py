@@ -9,6 +9,8 @@ from .adapters import (
     LegacyToolRegistryAdapter,
     ModelProviderBridge,
     PolicyAuthzPort,
+    PostgresCheckpointAdapter,
+    PostgresMemoryAdapter,
 )
 from .context import RuntimeContextVar, current_context, get_tenant_id, with_context
 from .core import AgentRuntimeImpl
@@ -88,6 +90,8 @@ __all__ = [
     "ModelResponse",
     "MemoryPort",
     "PolicyAuthzPort",
+    "PostgresCheckpointAdapter",
+    "PostgresMemoryAdapter",
     "ProviderNotFoundError",
     "RUN_CANCELLED",
     "RUN_COMPLETED",
