@@ -24,6 +24,8 @@ DECISIONS_FILENAME_RE = re.compile(r"^(\d{4})-[a-z0-9][a-z0-9-]*\.md$")
 DECISIONS_HEADER_RE = re.compile(r"^#\s+ADR-(\d{4}):\s+.+$")
 INDEX_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 SKIP_NAMES = frozenset({"readme.md", "template.md"})
+REQUIRED_CORPORA = ("architecture", "decisions")
+URI_SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 
 ARCHITECTURE_INDEX_HEADING = "## ADR Index"
 DECISIONS_INDEX_HEADING = "## Index"
@@ -121,6 +123,9 @@ def load_registry(repo_root: Path, failures: list[str]) -> tuple[dict[str, Corpu
         )
     if not corpora:
         failures.append("ADR registry defines no corpora")
+    for name in REQUIRED_CORPORA:
+        if name not in corpora:
+            failures.append(f"ADR registry must define the {name} corpus")
 
     entries: list[RegistryEntry] = []
     raw_entries = payload.get("entries") or []
@@ -192,7 +197,14 @@ def discover_corpus_files(repo_root: Path, corpus: CorpusConfig) -> list[Path]:
     return files
 
 
-def parse_index_rows(index_path: Path, heading: str) -> list[tuple[str, str, str]]:
+def _index_link_resolves(index_path: Path, href: str) -> bool:
+    target = href.split("#", 1)[0].strip()
+    if not target or URI_SCHEME_RE.match(target):
+        return True
+    return (index_path.parent / target).exists()
+
+
+def parse_index_rows(index_path: Path, heading: str) -> list[tuple[str, str, str, str]]:
     if not index_path.exists():
         return []
     lines = index_path.read_text(encoding="utf-8").splitlines()
@@ -218,8 +230,7 @@ def parse_index_rows(index_path: Path, heading: str) -> list[tuple[str, str, str
         if not match:
             continue
         href = match.group(2).strip()
-        filename = Path(href).name
-        rows.append((match.group(1).strip(), filename, cells[2]))
+        rows.append((match.group(1).strip(), href, Path(href).name, cells[2]))
     return rows
 
 
@@ -276,7 +287,11 @@ def _apply_content_rules(repo_root: Path, entry: RegistryEntry, failures: list[s
                 failures.append(f"{entry.id}: {kind} path is a directory (file required): {rule.path}")
                 continue
             text = target.read_text(encoding="utf-8")
-            found = re.search(rule.pattern, text) is not None
+            try:
+                found = re.search(rule.pattern, text) is not None
+            except re.error as exc:
+                failures.append(f"{entry.id}: invalid {kind} pattern /{rule.pattern}/ ({exc})")
+                continue
             if kind == "must_contain" and not found:
                 failures.append(f"{entry.id}: must_contain missed /{rule.pattern}/ in {rule.path}")
             if kind == "must_not_contain" and found:
@@ -293,6 +308,8 @@ def check_adr(repo_root: Path | None = None) -> list[str]:
     files_by_corpus: dict[str, list[Path]] = {}
     for name, corpus in corpora.items():
         files_by_corpus[name] = discover_corpus_files(root, corpus)
+        if not files_by_corpus[name]:
+            failures.append(f"corpus {name} has no ADR markdown files under {corpus.dir}")
         if name == "decisions":
             failures.extend(decisions_numbering_failures(root, files_by_corpus[name]))
 
@@ -351,13 +368,15 @@ def check_adr(repo_root: Path | None = None) -> list[str]:
             failures.append(f"{name} index missing: {corpus.index}")
             continue
         rows = parse_index_rows(index_path, heading)
-        indexed_files = {filename for _, filename, _ in rows}
+        indexed_files = {filename for _, _, filename, _ in rows}
         corpus_files = {path.name for path in files_by_corpus.get(name, [])}
         for filename in sorted(corpus_files - indexed_files):
             failures.append(f"{name} index missing {filename}")
         for filename in sorted(indexed_files - corpus_files):
             failures.append(f"{name} index extra row {filename}")
-        for link_text, filename, status_cell in rows:
+        for link_text, href, filename, status_cell in rows:
+            if not _index_link_resolves(index_path, href):
+                failures.append(f"{name} index link does not resolve: {href}")
             entry = next((item for item in entries if Path(item.path).name == filename), None)
             if entry is None:
                 continue

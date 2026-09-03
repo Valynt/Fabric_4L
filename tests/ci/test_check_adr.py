@@ -238,3 +238,57 @@ def test_decisions_numbering_gap_fails(tmp_path: Path) -> None:
 
 def test_repo_adr_registry_passes() -> None:
     assert check_adr(REPO_ROOT) == []
+
+
+def test_registry_missing_required_corpus_fails(tmp_path: Path) -> None:
+    repo = _mini_repo(tmp_path)
+    _write(
+        repo / "docs/decisions/adr-registry.yaml",
+        """
+        version: 1
+        corpora:
+                  architecture:
+                    dir: docs/explanations/adr
+                    index: docs/explanations/adr/README.md
+        entries:
+          - id: ADR-001
+            corpus: architecture
+            path: docs/explanations/adr/ADR-001-example.md
+            status: accepted
+            related:
+              - services/layer1-ingestion
+        """,
+    )
+    failures = check_adr(repo)
+    assert any("must define the decisions corpus" in item for item in failures)
+
+
+def test_configured_corpus_with_no_files_fails(tmp_path: Path) -> None:
+    repo = _mini_repo(tmp_path)
+    (repo / "docs/decisions/0001-example.md").unlink()
+    failures = check_adr(repo)
+    assert any("has no ADR markdown files" in item for item in failures)
+
+
+def test_invalid_regex_pattern_fails_with_structured_error(tmp_path: Path) -> None:
+    repo = _mini_repo(tmp_path)
+    registry = repo / "docs/decisions/adr-registry.yaml"
+    registry.write_text(
+        registry.read_text(encoding="utf-8").replace("pattern: decode_jwt", 'pattern: "["'),
+        encoding="utf-8",
+    )
+    failures = check_adr(repo)
+    assert any("invalid must_contain pattern" in item for item in failures)
+
+
+def test_index_link_to_missing_path_fails(tmp_path: Path) -> None:
+    repo = _mini_repo(tmp_path)
+    readme = repo / "docs/explanations/adr/README.md"
+    readme.write_text(
+        readme.read_text(encoding="utf-8").replace(
+            "./ADR-001-example.md", "./missing/ADR-001-example.md"
+        ),
+        encoding="utf-8",
+    )
+    failures = check_adr(repo)
+    assert any("index link does not resolve" in item for item in failures)

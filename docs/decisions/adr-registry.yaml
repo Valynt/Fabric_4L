@@ -149,7 +149,7 @@ entries:
   - id: ADR-022
     corpus: architecture
     path: docs/explanations/adr/ADR-022-layer4-internal-decomposition.md
-    status: accepted
+    status: superseded
     related:
       - services/layer4-agents/src/layer4_agents
   - id: ADR-023
@@ -157,7 +157,7 @@ entries:
     path: docs/explanations/adr/ADR-023-billing-service-extraction.md
     status: superseded
     related:
-      - services/layer7-billing
+      - services/layer4-agents/src/layer4_agents/api/routes/billing.py
   - id: ADR-024
     corpus: architecture
     path: docs/explanations/adr/ADR-024-circuit-breaker-inventory.md
