@@ -6,7 +6,7 @@ This report categorizes and analyzes the currently open Dependabot pull requests
 
 These pull requests address known security vulnerabilities or are grouped under critical updates and should be reviewed and merged as soon as possible.
 
-*   **[PR 1632] chore(deps): bump @faker-js/faker from 9.9.0 to 10.5.0 in /apps/web in the security-updates group across 1 directory**
+*   **[PR 1632](https://github.com/Valynt/Fabric_4L/pull/1632): chore(deps): bump @faker-js/faker from 9.9.0 to 10.5.0 in /apps/web in the security-updates group across 1 directory**
     *   **Impact:** Security updates for frontend testing data generation.
     *   **Recommendation:** Review CI test runs in `apps/web` and merge immediately to address security findings.
 
