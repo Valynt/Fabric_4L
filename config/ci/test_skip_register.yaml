@@ -1368,21 +1368,6 @@ entries:
     ticket_id: VF-SKIP-080
     due_on: '2026-12-31'
     work_item: Remove or characterize registered debt in tests/contract/*.py.
-- id: skip-196
-  path_pattern: tests/contract/test_billing_contracts.py
-  marker: pytest.skip
-  reason_pattern: ^pytest\.skip\($
-  owner: '@platform-quality'
-  reason: Registered executable test debt requiring explicit characterization.
-  expires_on: '2026-09-30'
-  severity: P0
-  launch_gate: mandatory
-  remediation:
-    ticket_id: VF-SKIP-196
-    due_on: '2026-09-30'
-    work_item: Remove or characterize pytest.skip at tests/contract/test_billing_contracts.py:11.
-  classification: unacceptable_coverage_gap
-  disposition: replace_with_characterization
 - id: skip-197
   path_pattern: tests/contract/test_billing_contracts.py
   marker: pytest.skip
@@ -1395,22 +1380,7 @@ entries:
   remediation:
     ticket_id: VF-SKIP-197
     due_on: '2026-09-30'
-    work_item: Remove or characterize pytest.skip at tests/contract/test_billing_contracts.py:22.
-  classification: unacceptable_coverage_gap
-  disposition: replace_with_characterization
-- id: skip-198
-  path_pattern: tests/contract/test_billing_contracts.py
-  marker: pytest.skip
-  reason_pattern: ^pytest\.skip\("PostgreSQL\ not\ reachable;\ start\ DB\ to\ run\ billing\ contract\ tests",\ allow_module_level=True\)$
-  owner: '@platform-quality'
-  reason: Registered executable test debt requiring explicit characterization.
-  expires_on: '2026-09-30'
-  severity: P0
-  launch_gate: mandatory
-  remediation:
-    ticket_id: VF-SKIP-198
-    due_on: '2026-09-30'
-    work_item: Remove or characterize pytest.skip at tests/contract/test_billing_contracts.py:101.
+    work_item: Remove or characterize pytest.skip at tests/contract/test_billing_contracts.py:27.
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
 - id: skip-199
@@ -2079,12 +2049,12 @@ entries:
   reason_pattern: ^pytest\.skip\("No\ \.gitignore\ file\ found"\)$
   owner: '@platform-quality'
   reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-10-15'
+  expires_on: '2026-09-30'
   severity: P1
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-029
-    due_on: '2026-10-15'
+    due_on: '2026-09-30'
     work_item: Remove skip path in tests/release/test_secret_policy.py for registered condition
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
@@ -2556,7 +2526,7 @@ entries:
 - id: skip-223
   path_pattern: tests/security/test_cross_layer_tenant_isolation.py
   marker: pytest.skip
-  reason_pattern: ^pytest\.skip\("Requires\ L7\ service\ integration"\)$
+  reason_pattern: ^pytest\.skip\("Requires\ L4\ service\ integration"\)$
   owner: '@platform-quality'
   reason: Registered executable test debt requiring explicit characterization.
   expires_on: '2026-09-30'
@@ -2565,7 +2535,7 @@ entries:
   remediation:
     ticket_id: VF-SKIP-223
     due_on: '2026-09-30'
-    work_item: Remove or characterize pytest.skip at tests/security/test_cross_layer_tenant_isolation.py:188.
+    work_item: Remove or characterize pytest.skip at tests/security/test_cross_layer_tenant_isolation.py:337.
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
 - id: skip-224

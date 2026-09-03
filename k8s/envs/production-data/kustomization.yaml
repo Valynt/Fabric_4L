@@ -51,7 +51,7 @@ patches:
           FAILED=0
 
           # All application databases
-          DATABASES="ingestion extraction signal_refinery layer4_agents ground_truth benchmarks layer7_billing"
+          DATABASES="ingestion extraction signal_refinery layer4_agents ground_truth benchmarks"
 
           for DB in $$DATABASES; do
             # Check if the database exists before attempting backup

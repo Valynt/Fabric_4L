@@ -62,7 +62,6 @@ def test_env_example_documents_required_runtime_inputs() -> None:
             "LAYER4_DATABASE_URL=",
             "LAYER5_DATABASE_URL=",
             "LAYER6_DATABASE_URL=",
-            "LAYER7_DATABASE_URL=",
         ),
         label=".env.example required runtime inputs",
     )
