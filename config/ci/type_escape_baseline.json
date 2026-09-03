@@ -24218,6 +24218,12 @@
     },
     {
       "kind": "python-any",
+      "line": 78,
+      "path": "services/layer4-agents/src/layer4_agents/agents/operating_contract.py",
+      "text": "return cast(dict[str, Any], json.loads(path.read_text(encoding=\"utf-8\")))"
+    },
+    {
+      "kind": "python-any",
       "line": 83,
       "path": "services/layer4-agents/src/layer4_agents/agents/operating_contract.py",
       "text": "manifest: dict[str, Any],"
