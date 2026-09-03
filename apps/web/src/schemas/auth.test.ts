@@ -22,6 +22,16 @@ describe('auth schemas', () => {
       expect(validateTokenResponse(validData)).toEqual(validData);
     });
 
+    it('accepts backend-canonical roles (backward compatibility)', () => {
+      const result = validateTokenResponse({
+        user_id: 'user123',
+        email: 'test@example.com',
+        role: 'tenant_admin',
+      });
+
+      expect(result.role).toBe('tenant_admin');
+    });
+
     it('applies defaults for optional fields', () => {
       const result = validateTokenResponse({
         user_id: 'user123',
