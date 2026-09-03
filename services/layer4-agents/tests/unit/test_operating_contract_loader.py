@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 
+from layer4_agents.agents import operating_contract as operating_contract_module
 from layer4_agents.agents.base import BaseAgent
 from layer4_agents.agents.operating_contract import (
     AgentOperatingContract,
@@ -169,6 +170,26 @@ def test_strict_mode_missing_agent_raises(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setenv("AGENT_OPERATING_CONTRACT_MODE", "strict")
     with pytest.raises(Exception):
         load_operating_contract("DefinitelyNotRegistered")
+
+
+def test_strict_mode_package_unavailable_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Strict mode raises when the contract package cannot be imported."""
+    monkeypatch.setenv("AGENT_OPERATING_CONTRACT_MODE", "strict")
+    monkeypatch.setattr(operating_contract_module, "AgentOperatingContract", None)
+    with pytest.raises(RuntimeError):
+        load_operating_contract("AuditOrchestrator")
+
+
+def test_warn_mode_package_unavailable_returns_none(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Warning mode logs and returns None when the contract package is unavailable."""
+    monkeypatch.setenv("AGENT_OPERATING_CONTRACT_MODE", "warn")
+    monkeypatch.setattr(operating_contract_module, "AgentOperatingContract", None)
+    caplog.set_level(logging.WARNING)
+    contract = load_operating_contract("AuditOrchestrator")
+    assert contract is None
+    assert "package unavailable" in caplog.text
 
 
 def test_warn_mode_missing_agent_returns_none(

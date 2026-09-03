@@ -121,14 +121,19 @@ def load_operating_contract(
     manifest/agent is missing and the runtime is in warning mode.  In strict
     mode, missing contracts raise ``FileNotFoundError`` or validation errors.
     """
+    strict = os.getenv("AGENT_OPERATING_CONTRACT_MODE", "warn").strip().lower() == "strict"
+
     if AgentOperatingContract is None:
+        if strict:
+            raise RuntimeError(
+                "Agent operating-contract package unavailable; cannot enforce "
+                f"the operating contract for {agent_type} in strict mode"
+            )
         logger.warning(
             "Agent operating-contract package unavailable; skipping contract load for %s",
             agent_type,
         )
         return None
-
-    strict = os.getenv("AGENT_OPERATING_CONTRACT_MODE", "warn").strip().lower() == "strict"
 
     try:
         resolved_contract_path = contract_path or _env_override_path(agent_type)
