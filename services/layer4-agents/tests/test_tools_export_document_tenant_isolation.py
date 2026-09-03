@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from types import SimpleNamespace
-from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -15,8 +15,8 @@ from value_fabric.shared.identity.permissions import Permission
 from layer4_agents.api.routes import tools
 
 
-def _async_dependency(value: Any):
-    async def dependency() -> Any:
+def _async_dependency(value: object) -> Callable[[], Awaitable[object]]:
+    async def dependency() -> object:
         return value
 
     return dependency
@@ -25,11 +25,11 @@ def _async_dependency(value: Any):
 @dataclass
 class FakeExecutor:
     tenant_owners: dict[str, str | None] = field(default_factory=dict)
-    results_by_id: dict[str, dict[str, Any]] = field(default_factory=dict)
+    results_by_id: dict[str, dict[str, object]] = field(default_factory=dict)
     get_result_calls: list[str] = field(default_factory=list)
     get_result_for_tenant_calls: list[tuple[str, str]] = field(default_factory=list)
 
-    async def get_result(self, workflow_id: str) -> dict[str, Any] | None:
+    async def get_result(self, workflow_id: str) -> dict[str, object] | None:
         self.get_result_calls.append(workflow_id)
         return self.results_by_id.get(workflow_id)
 
@@ -37,7 +37,7 @@ class FakeExecutor:
         self,
         workflow_id: str,
         tenant_id: str,
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, object] | None:
         self.get_result_for_tenant_calls.append((workflow_id, tenant_id))
         owner = self.tenant_owners.get(workflow_id)
         if owner is None or owner != tenant_id:
@@ -47,11 +47,11 @@ class FakeExecutor:
 
 @dataclass
 class ExportSideEffects:
-    gateway_calls: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
-    provenance_calls: list[dict[str, Any]] = field(default_factory=list)
-    upload_calls: list[dict[str, Any]] = field(default_factory=list)
-    signed_url_calls: list[dict[str, Any]] = field(default_factory=list)
-    audit_events: list[Any] = field(default_factory=list)
+    gateway_calls: list[tuple[str, dict[str, object]]] = field(default_factory=list)
+    provenance_calls: list[dict[str, object]] = field(default_factory=list)
+    upload_calls: list[dict[str, object]] = field(default_factory=list)
+    signed_url_calls: list[dict[str, object]] = field(default_factory=list)
+    audit_events: list[object] = field(default_factory=list)
 
 
 def _build_app(
@@ -72,7 +72,7 @@ def _install_export_stubs(
     monkeypatch: pytest.MonkeyPatch,
     side_effects: ExportSideEffects,
     *,
-    tool_result: dict[str, Any] | None = None,
+    tool_result: dict[str, object] | None = None,
 ) -> None:
     monkeypatch.setattr(
         tools,
@@ -90,7 +90,7 @@ def _install_export_stubs(
     )
 
     class _StubToolGateway:
-        def __init__(self, *args: Any, **kwargs: Any) -> None:
+        def __init__(self, *args: object, **kwargs: object) -> None:
             self._result = tool_result or {
                 "success": True,
                 "pdf_bytes": b"%PDF-1.4\nstub\n",
@@ -98,22 +98,24 @@ def _install_export_stubs(
                 "file_size_bytes": 14,
             }
 
-        async def execute(self, tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
+        async def execute(
+            self, tool_name: str, tool_input: dict[str, object]
+        ) -> dict[str, object]:
             side_effects.gateway_calls.append((tool_name, tool_input))
             return self._result
 
-    async def _upload_bytes(**kwargs: Any) -> None:
-        side_effects.upload_calls.append(kwargs)
+    async def _upload_bytes(**kwargs: object) -> None:
+        side_effects.upload_calls.append(dict(kwargs))
 
     async def _generate_download_url(*, tenant_id: str, object_key: str) -> str:
         side_effects.signed_url_calls.append({"tenant_id": tenant_id, "object_key": object_key})
         return f"https://signed.local/{tenant_id}/{object_key}"
 
-    async def _write_to_db(event: Any, _db_factory: Any) -> None:
+    async def _write_to_db(event: object, _db_factory: object) -> None:
         side_effects.audit_events.append(event)
 
-    def _build_manifest(**kwargs: Any) -> dict[str, Any]:
-        side_effects.provenance_calls.append(kwargs)
+    def _build_manifest(**kwargs: object) -> dict[str, object]:
+        side_effects.provenance_calls.append(dict(kwargs))
         return {"truth_object_ids": ["truth-1"], "source_references": ["src-1"]}
 
     monkeypatch.setattr(tools, "ToolGateway", _StubToolGateway)
@@ -123,7 +125,7 @@ def _install_export_stubs(
     monkeypatch.setattr(tools.AuditEmitter, "write_to_db", _write_to_db)
 
 
-def _export_result(workflow_id: str) -> dict[str, Any]:
+def _export_result(workflow_id: str) -> dict[str, object]:
     return {
         "workflow_id": workflow_id,
         "status": "completed",
