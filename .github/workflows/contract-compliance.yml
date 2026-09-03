@@ -56,6 +56,9 @@ on:
       - "scripts/ci/check_agent_registry.py"
       - "scripts/export_openapi.py"
       - "scripts/ci/contract_compliance_gate.py"
+      - "scripts/ci/check_generated_jsonvalue_absent.py"
+      - "scripts/ci/check_clerk_tenant_response_exported.py"
+      - "scripts/ci/check_clerk_tenant_mapping_contract.py"
       - "scripts/ci/openapi_breaking_change_gate.py"
       - "docs/governance/openapi-breaking-change-exceptions.json"
       - "docs/reference/openapi-breaking-change-gate.md"
@@ -681,6 +684,12 @@ jobs:
         run: python -m pytest tests/contract/test_api_shape_regression.py -v --tb=short
         env:
           CONTRACT_TEST_MODE: mock
+
+      - name: Run generated API freshness integrity checks
+        run: |
+          python scripts/ci/check_generated_jsonvalue_absent.py
+          python scripts/ci/check_clerk_tenant_response_exported.py
+          python scripts/ci/check_clerk_tenant_mapping_contract.py
 
   # ==========================================================================
   # Deprecation Register Validation

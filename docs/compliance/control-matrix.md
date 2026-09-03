@@ -5,8 +5,8 @@
 This matrix maps major SOC 2, GDPR, HIPAA, and CCPA control themes to concrete **code**, **configuration**, and **operational process** evidence in Value Fabric.
 
 - **Scope:** Current repository implementation.
-- **Last reviewed:** 2026-08-21.
-- **Update trigger:** Any PR that changes security/governance-sensitive files must also evaluate (and, when needed, update) this matrix. Evaluated and refreshed for Security & Tenancy Hardening (PR #1392) covering hostile multi-tenant fixtures, security exception lifecycle governance, canonical Infisical secrets hierarchy, and production fail-closed controls.
+- **Last reviewed:** 2026-08-30.
+- **Update trigger:** Any PR that changes security/governance-sensitive files must also evaluate (and, when needed, update) this matrix. Updated for CI-baseline repair (PR #1585) covering CI-control-plane structural contract tests in `pr-checks.yml`, runtime contract readiness hardening (L1–L6 health + strict contract env), and recurring CI-failure backlog reporting in `pr-backlog-health.yml`. Updated for Event Catalog validation gate (PR #1588) enforcing canonical event ownership, schema linkage, consumer version declarations, and deprecation policy in `pr-checks.yml`. Updated for R2 versioned shared-boundary surfaces (PR #1594) adding the bounded-change policy: each shared boundary (e.g., `shared.identity`) declares a `SURFACE_VERSION` marker and `scripts/ci/check_shared_boundary_surfaces.py` (wired into `pr-checks.yml` preflight) enforces that contract changes require a coordinated version bump and a regenerated `config/ci/shared_surface_contract.json`. Further updated to document runtime-contract secret validation hardening in `pr-checks.yml` (see "PR / CI Enforcement").
 
 ---
 
@@ -122,3 +122,7 @@ A CI policy check now enforces that PRs touching security/governance-sensitive p
 
 - Check script: `.github/scripts/check-control-matrix.sh`
 - Workflow integration: `.github/workflows/pr-checks.yml` (`governance-docs-check` job)
+- CI-control-plane governance: `pr-checks.yml` runs structural skip-safety and semgrep contract tests unconditionally so CI input wiring and gate semantics cannot silently drift; runtime contract tests are hardened with explicit L1–L6 health/readiness waits and strict contract env so the suite runs against genuinely ready services.
+- Runtime-contract secret validation: `pr-checks.yml` runtime contract tests use validation-safe placeholder secrets satisfying Layer 6 settings constraints (`NEO4J_PASSWORD` >= 12 chars, `API_KEY_HMAC_SECRET` >= 32 chars) in both the job `env:` block and the `Start runtime contract services` export block, so secret-length validation cannot fail while the values remain non-production placeholders.
+- CI failure accountability: `pr-backlog-health.yml` collects recurring CI failure backlog (`scripts/ci/generate_ci_failure_backlog.py`) so unstable gates surface as actionable issues rather than silent regressions.
+- Prompt-registry contract gate: `pr-checks.yml` runs `scripts/ci/check_prompt_registry.py` (wired via the `check-prompt-registry` Makefile target into `gate-api-contracts`) to validate prompt/agent operating-contract schemas, recompute prompt content hashes, fail on declared-vs-computed hash mismatch, require a non-empty changelog, warn when the changelog lacks an entry for the current version, and verify declared eval baseline files exist. This keeps prompt versions, agent operating contracts, and eval baselines drift-resistant before merge.

@@ -50,7 +50,7 @@ Phase 1 subcommands. Existing standalone checks remain supported and are invoked
 		"command": "python scripts/ci/check_layer1_api_main_shim_drift.py && python scripts/ci/check_layer3_settings_shim_drift.py",
 		"required": true,
 		"scope": "repo",
-		"notes": "Layer 1 and Layer 3 shim drift checks."
+		"notes": "Layer 1 and Layer 3 shim drift checks. Phase 0 (2026-08-29): the Layer 1 api.main shim module (services/layer1-ingestion/src/api/main.py) is removed per ADR-027 — that half of the gate is retired and now passes as a tripwire (fails only if the shim is reintroduced). The Layer 3 settings shim (services/layer3-knowledge/src/config.py) still exists and remains actively guarded."
 	},
 	{
 		"check_id": "GATE-COMPAT-003",
@@ -77,7 +77,8 @@ Phase 1 subcommands. Existing standalone checks remain supported and are invoked
 		"command": "python scripts/ci/check_deprecated_tracer_imports.py",
 		"required": true,
 		"scope": "repo",
-		"notes": "Blocks deprecated custom tracer imports."
+		"status": "retired — module removed per ADR-027",
+		"notes": "Blocks deprecated custom tracer imports. Phase 0 (2026-08-29): the deprecated tracer module (value_fabric.layer3.tracing.tracer) no longer exists on disk; the entry is retained as a tripwire that fails if the deprecated import pattern is reintroduced."
 	},
 	{
 		"check_id": "GATE-COMPAT-006",
@@ -91,6 +92,16 @@ Phase 1 subcommands. Existing standalone checks remain supported and are invoked
 ]
 ```
 <!-- COMPAT_GATE_INVENTORY_END -->
+
+> **Phase 0 note (2026-08-29, Sprint 1):** Ground-truth sweep of gate-referenced
+> shim modules. GATE-COMPAT-005's deprecated tracer module and the Layer 1 half
+> of GATE-COMPAT-002 (`services/layer1-ingestion/src/api/main.py`) are removed
+> per ADR-027; both checks remain as tripwires against reintroduction. Remaining
+> work: the Layer 3 settings shim (`services/layer3-knowledge/src/config.py`)
+> still exists and must stay a thin re-export until callers migrate to
+> `services/layer3-knowledge/src/config/settings.py`; frontend shims
+> (COMPAT-WEB-*) with 2026-08-31 targets are due for removal or dated extension
+> at the next monthly review.
 
 ## Registry
 

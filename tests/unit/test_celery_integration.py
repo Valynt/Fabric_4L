@@ -109,7 +109,7 @@ class TestL1CeleryDispatch:
     def test_l1_tasks_imports_celery_dispatch(self):
         """L1 tasks.py must import Celery and dispatch to L2."""
         source = open(
-            "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py"
+            "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/extraction.py"
         ).read()
         assert "from celery import Celery" in source
         assert "l2_celery.send_task(" in source
@@ -118,7 +118,7 @@ class TestL1CeleryDispatch:
     def test_l1_dispatch_includes_tenant_id(self):
         """L1 must include tenant_id in extraction payload dispatched to L2."""
         source = open(
-            "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py"
+            "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/extraction.py"
         ).read()
         assert '"tenant_id"' in source or "'tenant_id'" in source
         assert "job.tenant_id" in source
@@ -126,7 +126,7 @@ class TestL1CeleryDispatch:
     def test_l1_dispatch_includes_s2s_auth_when_configured(self):
         """L1 HTTP fallback must include S2S JWT when SERVICE_AUTH_SECRET is set."""
         source = open(
-            "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py"
+            "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/extraction.py"
         ).read()
         assert "encode_service_jwt" in source
         assert "Authorization" in source

@@ -1,4 +1,4 @@
-﻿[
+[
     {
         "date":  "2026-08-26",
         "mode":  "Tech Debt Assessment",
@@ -43,5 +43,126 @@
         "run_type":  "inspection and sampling only; no executable tests run",
         "report_location":  "session files: brooks-test-review-2026-08-28.md",
         "remediation_status":  "open - findings accepted into backlog"
+    },
+    {
+        "date":  "2026-08-29",
+        "mode":  "Health Dashboard",
+        "score":  93,
+        "findings":  {
+                         "critical":  0,
+                         "warning":  4,
+                         "suggestion":  1
+                     },
+        "scope":  "entire repository"
+    },
+    {
+        "date": "2026-08-29",
+        "mode": "Test Quality Review",
+        "score": 92,
+        "findings": {
+            "critical": 0,
+            "warning": 1,
+            "suggestion": 2
+        },
+        "scope": "CI-remediation branch diff: 10 tests/ci files + 14 ESLint plugin suites (branch origin/main...HEAD)",
+        "inspected_commit_sha": "f10f83819",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T3-skip-safe-scaffold-duplication",
+            "T2b-permission-allowlist-drift",
+            "T2a-byte-exact-contract-parse"
+        ],
+        "run_type": "executable tests run: 10 tests/ci files (64 passed) + ESLint plugin (99 passed)",
+        "remediation_status": "open"
+    },
+    {
+        "date": "2026-08-29",
+        "mode": "Test Quality Review",
+        "score": 70,
+        "findings": {
+            "critical": 2,
+            "suggestion": 0,
+            "warning": 0
+        },
+        "scope": "Event Catalog implementation",
+        "inspected_commit_sha": "23555b44b",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T5-zero-test-coverage-gate",
+            "T6-missing-ci-script-test-suite"
+        ],
+        "run_type": "inspection and sampling only; no executable tests run",
+        "remediation_status": "open - findings accepted into backlog"
+    },
+    {
+        "date": "2026-08-30",
+        "mode": "Test Quality Review",
+        "score": 87,
+        "findings": {
+            "critical": 0,
+            "warning": 2,
+            "suggestion": 3
+        },
+        "scope": "CI-baseline branch diff: api-harness.ts, L4 enrichment tests, visual baselines (origin/main...HEAD)",
+        "inspected_commit_sha": "59f896810",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T3-stale-shadow-contract-models",
+            "T2-private-method-coupling-l4",
+            "T4-sysmodules-mock-preseed",
+            "T2-eager-tests-enrichment",
+            "T2b-visual-baselines-regen"
+        ],
+        "run_type": "inspection and sampling only; no executable tests run",
+        "report_location": "session files: brooks-test-review-2026-08-30.md",
+        "remediation_status": "open"
+    },
+    {
+        "date": "2026-08-31",
+        "mode": "Test Quality Review",
+        "score": 84,
+        "findings": {
+            "critical": 0,
+            "warning": 3,
+            "suggestion": 1
+        },
+        "scope": "services/layer4-agents test suite post-W1/S1/S2 remediation (commits 88aef94c7..6a12c228b)",
+        "inspected_commit_sha": "6a12c228b",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T2a-weak-token-bucket-assert",
+            "T4-private-member-coupling",
+            "T5-untested-fail-closed-gate",
+            "T3-factory-test-duplication"
+        ],
+        "run_type": "inspection and sampling of the 12 remediation files + suite-wide scan; prior executed validation reused from the same-cycle goal (154 unit pass, 3274 strict-markers collect, mypy 0)",
+        "remediation_status": "pending"
+    },
+    {
+        "date": "2026-09-02",
+        "mode": "Test Quality Review",
+        "score": 82,
+        "findings": {
+            "critical": 0,
+            "warning": 3,
+            "suggestion": 3
+        },
+        "scope": "Prompt Registry + Agent Operating Contract: 4 new test files (test_prompt_contracts.py, test_agent_contracts.py, test_prompt_registry.py, test_operating_contract_loader.py)",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T5-handrolled-schema-validator-ignores-keywords",
+            "T5-initialize-startup-path-untested",
+            "T3-contract-json-literal-duplication",
+            "T1-mystery-guest-real-registry",
+            "T5-caplog-unasserted",
+            "T5-prompt-registry-error-branches-untested"
+        ],
+        "run_type": "inspection and sampling only; no executable tests run (shell blocked by guardrail)",
+        "remediation_status": "open"
     }
 ]

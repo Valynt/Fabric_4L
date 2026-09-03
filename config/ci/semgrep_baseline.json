@@ -1013,31 +1013,31 @@
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer4-agents/src/layer4_agents/services/value_hypothesis_engine.py",
-      "line": 343,
+      "line": 445,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer4-agents/src/layer4_agents/services/value_hypothesis_engine.py",
-      "line": 728,
+      "line": 830,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer4-agents/src/layer4_agents/services/value_hypothesis_engine.py",
-      "line": 742,
+      "line": 844,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer4-agents/src/layer4_agents/services/value_hypothesis_engine.py",
-      "line": 836,
+      "line": 938,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer4-agents/src/layer4_agents/services/value_hypothesis_engine.py",
-      "line": 839,
+      "line": 941,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
     {
@@ -1169,7 +1169,7 @@
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
-      "line": 251,
+      "line": 253,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
     {
@@ -1253,19 +1253,19 @@
     {
       "rule_id": "semgrep.cypher-dynamic-label-injection",
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/_batch_and_stats.py",
-      "line": 253,
+      "line": 257,
       "message": "Dynamic Cypher label interpolation detected. Node labels cannot be parameterized in Cypher ? they must be validated against an explicit allowlist before interpolation. Either use a hardcoded string literal, or validate the variable against an allowlist (e.g. _ALLOWED_TARGET_LABELS, validate_cypher_identifier) and annotate with:\n  # cypher-dynamic-safe: validated against <ALLOWLIST>"
     },
     {
       "rule_id": "semgrep.cypher-dynamic-label-injection",
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/_batch_and_stats.py",
-      "line": 339,
+      "line": 347,
       "message": "Dynamic Cypher label interpolation detected. Node labels cannot be parameterized in Cypher ? they must be validated against an explicit allowlist before interpolation. Either use a hardcoded string literal, or validate the variable against an allowlist (e.g. _ALLOWED_TARGET_LABELS, validate_cypher_identifier) and annotate with:\n  # cypher-dynamic-safe: validated against <ALLOWLIST>"
     },
     {
       "rule_id": "semgrep.cypher-dynamic-label-injection",
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/_batch_and_stats.py",
-      "line": 398,
+      "line": 410,
       "message": "Dynamic Cypher label interpolation detected. Node labels cannot be parameterized in Cypher ? they must be validated against an explicit allowlist before interpolation. Either use a hardcoded string literal, or validate the variable against an allowlist (e.g. _ALLOWED_TARGET_LABELS, validate_cypher_identifier) and annotate with:\n  # cypher-dynamic-safe: validated against <ALLOWLIST>"
     },
     {

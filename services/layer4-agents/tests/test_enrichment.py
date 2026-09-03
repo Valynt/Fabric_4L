@@ -308,6 +308,7 @@ class TestEnrichmentEnums:
         """EnrichmentSource enum has expected values."""
         from layer4_agents.services.enrichment_orchestrator import EnrichmentSource
 
+        assert EnrichmentSource.CARGO == "cargo"
         assert EnrichmentSource.SEC_EDGAR == "sec_edgar"
         assert EnrichmentSource.WEB_CRAWL == "web_crawl"
         assert EnrichmentSource.DOMAIN_LOOKUP == "domain_lookup"
@@ -318,7 +319,7 @@ class TestEnrichmentEnums:
         from layer4_agents.services.enrichment_orchestrator import EnrichmentSource
 
         all_sources = list(EnrichmentSource)
-        assert len(all_sources) == 4
+        assert len(all_sources) == 5
 
 
 # ---------------------------------------------------------------------------

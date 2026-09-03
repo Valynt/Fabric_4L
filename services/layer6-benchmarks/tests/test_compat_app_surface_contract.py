@@ -1,38 +1,21 @@
+"""Layer-6 compat-surface contract tests (brooks R3).
+
+Route collectors and middleware helpers are centralized in the shared harness
+``tests/contract/compat_surface/harness.py``; this file keeps only the
+layer-specific assertions that are not already covered by the shared helpers.
+"""
+
 from __future__ import annotations
 
 from fastapi import HTTPException
-from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
+from tests.contract.compat_surface.harness import collect_routes, get_middleware_names
+
 from layer6_benchmarks.api.main import app
 
 
-def _get_route_prefix(route: object) -> str:
-    include_context = getattr(route, "include_context", None)
-    if include_context is not None:
-        return getattr(include_context, "prefix", "") or ""
-    return getattr(route, "path", "") or ""
-
-
-def _collect_routes(routes, prefix: str = "") -> list:
-    result: list = []
-    for route in routes:
-        if isinstance(route, APIRoute):
-            route.path = prefix + route.path
-            result.append(route)
-        elif hasattr(route, "original_router"):
-            result.extend(
-                _collect_routes(
-                    route.original_router.routes,
-                    prefix + _get_route_prefix(route),
-                )
-            )
-        elif hasattr(route, "routes"):
-            result.extend(_collect_routes(route.routes, prefix + _get_route_prefix(route)))
-    return result
-
-
 def test_l6_middleware_registration_and_effective_wrapping_order():
-    middleware_names = [mw.cls.__name__ for mw in app.user_middleware]
+    middleware_names = get_middleware_names(app)
     # user_middleware is reverse-registration order (outermost first)
     assert middleware_names[:3] == [
         "GovernanceMiddleware",
@@ -50,7 +33,7 @@ def test_l6_skip_validation_paths_contract():
 
 
 def test_l6_health_ready_metrics_route_contract_presence_and_shape():
-    routes = _collect_routes(app.routes)
+    routes = collect_routes(app.routes)
     health_endpoint = next(route.endpoint for route in routes if route.path == "/health")
     ready_endpoint = next(route.endpoint for route in routes if route.path == "/ready")
     metrics_endpoint = next(route.endpoint for route in routes if route.path == "/metrics")

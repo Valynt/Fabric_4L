@@ -22,6 +22,7 @@ import { setSelectedAccount, TEST_ACCOUNTS } from '../fixtures/account-helpers';
 import { setUserTier } from '../fixtures/tier-helpers';
 
 const ACCOUNT_ID = TEST_ACCOUNTS.meridian.id;
+const TENANT_SLUG = 'e2e-test';
 const SEEDED_BUSINESS_CASE_IDS = ['case-draft-001', 'case-e2e-approved-001', 'case-meridian-e2e-001'];
 
 test.describe('Journey 11: Golden Path Business Lifecycle', () => {
@@ -63,7 +64,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
 
     await expectRouteSupportsWorkflow(
       page,
-      `/intelligence/${ACCOUNT_ID}/signals`,
+      `/t/${TENANT_SLUG}/accounts/${ACCOUNT_ID}/intelligence/signals`,
       [/signals/i, /confidence/i, /source/i, /approve/i, /evidence/i],
       'signal review and approval workflow',
     );
@@ -72,7 +73,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
 
     await expectRouteSupportsWorkflow(
       page,
-      `/hypothesis/${ACCOUNT_ID}/hypothesis`,
+      `/t/${TENANT_SLUG}/accounts/${ACCOUNT_ID}/intelligence/hypotheses`,
       [/hypoth/i, /approve/i, /edit/i, /expected value/i],
       'hypothesis review and approval workflow',
     );
@@ -81,7 +82,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
 
     await expectRouteSupportsWorkflow(
       page,
-      `/drivers/${ACCOUNT_ID}/tree`,
+      `/t/${TENANT_SLUG}/accounts/${ACCOUNT_ID}/studio/driver-tree`,
       [/driver tree/i, /value driver/i, /formula/i, /evidence/i],
       'driver tree and evidence mapping workflow',
     );
@@ -90,7 +91,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
 
     await expectRouteSupportsWorkflow(
       page,
-      `/calculator/${ACCOUNT_ID}/roi`,
+      `/t/${TENANT_SLUG}/accounts/${ACCOUNT_ID}/studio/calculator`,
       [/roi calculator/i, /scenario/i, /payback/i, /economic value/i],
       'scenario calculation workflow',
     );
@@ -99,7 +100,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
 
     await expectRouteSupportsWorkflow(
       page,
-      '/deliverables/cases',
+      `/t/${TENANT_SLUG}/accounts/${ACCOUNT_ID}/deliverables/business-cases`,
       [/business cases/i, /new case/i, /executive summary/i, /draft|approved/i],
       'business-case list and lifecycle workflow',
     );
@@ -110,7 +111,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
   test('test_business_case_contains_traceable_claims_after_golden_path @backend', async ({ page }) => {
     requireBackendOrThrow('test_business_case_contains_traceable_claims_after_golden_path @backend');
 
-    await navigateAndWait(page, '/deliverables/cases');
+    await navigateAndWait(page, `/t/${TENANT_SLUG}/accounts/${ACCOUNT_ID}/deliverables/business-cases`);
     await expectAnyVisible(
       page,
       [/business cases/i, /executive summary/i, /recommendations/i, /roi/i],
@@ -119,7 +120,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
     await expectNoCrossTenantLeakage(page);
     await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
 
-    await navigateAndWait(page, '/governance/traces');
+    await navigateAndWait(page, `/t/${TENANT_SLUG}/governance/traces`);
     await expectAnyVisible(
       page,
       [/decision trace/i, /provenance timeline/i, /truth references/i, /audit log/i, /claim/i],
@@ -128,7 +129,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
     await expectNoCrossTenantLeakage(page);
     await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
 
-    await navigateAndWait(page, '/governance/evidence');
+    await navigateAndWait(page, `/t/${TENANT_SLUG}/governance/evidence`);
     await expectAnyVisible(
       page,
       [/evidence/i, /truth objects/i, /confidence/i, /source/i, /claim/i],
@@ -142,7 +143,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
     requireBackendOrThrow('test_export_is_available_only_after_required_approval @backend');
     await expectSeededBusinessCaseWorkflowResults(page, SEEDED_BUSINESS_CASE_IDS);
 
-    await navigateAndWait(page, '/deliverables/cases/case-draft-001');
+    await navigateAndWait(page, `/t/${TENANT_SLUG}/accounts/${ACCOUNT_ID}/deliverables/business-cases/case-draft-001`);
     await expectAnyVisible(
       page,
       [/business case/i, /draft/i, /executive summary/i, /export pdf/i],
@@ -152,7 +153,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
     await expectNoCrossTenantLeakage(page);
     await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
 
-    await navigateAndWait(page, '/deliverables/cases/case-e2e-approved-001');
+    await navigateAndWait(page, `/t/${TENANT_SLUG}/accounts/${ACCOUNT_ID}/deliverables/business-cases/case-e2e-approved-001`);
     await expectAnyVisible(
       page,
       [/business case/i, /approved/i, /executive summary/i, /export pdf/i],
@@ -168,7 +169,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
     await expectSeededBusinessCaseWorkflowResults(page, SEEDED_BUSINESS_CASE_IDS);
 
     // Navigate to the approved business case
-    await navigateAndWait(page, '/deliverables/cases/case-e2e-approved-001');
+    await navigateAndWait(page, `/t/${TENANT_SLUG}/accounts/${ACCOUNT_ID}/deliverables/business-cases/case-e2e-approved-001`);
     await expectAnyVisible(
       page,
       [/business case/i, /approved/i, /export pdf/i],
@@ -190,7 +191,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
     await expectSeededBusinessCaseWorkflowResults(page, SEEDED_BUSINESS_CASE_IDS);
 
     // Navigate to the approved business case
-    await navigateAndWait(page, '/deliverables/cases/case-e2e-approved-001');
+    await navigateAndWait(page, `/t/${TENANT_SLUG}/accounts/${ACCOUNT_ID}/deliverables/business-cases/case-e2e-approved-001`);
     await expectAnyVisible(
       page,
       [/business case/i, /approved/i, /recommendations/i],
@@ -205,7 +206,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
     );
 
     // Navigate to any realization plan surface if it exists
-    await navigateAndWait(page, `/accounts/${ACCOUNT_ID}`);
+    await navigateAndWait(page, `/t/${TENANT_SLUG}/accounts/${ACCOUNT_ID}/overview`);
     await expectAnyVisible(
       page,
       [/outcome|realization|baseline|metric|account|meridian/i],

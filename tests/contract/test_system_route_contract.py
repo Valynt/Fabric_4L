@@ -114,7 +114,7 @@ async def test_layer6_system_readiness_contract() -> None:
     async def fake_readiness_check() -> dict[str, str]:
         return {"status": "ready"}
 
-    setattr(fake_main, "readiness_check", fake_readiness_check)
+    fake_main.readiness_check = fake_readiness_check
     original_get_handlers = layer6_system._get_handlers
     layer6_system._get_handlers = lambda: fake_main
     try:

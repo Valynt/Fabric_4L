@@ -93,20 +93,31 @@ def test_skills_registry_at_canonical_path() -> None:
 
 
 def test_tasks_py_uses_relative_crawler_imports() -> None:
-    """tasks.py must use relative ``..crawler`` imports for crawler modules."""
+    """tasks package must use relative crawler imports (no absolute import)."""
     import ast
 
-    tasks_file = SERVICE_SRC / "layer1_ingestion" / "shared" / "tasks.py"
-    tree = ast.parse(tasks_file.read_text(encoding="utf-8"), filename=str(tasks_file))
-    found = any(
-        isinstance(node, ast.ImportFrom)
-        and node.level == 2
-        and node.module is not None
-        and node.module.startswith("crawler.")
-        and any(alias.name == "HttpxCrawler" for alias in node.names)
-        for node in ast.walk(tree)
-    )
-    assert found, "Expected tasks.py to import HttpxCrawler from ..crawler.httpx_crawler"
+    tasks_pkg = SERVICE_SRC / "layer1_ingestion" / "shared" / "tasks"
+    py_files = sorted(tasks_pkg.glob("*.py"))
+    assert py_files, f"No package files under {tasks_pkg}"
+
+    # From package submodule depth (layer1_ingestion.shared.tasks.crawl) the
+    # canonical crawler module resolves via ``...crawler`` (level 3); the
+    # package ``__init__`` sits at level 2 (layer1_ingestion.shared.tasks).
+    allowed_levels = {2, 3}
+    found = False
+    for tasks_file in py_files:
+        tree = ast.parse(tasks_file.read_text(encoding="utf-8"), filename=str(tasks_file))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.level in allowed_levels
+                and node.module is not None
+                and node.module.startswith("crawler.")
+                and any(alias.name == "HttpxCrawler" for alias in node.names)
+            ):
+                found = True
+                break
+    assert found, "Expected tasks package to import HttpxCrawler via relative crawler import"
 
 
 def test_value_fabric_layer1_shim_resolves_to_canonical_path() -> None:

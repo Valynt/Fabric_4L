@@ -18,9 +18,21 @@ import pytest
 pytestmark = [pytest.mark.celery, pytest.mark.reliability, pytest.mark.p0, pytest.mark.unit]
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-L1_TASKS = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py"
+L1_TASKS = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/__init__.py"
+L1_TASKS_DLQ = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/dlq.py"
+L1_TASKS_BOOTSTRAP = (
+    REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/tasks_bootstrap.py"
+)
 L1_DLQ = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/shared/dlq.py"
 L1_METRICS = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/metrics/prometheus_metrics.py"
+
+
+def _l1_task_sources() -> str:
+    """Aggregate the split tasks package sources for the original megafile guards."""
+    return "".join(
+        path.read_text(encoding="utf-8")
+        for path in (L1_TASKS, L1_TASKS_DLQ, L1_TASKS_BOOTSTRAP)
+    )
 
 
 def _load_dlq_module():
@@ -40,30 +52,30 @@ def _load_dlq_module():
 
 class TestDlqRoutingWiring:
     def test_dlq_queue_declared_and_consumer_bound(self) -> None:
-        text = L1_TASKS.read_text(encoding="utf-8")
+        text = _l1_task_sources()
         assert '"layer1_dlq"' in text, "layer1_dlq queue must remain declared in task_queues"
         assert "queue=DLQ_QUEUE_NAME" in text, "DLQ consumer must be bound to the DLQ queue"
         assert "max_retries=0" in text, "DLQ consumer must never requeue"
 
     def test_task_failure_signal_connected(self) -> None:
-        text = L1_TASKS.read_text(encoding="utf-8")
+        text = _l1_task_sources()
         assert "from celery.signals import task_failure" in text
         assert "@task_failure.connect" in text
 
     def test_exhausted_tasks_republished_to_dlq(self) -> None:
-        text = L1_TASKS.read_text(encoding="utf-8")
+        text = _l1_task_sources()
         assert "celery_app.send_task(DLQ_TASK_NAME, args=[envelope], queue=DLQ_QUEUE_NAME)" in text
         # routing decision delegated to the hermetic policy helper
         assert "should_route_to_dlq(retries, max_retries)" in text
 
     def test_dlq_consumer_persists_joberror(self) -> None:
-        text = L1_TASKS.read_text(encoding="utf-8")
+        text = _l1_task_sources()
         assert 'error_code="TASK_DEAD_LETTERED"' in text
         assert "retryable=False" in text
         assert 'stage="DEAD_LETTER"' in text
 
     def test_dlq_error_payload_is_sanitized(self) -> None:
-        text = L1_TASKS.read_text(encoding="utf-8")
+        text = _l1_task_sources()
         # The persisted DLQ error must go through sanitize_log_error: raw
         # str(exception) can carry secrets into the JobError row, while
         # type-only names discard the diagnostic context operators need.

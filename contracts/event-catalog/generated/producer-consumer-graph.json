@@ -1,0 +1,82 @@
+{
+  "generated_at": "2026-08-29",
+  "generator": "scripts/ci/validate-event-catalog.py",
+  "description": "Producer → consumers adjacency list for the Fabric_4L Event Catalog.",
+  "producers": {
+    "services/layer7-billing": {
+      "events": [
+        "billing.account.created.v1",
+        "billing.catalog.plan_published.v1",
+        "billing.subscription.activated.v1",
+        "billing.subscription.canceled.v1",
+        "billing.entitlement.changed.v1",
+        "billing.usage.ingested.v1",
+        "billing.rating.completed.v1",
+        "billing.invoice.generated.v1",
+        "billing.invoice.paid.v1",
+        "billing.payment.failed.v1",
+        "billing.credit.applied.v1",
+        "billing.refund.processed.v1",
+        "billing.dispute.opened.v1",
+        "billing.reconciliation.completed.v1",
+        "billing.ledger.entry_posted.v1"
+      ],
+      "consumers": {
+        "services/api": [
+          "billing.account.created.v1",
+          "billing.catalog.plan_published.v1",
+          "billing.subscription.activated.v1",
+          "billing.subscription.canceled.v1",
+          "billing.entitlement.changed.v1",
+          "billing.invoice.generated.v1",
+          "billing.invoice.paid.v1",
+          "billing.payment.failed.v1",
+          "billing.credit.applied.v1",
+          "billing.refund.processed.v1",
+          "billing.dispute.opened.v1",
+          "billing.reconciliation.completed.v1",
+          "billing.ledger.entry_posted.v1"
+        ],
+        "services/layer4-agents": [
+          "billing.account.created.v1",
+          "billing.catalog.plan_published.v1",
+          "billing.subscription.activated.v1",
+          "billing.subscription.canceled.v1",
+          "billing.entitlement.changed.v1",
+          "billing.invoice.generated.v1",
+          "billing.invoice.paid.v1",
+          "billing.payment.failed.v1",
+          "billing.dispute.opened.v1"
+        ],
+        "services/layer3-knowledge": [
+          "billing.subscription.activated.v1"
+        ],
+        "services/layer6-benchmarks": [
+          "billing.usage.ingested.v1"
+        ],
+        "services/layer7-billing": [
+          "billing.usage.ingested.v1",
+          "billing.rating.completed.v1",
+          "billing.ledger.entry_posted.v1"
+        ],
+        "services/analytics": [
+          "billing.usage.ingested.v1",
+          "billing.subscription.activated.v1",
+          "billing.subscription.canceled.v1"
+        ]
+      }
+    },
+    "services/api": {
+      "events": ["identity.user.authenticated.v1"],
+      "consumers": {}
+    },
+    "services/layer3-knowledge": {
+      "events": ["knowledge.entity.created.v1"],
+      "consumers": {}
+    },
+    "services/layer4-agents": {
+      "events": ["agents.workflow.completed.v1"],
+      "consumers": {}
+    }
+  }
+}

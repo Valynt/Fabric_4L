@@ -3,24 +3,25 @@
 # Backs up all application databases (ingestion, extraction, signal_refinery,
 # layer4_agents, ground_truth, benchmarks, layer7_billing)
 #
-# BACKUP STRATEGY (as of V14.1 hotfix):
-#   ACTIVE PATH: pg_dump logical backups to PVC (retained 7 days).
-#   pg_dump uses the postgres-patroni hostname for consistency with the
-#   Patroni-managed Postgres service.
+# BACKUP STRATEGY (Sprint 1 / Phase 0 — DR gap closure):
+#   GATED PATH: WAL-G physical base backup + continuous WAL archiving to S3
+#   (ENABLE_WALG_BACKUP is set to "false" in the wal-g-config ConfigMap until restore validation evidence is available).
+#   WAL-G provides PITR; Patroni archive_command
+#   (see postgres-patroni.yaml) pushes WAL via wal-g wal-push.
 #
-#   STAGED PATH: WAL-G physical base backup to S3 (DISABLED).
-#   WAL-G infrastructure is present (service account, config map, image) but
-#   ENABLE_WALG_BACKUP is intentionally "false". WAL-G MUST NOT be enabled
-#   until backup-push and restore validation both pass and restore evidence
-#   is captured.
+#   COLD ARCHIVE PATH: pg_dump logical backups to PVC (retained 7 days).
+#   pg_dump is demoted to a cold-archive fallback and uses the
+#   postgres-patroni hostname for consistency with the Patroni-managed
+#   Postgres service.
 #
-# WAL-G ENABLEMENT CHECKLIST (complete all before setting ENABLE_WALG_BACKUP="true"):
-#   [ ] service account / IRSA confirmed (wal-g-backup SA + IAM role)
+# WAL-G POST-ENABLEMENT VERIFICATION CHECKLIST (required evidence):
+#   [ ] service account / IRSA confirmed (wal-g-backup SA + IAM role; IRSA
+#       annotation is applied in environment overlays, not base)
 #   [ ] WAL-G static config mounted and aws-backup-credentials ExternalSecret synced
 #   [ ] S3 destination reachable from cluster (network policy + IAM permissions)
 #   [ ] wal-g backup-push succeeds in a manual / canary run
 #   [ ] restore drill succeeds (restore to a test instance, verify data integrity)
-#   [ ] restore evidence captured (logs, checksums, sign-off in runbook)
+#   [ ] restore validation and restore evidence captured (logs, checksums, sign-off in runbook)
 #
 # Retains pg_dump backups for 7 days
 ---
@@ -128,9 +129,13 @@ spec:
               envFrom:
                 - configMapRef:
                     name: wal-g-config
+                    optional: true
                 - secretRef:
                     name: aws-backup-credentials
+                    optional: true
               env:
+                - name: ENABLE_WALG_BACKUP
+                  value: "false"
                 # SECURITY: Username is not sensitive — hardcoded to match postgres Deployment.
                 # Only password is sourced from the secret.
                 - name: POSTGRES_USER
@@ -140,8 +145,6 @@ spec:
                     secretKeyRef:
                       name: postgres-patroni-credentials
                       key: superuser-password
-                - name: ENABLE_WALG_BACKUP
-                  value: "false"
               volumeMounts:
                 - name: postgres-backups
                   mountPath: /backups

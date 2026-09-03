@@ -2,7 +2,7 @@
 title: "Architecture Decision Records (ADRs)"
 category: "explanations"
 audience: "advanced"
-last-reviewed: "2026-06-23"
+last-reviewed: "2026-08-31"
 freshness: "current"
 related: ["../why-knowledge-graph", "../../core-concepts/architecture", "../../core-concepts/security-model"]
 ---
@@ -97,6 +97,11 @@ An ADR is ready for review only when it includes:
 | [ADR-040](./ADR-040-data-ownership-system-of-record.md) | Data Ownership and System of Record | ✅ Accepted | 2026-07-29 |
 | [ADR-041](./ADR-041-canonical-layer1-ingestion-path.md) | Canonical Layer 1 Ingestion Path | ✅ Accepted | 2026-07-29 |
 | [ADR-042](./ADR-042-claim-benchmark-taxonomy-alignment.md) | Claim Type and Benchmark Taxonomy Alignment | ✅ Accepted | 2026-07-29 |
+| [ADR-043](./ADR-043-gateway-token-rewrapping-with-ed25519-internal-envelopes.md) | Gateway Token Re-wrapping with Ed25519 Internal Envelopes | Accepted | 2026-08-20 |
+| [ADR-044](./ADR-044-clerk-organizations-to-fabric-tenants-mapping.md) | 1:1 Mapping Between Clerk Organizations and Fabric Tenants | Accepted | 2026-08-20 |
+| [ADR-045](./ADR-045-dual-auth-migration-and-rollout-strategy.md) | Zero-Downtime Dual-Auth Migration and Rollout Strategy | Accepted | 2026-08-20 |
+| [ADR-046](./ADR-046-event-catalog.md) | Event Catalog — Semantic Inventory of Record for Domain and Integration Events | ✅ Accepted | 2026-08-21 |
+| [ADR-047](./ADR-047-task-graph-build-orchestration.md) | Task-Graph Build Orchestration | Accepted | 2026-08-31 |
 
 ---
 
@@ -177,4 +182,4 @@ To propose a new ADR:
 
 ---
 
-*Last updated: 2026-07-20*
+*Last updated: 2026-08-31*

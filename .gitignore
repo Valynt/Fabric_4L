@@ -140,6 +140,8 @@ generated/
 !apps/web/src/api/generated/*.ts
 !packages/platform-contract/src/typescript/generated/
 !packages/platform-contract/src/typescript/generated/*.ts
+!contracts/event-catalog/generated/
+!contracts/event-catalog/generated/*.json
 
 # Committed Python SDK OpenAPI clients (generated, but part of the published interface)
 !sdk/python/src/valuefabric/generated/

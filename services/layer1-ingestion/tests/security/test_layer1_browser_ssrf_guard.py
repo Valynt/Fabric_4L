@@ -86,7 +86,7 @@ class TestExecuteBrowserPathSSRF:
         )
 
         with patch(
-            "layer1_ingestion.shared.tasks.PlaywrightCrawler",
+            "layer1_ingestion.shared.tasks.crawl.PlaywrightCrawler",
             return_value=mock_crawler,
         ):
             mock_crawler.__aenter__ = AsyncMock(return_value=mock_crawler)
@@ -189,7 +189,7 @@ class TestCrawlUrlWithRoutingSSRF:
         mock_target.extraction_config = None
         mock_session.query.return_value.get.side_effect = [mock_job, mock_target]
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.crawl.get_db_session", return_value=mock_session):
             with pytest.raises(URLSafetyError) as exc:
                 await crawl_url_with_routing(job_id, "http://127.0.0.1/", tenant_id)
             assert exc.value.reason_code == "IP_RANGE_BLOCKED"
@@ -215,7 +215,7 @@ class TestCrawlUrlWithRoutingSSRF:
         mock_job.target_id = str(uuid4())
         mock_session.query.return_value.get.side_effect = [mock_job, MagicMock()]
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.crawl.get_db_session", return_value=mock_session):
             with pytest.raises(URLSafetyError) as exc:
                 await crawl_url_with_routing(job_id, "http://169.254.169.254/latest/meta-data/", tenant_id)
             assert exc.value.reason_code == "IP_RANGE_BLOCKED"

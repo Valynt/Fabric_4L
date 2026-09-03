@@ -39,6 +39,66 @@
       "title": "Layer4WorkflowReplayEventEnvelopeV1"
     },
     {
+      "path": "contracts/jsonschema/common/event-envelope@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/common/event-envelope@1.0.0.schema.json",
+      "title": "CommonDomainEventEnvelope"
+    },
+    {
+      "path": "contracts/event-catalog/event-entry.schema.json",
+      "id": "https://valuefabric.ai/contracts/event-catalog/event-entry.schema.json",
+      "title": "EventCatalogEntry"
+    },
+    {
+      "path": "contracts/event-catalog/registry.yaml",
+      "id": "contract:contracts/event-catalog/registry.yaml",
+      "title": "EventCatalogRegistry"
+    },
+    {
+      "path": "contracts/event-catalog/domains/agents.yaml",
+      "id": "contract:contracts/event-catalog/domains/agents.yaml",
+      "title": "EventCatalogDomainAgents"
+    },
+    {
+      "path": "contracts/event-catalog/domains/billing.yaml",
+      "id": "contract:contracts/event-catalog/domains/billing.yaml",
+      "title": "EventCatalogDomainBilling"
+    },
+    {
+      "path": "contracts/event-catalog/domains/identity.yaml",
+      "id": "contract:contracts/event-catalog/domains/identity.yaml",
+      "title": "EventCatalogDomainIdentity"
+    },
+    {
+      "path": "contracts/event-catalog/domains/knowledge.yaml",
+      "id": "contract:contracts/event-catalog/domains/knowledge.yaml",
+      "title": "EventCatalogDomainKnowledge"
+    },
+    {
+      "path": "contracts/event-catalog/consumers/analytics.yaml",
+      "id": "contract:contracts/event-catalog/consumers/analytics.yaml",
+      "title": "EventCatalogConsumerAnalytics"
+    },
+    {
+      "path": "contracts/event-catalog/consumers/api.yaml",
+      "id": "contract:contracts/event-catalog/consumers/api.yaml",
+      "title": "EventCatalogConsumerAPI"
+    },
+    {
+      "path": "contracts/event-catalog/consumers/layer4-agents.yaml",
+      "id": "contract:contracts/event-catalog/consumers/layer4-agents.yaml",
+      "title": "EventCatalogConsumerLayer4Agents"
+    },
+    {
+      "path": "contracts/event-catalog/generated/ownership-matrix.json",
+      "id": "contract:contracts/event-catalog/generated/ownership-matrix.json",
+      "title": "EventCatalogOwnershipMatrix"
+    },
+    {
+      "path": "contracts/event-catalog/generated/producer-consumer-graph.json",
+      "id": "contract:contracts/event-catalog/generated/producer-consumer-graph.json",
+      "title": "EventCatalogProducerConsumerGraph"
+    },
+    {
       "path": "contracts/jsonschema/signal.json",
       "id": "https://valuefabric.io/schemas/signal.json",
       "title": "PainSignal"

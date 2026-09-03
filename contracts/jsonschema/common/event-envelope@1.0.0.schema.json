@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/common/event-envelope@1.0.0.schema.json",
+  "title": "CommonDomainEventEnvelope",
+  "description": "Common envelope shared by all Fabric_4L canonical domain and integration events. Reuses patterns from the Layer 4 workflow replay envelope and generalizes them for cross-layer use.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "tenant_id",
+    "timestamp",
+    "correlation_id",
+    "causation_id",
+    "event_type",
+    "schema_version",
+    "payload_pointer",
+    "payload_checksum"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event instance"
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Tenant that owns the event context"
+    },
+    "billing_account_id": {
+      "type": "string",
+      "description": "Billing account scope, when applicable"
+    },
+    "actor": {
+      "type": "string",
+      "description": "Entity that caused the event (user id, service name, provider id)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of emission"
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Correlation id for distributed tracing"
+    },
+    "causation_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Id of the event or command that caused this event"
+    },
+    "event_type": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+\\.[a-z0-9_-]+\\.[a-z0-9_-]+\\.v[0-9]+$",
+      "description": "Canonical event type from the Event Catalog"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semantic version of the payload schema"
+    },
+    "payload_pointer": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Reference to the payload (URI, object-store key, or inline pointer)"
+    },
+    "payload_checksum": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Cryptographic checksum (sha-256) of the serialized payload"
+    },
+    "payload_redacted": {
+      "type": "object",
+      "description": "Redacted payload summary for audit logs where full payload is sensitive"
+    }
+  }
+}
