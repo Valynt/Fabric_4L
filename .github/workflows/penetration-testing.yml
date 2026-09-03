@@ -51,10 +51,6 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
-        run: |
-          pip install requests aiohttp
-
       - name: Validate authorized DAST target
         run: |
           python - <<'PY'

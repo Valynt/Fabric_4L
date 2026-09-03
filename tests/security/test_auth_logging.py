@@ -13,7 +13,9 @@ Author: Platform Security Team
 from __future__ import annotations
 
 import logging
-from unittest.mock import MagicMock, patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 
 import pytest
 
@@ -199,3 +201,71 @@ class TestAuthFailureLogging:
         assert "abc123secret" not in str(ctx), (
             "_request_log_context must not leak cookie values."
         )
+
+    @pytest.mark.asyncio
+    async def test_jwt_context_rejected_logs_only_exception_type(self):
+        """ADVERSARIAL: tenant-context rejection logs must not include exception text."""
+        from fastapi import HTTPException
+
+        from value_fabric.shared.identity.middleware import GovernanceMiddleware
+
+        request = Request({
+            "type": "http",
+            "method": "GET",
+            "path": "/api/v1/admin/tenants",
+            "headers": [(b"x-tenant-id", str(uuid4()).encode("latin-1"))],
+        })
+        middleware = GovernanceMiddleware(app=MagicMock(), rate_limiter=None)
+        secret = "Authorization: ******"
+
+        with (
+            patch(
+                "value_fabric.shared.identity.middleware.extract_context_from_jwt",
+                return_value=SimpleNamespace(),
+            ),
+            patch(
+                "value_fabric.shared.identity.middleware.validate_context_consistency",
+                side_effect=ValueError(secret),
+            ),
+            patch("value_fabric.shared.identity.middleware.logger.warning") as mock_warning,
+        ):
+            with pytest.raises(HTTPException):
+                middleware._build_context_from_claims({"tenant_id": str(uuid4())}, request)
+
+        _, kwargs = mock_warning.call_args
+        log_extra = kwargs["extra"]
+        assert log_extra["error_type"] == "ValueError"
+        assert "error" not in log_extra
+        assert secret not in str(log_extra)
+
+    @pytest.mark.asyncio
+    async def test_tenant_status_resolver_failure_logs_only_exception_type(self):
+        """ADVERSARIAL: tenant status resolver failures must not log exception text."""
+        from value_fabric.shared.identity.middleware import GovernanceMiddleware
+        from value_fabric.shared.tenant_kill_switch import TenantSuspensionStatus
+
+        tenant_id = uuid4()
+        middleware = GovernanceMiddleware(
+            app=MagicMock(),
+            rate_limiter=None,
+            tenant_status_resolver=AsyncMock(
+                side_effect=RuntimeError("******db.internal/value-fabric")
+            ),
+        )
+        ctx = SimpleNamespace(tenant_id=tenant_id, raw=None)
+
+        with (
+            patch(
+                "value_fabric.shared.identity.middleware.TenantKillSwitch.check_status",
+                new=AsyncMock(return_value=TenantSuspensionStatus.ACTIVE),
+            ),
+            patch("value_fabric.shared.identity.middleware.logger.warning") as mock_warning,
+        ):
+            response = await middleware._enforce_tenant_status(ctx)
+
+        assert response is None
+        _, kwargs = mock_warning.call_args
+        log_extra = kwargs["extra"]
+        assert log_extra["error_type"] == "RuntimeError"
+        assert "error" not in log_extra
+        assert "user:pass@db.internal" not in str(log_extra)

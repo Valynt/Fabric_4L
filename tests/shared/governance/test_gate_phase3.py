@@ -56,6 +56,12 @@ def _make_mock_abom() -> MagicMock:
     return abom
 
 
+def _allow_policy_facade() -> MagicMock:
+    facade = MagicMock()
+    facade.evaluate_action = AsyncMock(return_value=MagicMock(effect=MagicMock(value="allow"), reason="ok"))
+    return facade
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # MemoryGateway Tests
 # ═══════════════════════════════════════════════════════════════════════════
@@ -67,10 +73,13 @@ class TestMemoryGateway:
     @pytest.mark.asyncio
     async def test_query_returns_provenance(self) -> None:
         engine = _make_mock_engine()
+        policy = MagicMock()
+        policy.evaluate_action = AsyncMock(return_value=MagicMock(effect=MagicMock(value="allow"), reason="ok"))
         gw = MemoryGateway(
             retrieval_engine=engine,
             tenant_id="t-123",
             agent_id="TestAgent-abcd1234",
+            policy_facade=policy,
         )
         result = await gw.query("test query")
 
@@ -80,9 +89,17 @@ class TestMemoryGateway:
         assert len(result["_provenance"]["content_hash"]) == 64
 
     @pytest.mark.asyncio
-    async def test_access_log_populated(self) -> None:
+    async def test_query_denies_without_policy_facade(self) -> None:
         engine = _make_mock_engine()
         gw = MemoryGateway(retrieval_engine=engine, tenant_id="t-123")
+
+        with pytest.raises(PermissionError, match="policy enforcement is unavailable"):
+            await gw.query("blocked query")
+
+    @pytest.mark.asyncio
+    async def test_access_log_populated(self) -> None:
+        engine = _make_mock_engine()
+        gw = MemoryGateway(retrieval_engine=engine, tenant_id="t-123", policy_facade=_allow_policy_facade())
         await gw.query("first query")
         await gw.query("second query")
 
@@ -93,7 +110,7 @@ class TestMemoryGateway:
     @pytest.mark.asyncio
     async def test_content_hash_deterministic(self) -> None:
         engine = _make_mock_engine()
-        gw = MemoryGateway(retrieval_engine=engine, tenant_id="t-123")
+        gw = MemoryGateway(retrieval_engine=engine, tenant_id="t-123", policy_facade=_allow_policy_facade())
         r1 = await gw.query("test")
         r2 = await gw.query("test")
 
@@ -102,7 +119,7 @@ class TestMemoryGateway:
     @pytest.mark.asyncio
     async def test_source_lineage_built(self) -> None:
         engine = _make_mock_engine()
-        gw = MemoryGateway(retrieval_engine=engine, tenant_id="t-123")
+        gw = MemoryGateway(retrieval_engine=engine, tenant_id="t-123", policy_facade=_allow_policy_facade())
         result = await gw.query("test")
 
         lineage = result["_provenance"]["source_lineage"]
@@ -114,7 +131,7 @@ class TestMemoryGateway:
     @pytest.mark.asyncio
     async def test_entity_context_provenance(self) -> None:
         engine = _make_mock_engine()
-        gw = MemoryGateway(retrieval_engine=engine, tenant_id="t-123")
+        gw = MemoryGateway(retrieval_engine=engine, tenant_id="t-123", policy_facade=_allow_policy_facade())
         result = await gw.get_entity_context("e1", hops=2)
 
         assert "_provenance" in result

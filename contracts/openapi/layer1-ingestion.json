@@ -755,11 +755,11 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "Hard delete if no jobs exist",
+              "description": "Force removal if no jobs exist",
               "default": false,
               "title": "Force"
             },
-            "description": "Hard delete if no jobs exist"
+            "description": "Force removal if no jobs exist"
           }
         ],
         "responses": {

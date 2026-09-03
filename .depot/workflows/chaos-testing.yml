@@ -236,9 +236,6 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Install Python dependencies
-        run: |
-          pip install aiohttp pytest asyncio
       - name: Run validation tests
         run: |
           mkdir -p chaos-results/validation

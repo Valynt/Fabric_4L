@@ -27,7 +27,7 @@ Cross-cutting — constrains every behavior's boundary surfaces:
   `layer4-route-contract-matrix.json`, `schema-index.json`, `value-signal.json`
 - `contracts/openapi/` — `fabric-4l-api.json` plus per-layer specs (`layer1-ingestion`,
   `layer2-extraction`, `layer2-5-signal-refinery`, `layer3-knowledge`, `layer4-agents`,
-  `layer5-ground-truth`, `layer6-benchmarks`, `layer7-billing`, `privacy-dsar`, `signals`)
+  `layer5-ground-truth`, `layer6-benchmarks`, `privacy-dsar`, `signals`)
 - `contracts/jsonschema/` — `signal.json`, `entity.json`, `claim-types.v1.json`,
   `agent-response-envelope.json`, `billing-domain.schema.json`, `dsar-request.schema.json`,
   `layer3-entity-resolution-contract.json`,

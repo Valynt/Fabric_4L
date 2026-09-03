@@ -39,6 +39,10 @@ def test_sbom_command_generates_evidence_artifacts() -> None:
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     assert sbom["bomFormat"] == "CycloneDX"
     assert sbom["components"]
+    assert all(
+        not str(component.get("scope", "")).startswith(("docs/archive/", "archive/", ".agents/", ".claude/"))
+        for component in sbom["components"]
+    )
     assert summary["component_count"] == len(sbom["components"])
 
 
@@ -52,4 +56,3 @@ def test_admission_policy_blocks_unsigned_images() -> None:
         text = policy_file.read_text(encoding="utf-8")
         assert "verifyImages" in text or "attestors" in text or "cosign" in text
         assert "ghcr.io" in text
-

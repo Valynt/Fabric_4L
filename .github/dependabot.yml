@@ -3,6 +3,12 @@ updates:
   # Root npm workspace
   - package-ecosystem: npm
     directory: /
+    exclude-paths:
+      - "docs/archive/**"
+      - "archive/**"
+      - "**/source-snapshot/**"
+      - "**/evidence-bundle*/**"
+      - "**/signoff-evidence/**"
     schedule:
       interval: weekly
       day: monday
@@ -29,10 +35,10 @@ updates:
         patterns:
           - "*"
 
-  # Archived docs snapshot (historical frontend lockfile) — alerts noise only.
-  # The snapshot is excluded from canonical workspace tooling (pnpm-workspace.yaml);
-  # removed from Dependabot entirely (previously suppressed via `ignore`) because
-  # Dependabot only scans explicitly-listed directories. See
+  # Archived dependency snapshots are intentionally absent from this list.
+  # They are excluded from canonical workspace tooling (pnpm-workspace.yaml) and
+  # from both Dependabot coverage validators. Dependabot only scans explicitly
+  # listed directories, so adding an archive entry would recreate update noise. See
   # docs/supply-chain/dependabot-triage-2026-08-29.md.
   # Frontend
   - package-ecosystem: npm
@@ -390,34 +396,6 @@ updates:
         patterns:
           - "*"
 
-  - package-ecosystem: pip
-    directory: /services/layer7-billing
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
   # Shared Python packages
   - package-ecosystem: pip
     directory: /packages/shared/src
@@ -684,22 +662,6 @@ updates:
 
   - package-ecosystem: docker
     directory: /services/layer6-benchmarks
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - docker
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: docker
-    directory: /services/layer7-billing
     schedule:
       interval: weekly
       day: monday

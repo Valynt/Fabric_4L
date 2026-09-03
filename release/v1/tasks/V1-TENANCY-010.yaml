@@ -17,7 +17,6 @@ allowed_paths:
 forbidden_paths:
   - infra/production/**
   - .github/workflows/**
-  - services/layer7-billing/**
 
 single_writer_surfaces:
   - tenant-resolution-middleware
