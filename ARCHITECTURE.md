@@ -25,7 +25,7 @@ For full details, see:
 | Capability | Service | Port | Purpose |
 | --- | --- | --- | --- |
 | Signal Refinery | layer2-5-signal-refinery | 8007 | Signal refinement, enrichment, and normalization between extraction and the knowledge graph |
-| Billing | layer7-billing | 8008 | Subscription, usage, billing, and entitlements |
+| Billing | layer4-agents | 8004 | Subscription, usage, billing, and entitlements (owned by Layer 4) |
 
 ## Core Patterns
 
@@ -40,7 +40,7 @@ For full details, see:
 | Concern | Path |
 | --- | --- |
 | Runtime Python packages | `services/layer{1–6}-*/src/`, `packages/shared/src/value_fabric/shared/`, service-local adjacent packages |
-| Service implementations | `services/layer{1–6}-*/src/`, `services/layer2-5-signal-refinery/`, `services/layer7-billing/` |
+| Service implementations | `services/layer{1–6}-*/src/`, `services/layer2-5-signal-refinery/` |
 | Frontend | `apps/web/` |
 | API contracts | `contracts/` |
 | Kubernetes manifests | `k8s/` |

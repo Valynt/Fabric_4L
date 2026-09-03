@@ -70,7 +70,7 @@ graph TB
 
 ## Container Architecture (C4 Level 2)
 
-The system follows a 6-layer core pipeline architecture with clear separation of concerns. Signal Refinery and Billing are deployable adjacent capabilities; they are invoked through contracted service boundaries instead of being additional horizontal pipeline layers.
+The system follows a 6-layer core pipeline architecture with clear separation of concerns. Signal Refinery is a deployable adjacent capability; Billing is owned by Layer 4 and served on its port. Both are invoked through contracted service boundaries instead of being additional horizontal pipeline layers.
 
 ```mermaid
 graph TB
@@ -94,7 +94,10 @@ graph TB
 
     subgraph "Adjacent Capabilities"
         L2_5[Signal Refinery<br/>FastAPI<br/>Port 8007]
-        L7[Billing<br/>FastAPI<br/>Port 8008]
+    end
+
+    subgraph "Billing (inside L4)"
+        BILL[Billing<br/>served by Layer 4<br/>Port 8004]
     end
     
     subgraph "Data Layer"
@@ -118,7 +121,7 @@ graph TB
     GW -->|Route + Auth| L4
     GW -->|Route + Auth| L5
     GW -->|Route + Auth| L6
-    GW -->|Route + Auth| L7
+    GW -->|Route + Auth| BILL
     
     L1 -->|Ingest jobs| RED
     L1 -->|Metadata| PG
@@ -141,7 +144,7 @@ graph TB
     
     L5 -->|Truth objects| PG
     L6 -->|Benchmark results| PG
-    L7 -->|Billing state| PG
+    BILL -->|Billing state| PG
     
     L1 -.->|Progress updates| L4
     L2 -.->|Raw signals| L2_5
@@ -149,7 +152,7 @@ graph TB
     L3 -.->|Context| L4
     L4 -.->|Agent outputs| L5
     L5 -.->|Validated truth| L6
-    L4 -.->|Usage events| L7
+    L4 -.->|Usage events| BILL
     
     style FE fill:#4a90d9,color:white
     style L1 fill:#2ecc71,color:white
@@ -159,7 +162,7 @@ graph TB
     style L4 fill:#2ecc71,color:white
     style L5 fill:#2ecc71,color:white
     style L6 fill:#2ecc71,color:white
-    style L7 fill:#2ecc71,color:white
+    style BILL fill:#2ecc71,color:white
     style GW fill:#e74c3c,color:white
     style PG fill:#9b59b6,color:white
     style NEO fill:#9b59b6,color:white
@@ -400,8 +403,8 @@ flowchart LR
         STRIPE[Stripe<br/>Webhooks]
     end
     
-    subgraph "Billing"
-        L7_API[Billing API<br/>/v1/billing/*]
+    subgraph "Billing (owned by Layer 4)"
+        L4_BILL[Billing API<br/>/v1/billing/*<br/>served by L4]
         METER[Usage Metering]
         ENT[Entitlement Engine]
         INV[Invoice & Payment State]
@@ -411,15 +414,15 @@ flowchart LR
         PG_BILL[(PostgreSQL<br/>Billing Schema)]
     end
     
-    STRIPE -->|webhook| L7_API
-    L7_API --> METER
-    L7_API --> ENT
-    L7_API --> INV
+    STRIPE -->|webhook| L4_BILL
+    L4_BILL --> METER
+    L4_BILL --> ENT
+    L4_BILL --> INV
     METER --> PG_BILL
     ENT --> PG_BILL
     INV --> PG_BILL
     
-    style L7_API fill:#2ecc71,color:white
+    style L4_BILL fill:#2ecc71,color:white
     style METER fill:#2ecc71,color:white
     style ENT fill:#2ecc71,color:white
     style INV fill:#2ecc71,color:white
@@ -435,9 +438,9 @@ flowchart LR
 | Entitlements | Tenant-scoped feature access decisions |
 | Stripe webhooks | Verified webhook ingestion and idempotent processing |
 
-**Canonical source:** `services/layer7-billing/src`
+**Canonical source:** `services/layer4-agents/src` (billing runtime); contract in `contracts/openapi/layer7-billing.json`
 
-**Boundary rule:** Billing is adjacent to the core pipeline. Core services interact with it through entitlement and usage-event contracts; request handlers must not perform synchronous external provider calls except verified webhook or explicitly idempotent callback paths.
+**Boundary rule:** Billing is owned by Layer 4 and served on port 8004 under `/v1/billing/*`. Core services interact with it through entitlement, usage-event, and webhook contracts; request handlers must not perform synchronous external provider calls except verified webhook or explicitly idempotent callback paths.
 
 ---
 
@@ -505,8 +508,7 @@ graph TB
                 L2_POD[L2 Pods<br/>2 replicas]
                 L2_5_POD[Signal Refinery Pods<br/>2 replicas]
                 L3_POD[L3 Pods<br/>3 replicas]
-                L4_POD[L4 Pods<br/>2 replicas]
-                L7_POD[Billing Pods<br/>2 replicas]
+                L4_POD[L4 Pods<br/>2 replicas<br/>incl. Billing]
             end
             
             subgraph "Data Tier"
@@ -534,7 +536,6 @@ graph TB
     ING --> L2_5_POD
     ING --> L3_POD
     ING --> L4_POD
-    ING --> L7_POD
     
     L1_POD --> S3
     L1_POD --> PG_CLUSTER
@@ -546,7 +547,6 @@ graph TB
     L3_POD --> PG_CLUSTER
     L4_POD --> RED_CLUSTER
     L4_POD --> OPENAI
-    L7_POD --> PG_CLUSTER
     
     FE_POD --> IDP
     L1_POD --> VAULT
@@ -554,7 +554,6 @@ graph TB
     L2_5_POD --> VAULT
     L3_POD --> VAULT
     L4_POD --> VAULT
-    L7_POD --> VAULT
     
     style CDN fill:#4a90d9,color:white
     style LB fill:#e74c3c,color:white
@@ -564,7 +563,6 @@ graph TB
     style L2_5_POD fill:#2ecc71,color:white
     style L3_POD fill:#2ecc71,color:white
     style L4_POD fill:#2ecc71,color:white
-    style L7_POD fill:#2ecc71,color:white
     style PG_CLUSTER fill:#9b59b6,color:white
     style NEO_CLUSTER fill:#9b59b6,color:white
     style OPENAI fill:#95a5a6,color:white
@@ -583,7 +581,7 @@ graph TB
 | L4: Agents | L3 context, User workflows | Frontend SSE, Billing usage events | PostgreSQL, Redis |
 | L5: Ground Truth | L4 agent outputs | L6 benchmark input | PostgreSQL |
 | L6: Benchmarks | L5 validated truth | Reports, scorecards | PostgreSQL |
-| Billing | L4 usage events, Stripe webhooks | Entitlement decisions | PostgreSQL |
+| Billing | L4 usage events, Stripe webhooks (served by L4) | Entitlement decisions | PostgreSQL |
 
 ---
 
@@ -635,9 +633,9 @@ graph TB
 
 | Decision | Rationale | Trade-off |
 |----------|-----------|-----------|
-| 6-layer core pipeline plus adjacent capabilities | Clear core boundaries (L1-L6), with signal refinement and billing as focused bounded capabilities | Network overhead between services |
+| 6-layer core pipeline plus adjacent capabilities | Clear core boundaries (L1-L6), with signal refinement as a bounded capability and billing owned by Layer 4 | Network overhead between services |
 | Signal Refinery | Separates extraction noise from trusted graph signals | Extra hop between L2 and L3 |
-| Billing | Isolates subscription/usage/entitlements from core agent workflows | Separate service to deploy and operate |
+| Billing | Isolates subscription/usage/entitlements from core agent workflows (owned by L4) | Single L4 deploy surface |
 | Neo4j for knowledge | Native graph operations, Cypher | Operational complexity |
 | PostgreSQL + pgvector | Unified relational + vector store | Not specialized vector DB |
 | LangGraph for agents | Stateful orchestration, pause/resume | Learning curve |
@@ -674,7 +672,7 @@ See [Architecture Decision Records](../explanations/adr/) for detailed rationale
 | Idempotency | Idempotency keys on mutating endpoints | `tests/billing/test_webhook_idempotency.py` |
 | Migrations | Alembic per service; single-head policy | `make migrate`, `make check-migration-heads` |
 | Backups & DR | WAL-G, PITR, documented RPO/RTO | `docs/reliability/dr-policy.md`, `ops/restore_dry_run.py` |
-| Billing | Stripe webhooks + usage metering (adjacent service) | `services/layer7-billing/`, `tests/billing/` |
+| Billing | Stripe webhooks + usage metering (owned by Layer 4) | `services/layer4-agents/`, `tests/billing/` |
 | CI/CD | GitHub Actions with signed artifacts, SBOM, GitOps | `.github/workflows/` |
 | Container security | Non-root users, slim base images, pinned digests, HEALTHCHECK | Dockerfiles, `scripts/ci/check-k8s-image-digests.sh` |
 

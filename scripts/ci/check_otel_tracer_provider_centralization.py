@@ -53,6 +53,7 @@ ALLOWED_PATH_FRAGMENTS = (
     "conftest.py",
     "/scripts/",
     "packages/shared/src/value_fabric/shared/fastapi_framework/app.py",
+    "packages/shared/src/value_fabric/shared/observability/platform.py",
 )
 
 EXCLUDED_DIR_NAMES = frozenset(
@@ -137,7 +138,7 @@ def _write_baseline(offenders: set[str]) -> None:
         "#\n"
         "# Frozen pre-existing TracerProvider/set_tracer_provider call sites outside\n"
         "# the shared framework. New entries are not permitted; migrate sites to use\n"
-        "# the shared `init_telemetry()` in fastapi_framework/app.py.\n"
+        "# the shared observability platform client (`configure_platform`).\n"
         "#\n"
         "# Format: <repo-relative-posix-path>:<line>\n"
     )

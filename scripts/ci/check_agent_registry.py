@@ -54,6 +54,7 @@ BASE_REQUIRED_FIELDS = {
 }
 ALLOWED_KINDS = {
     "agent_output",
+    "agent_contract",
     "prompt",
     "skill",
     "tool",
@@ -62,7 +63,7 @@ ALLOWED_KINDS = {
     "reasoning_policy",
     "semantic_compatibility",
 }
-ALLOWED_RISK_CLASSES = {"low", "medium", "high", "regulated"}
+ALLOWED_RISK_CLASSES = {"low", "medium", "high", "regulated", "critical"}
 SEMVER_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 
 
@@ -610,7 +611,11 @@ class RegistryValidator:
                 continue
             for stmt in node.body:
                 if isinstance(stmt, ast.Assign) and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
-                    if stmt.value.value.endswith("Agent") or stmt.value.value.endswith("Controller"):
+                    if (
+                        stmt.value.value.endswith("Agent")
+                        or stmt.value.value.endswith("Controller")
+                        or stmt.value.value.endswith("Orchestrator")
+                    ):
                         values.add(stmt.value.value)
         return values
 

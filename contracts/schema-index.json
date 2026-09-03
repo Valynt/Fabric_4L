@@ -361,6 +361,11 @@
       "title": "Layer 4: Agentic Workflow Orchestrator"
     },
     {
+      "path": "contracts/openapi/layer4-billing.json",
+      "id": "openapi:contracts/openapi/layer4-billing.json",
+      "title": "Layer 4 Billing API"
+    },
+    {
       "path": "contracts/openapi/layer5-ground-truth.json",
       "id": "openapi:contracts/openapi/layer5-ground-truth.json",
       "title": "Value Fabric\u2014 Ground Truth Layer (L5)"

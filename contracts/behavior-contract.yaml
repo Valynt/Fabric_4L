@@ -196,7 +196,7 @@ capabilities:
     expected_failure_mode: "401 on missing auth; 403 on cross-tenant access; 403 on RBAC violation"
     allowed:
       file: tests/security/test_billing_tenant_boundary.py
-      test: test_write_role_can_mutate
+      test: test_valid_write_context_can_mutate
     denied:
       file: tests/security/test_billing_tenant_boundary.py
       test: test_missing_auth_returns_401
