@@ -11,7 +11,7 @@ Meridian certification journey, 2026-08-12).
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import Request
@@ -33,14 +33,19 @@ async def test_secured_session_fallback_passes_request_to_driver_provider() -> N
     from src.api import dependencies as deps
 
     canonical_driver = MagicMock()
+    canonical_driver.session.return_value.close = AsyncMock()
     original = deps.get_neo4j_driver
     deps.get_neo4j_driver = lambda request: canonical_driver
     try:
-        session = await get_neo4j_secured(
+        dependency = get_neo4j_secured(
             _make_request(app_state_driver=None),
             context=MagicMock(tenant_id="11111111-1111-4111-8111-111111111111"),
         )
-        assert session is not None
+        session = await anext(dependency)
+        try:
+            assert session is not None
+        finally:
+            await dependency.aclose()
     finally:
         deps.get_neo4j_driver = original
 
@@ -48,15 +53,20 @@ async def test_secured_session_fallback_passes_request_to_driver_provider() -> N
 @pytest.mark.asyncio
 async def test_secured_session_uses_app_state_driver_when_present() -> None:
     driver = MagicMock()
-    session = await get_neo4j_secured(
+    driver.session.return_value.close = AsyncMock()
+    dependency = get_neo4j_secured(
         _make_request(app_state_driver=driver),
         context=MagicMock(tenant_id="11111111-1111-4111-8111-111111111111"),
     )
-    assert session is not None
-    # Regression: the dependency must eagerly initialize the underlying
-    # driver session, or the first run() fails with HTTP 500
-    # "Neo4j session not initialized".
-    assert session._session is not None
+    session = await anext(dependency)
+    try:
+        assert session is not None
+        # Regression: the dependency must eagerly initialize the underlying
+        # driver session, or the first run() fails with HTTP 500
+        # "Neo4j session not initialized".
+        assert session._session is not None
+    finally:
+        await dependency.aclose()
 
 
 @pytest.mark.asyncio

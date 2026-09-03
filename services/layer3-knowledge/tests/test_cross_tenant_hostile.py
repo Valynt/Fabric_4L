@@ -161,7 +161,7 @@ async def test_get_neo4j_secured_fails_closed_without_tenant_context():
         app = _FakeApp()
 
     with pytest.raises(Exception):  # ValidationError or HTTPException
-        await get_neo4j_secured(_FakeRequest(), context=None)
+        await anext(get_neo4j_secured(_FakeRequest(), context=None))
 
 
 @pytest.mark.asyncio
@@ -177,4 +177,4 @@ async def test_get_neo4j_secured_uses_request_tenant_id():
 
     ctx = RequestContext(tenant_id="tenant-a")
     with pytest.raises(Exception):  # driver unavailable, but tenant was accepted
-        await get_neo4j_secured(_FakeRequest(), context=ctx)
+        await anext(get_neo4j_secured(_FakeRequest(), context=ctx))

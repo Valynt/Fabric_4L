@@ -1,7 +1,8 @@
 """Characterization and fail-closed tests for Layer 3 tenant-secured dependencies."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from fastapi import HTTPException
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
@@ -88,12 +89,64 @@ async def test_get_neo4j_secured_requires_valid_tenant():
 
     # Missing context entirely
     with pytest.raises(ValidationError):
-        await get_neo4j_secured(request, None)
+        await anext(get_neo4j_secured(request, None))
 
     # Context with empty tenant
     empty_ctx = RequestContext(tenant_id="")
     with pytest.raises(ValidationError):
-        await get_neo4j_secured(request, empty_ctx)
+        await anext(get_neo4j_secured(request, empty_ctx))
+
+
+@pytest.mark.asyncio
+async def test_get_neo4j_secured_closes_session_after_request():
+    driver = MagicMock()
+    underlying_session = AsyncMock()
+    driver.session.return_value = underlying_session
+    request = MagicMock()
+    request.app.state.neo4j_driver = driver
+
+    dependency = get_neo4j_secured(
+        request,
+        RequestContext(tenant_id="tenant-123"),
+    )
+    session = await dependency.__anext__()
+
+    assert session._session is underlying_session
+
+    await dependency.aclose()
+
+    underlying_session.close.assert_awaited_once_with()
+    assert session._session is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "dependency_factory",
+    [
+        get_neo4j_with_tenant,
+        get_neo4j_with_validation,
+        get_neo4j_with_optional_tenant,
+    ],
+)
+async def test_neo4j_dependency_aliases_close_session_after_request(
+    dependency_factory,
+):
+    driver = MagicMock()
+    underlying_session = AsyncMock()
+    driver.session.return_value = underlying_session
+    request = MagicMock()
+    request.app.state.neo4j_driver = driver
+
+    dependency = dependency_factory(
+        request,
+        RequestContext(tenant_id="tenant-123"),
+    )
+    session = await dependency.__anext__()
+
+    await dependency.aclose()
+
+    underlying_session.close.assert_awaited_once_with()
+    assert session._session is None
 
 
 @pytest.mark.asyncio
@@ -102,12 +155,12 @@ async def test_get_neo4j_with_optional_tenant_fail_closed():
 
     # Missing context
     with pytest.raises(ValidationError):
-        await get_neo4j_with_optional_tenant(request, None)
+        await anext(get_neo4j_with_optional_tenant(request, None))
 
     # Super admin context must use reviewed admin dependency
     super_admin_ctx = RequestContext(tenant_id="", roles=["super_admin"])
     with pytest.raises(AuthorizationError):
-        await get_neo4j_with_optional_tenant(request, super_admin_ctx)
+        await anext(get_neo4j_with_optional_tenant(request, super_admin_ctx))
 
 
 @pytest.mark.asyncio
