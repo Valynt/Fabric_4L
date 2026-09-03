@@ -74,7 +74,9 @@ def _verify(payload: bytes, signature: str | None, secret: str | None, **kwargs)
         raise ValueError("Stripe webhook timestamp is outside tolerance")
 
     try:
-        stripe.Webhook.construct_event(payload, signature, secret)
+        # Pass the configured tolerance through so the SDK applies the same
+        # acceptance window as the pre-check above (default SDK tolerance is 300s).
+        stripe.Webhook.construct_event(payload, signature, secret, tolerance=tolerance_seconds)
     except ValueError as exc:
         raise ValueError(str(exc)) from exc
     except stripe.error.SignatureVerificationError as exc:

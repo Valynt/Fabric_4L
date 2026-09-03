@@ -11,6 +11,7 @@ def test_billing_service_changes_include_retained_contract_subset() -> None:
     ])
 
     assert "layer4-agents.json" in specs
+    assert "layer4-billing.json" in specs
     assert "layer7-billing.json" in specs
 
 
@@ -20,6 +21,7 @@ def test_unrelated_layer4_routes_do_not_trigger_billing_contract() -> None:
     ])
 
     assert "layer4-agents.json" in specs
+    assert "layer4-billing.json" not in specs
     assert "layer7-billing.json" not in specs
 
 
