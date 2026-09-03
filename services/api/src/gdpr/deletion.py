@@ -22,18 +22,17 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from value_fabric.db import get_db_session
-from value_fabric.config import settings
 from value_fabric.audit import append_audit_record
+from value_fabric.db import get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +55,12 @@ LAYER_TABLES: Dict[str, List[str]] = {
     "L5": ["ground_truth_records", "annotations", "evaluation_sets", "label_batches"],
     "L6": ["benchmark_results", "benchmark_runs", "comparison_pairs", "leaderboard_entries"],
 }
+
+# Capture the trusted catalog at import time so later mutations of LAYER_TABLES
+# cannot expand the set of identifiers permitted in SQL statements.
+_KNOWN_TABLES = frozenset(table for tables in LAYER_TABLES.values() for table in tables)
+_KNOWN_COLUMNS = frozenset({TENANT_COL})
+_SQL_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 # Safe-guard: refuse to delete if tenant has > MAX_RECORDS records
 # (prevents accidental mass deletion of large tenants without manual override)
@@ -202,14 +207,15 @@ class _LayerDeleter:
 
         for table in tables:
             try:
-                # Safety: verify table name exists in our catalog
-                if table not in _all_known_tables():
-                    raise ValueError(f"Unknown table: {table}")
+                quoted_table = _quote_sql_identifier(table, allowed=_KNOWN_TABLES)
+                quoted_tenant_col = _quote_sql_identifier(
+                    TENANT_COL, allowed=_KNOWN_COLUMNS
+                )
 
                 stmt = text(
                     f"""
-                    DELETE FROM {table}
-                    WHERE {TENANT_COL} = :tenant_id
+                    DELETE FROM {quoted_table}
+                    WHERE {quoted_tenant_col} = :tenant_id
                     RETURNING id
                     """
                 )
@@ -371,7 +377,12 @@ async def _safety_check(db: AsyncSession, tenant_id: str) -> None:
     total = 0
     for tables in LAYER_TABLES.values():
         for table in tables:
-            stmt = text(f"SELECT COUNT(*) FROM {table} WHERE {TENANT_COL} = :tenant_id")
+            quoted_table = _quote_sql_identifier(table, allowed=_KNOWN_TABLES)
+            quoted_tenant_col = _quote_sql_identifier(TENANT_COL, allowed=_KNOWN_COLUMNS)
+            stmt = text(
+                f"SELECT COUNT(*) FROM {quoted_table} "
+                f"WHERE {quoted_tenant_col} = :tenant_id"
+            )
             result = await db.execute(stmt, {"tenant_id": tenant_id})
             total += result.scalar() or 0
 
@@ -394,7 +405,12 @@ async def _verify_all_deleted(
     remaining: Dict[str, int] = {}
     for tables in LAYER_TABLES.values():
         for table in tables:
-            stmt = text(f"SELECT COUNT(*) FROM {table} WHERE {TENANT_COL} = :tenant_id")
+            quoted_table = _quote_sql_identifier(table, allowed=_KNOWN_TABLES)
+            quoted_tenant_col = _quote_sql_identifier(TENANT_COL, allowed=_KNOWN_COLUMNS)
+            stmt = text(
+                f"SELECT COUNT(*) FROM {quoted_table} "
+                f"WHERE {quoted_tenant_col} = :tenant_id"
+            )
             result = await db.execute(stmt, {"tenant_id": tenant_id})
             count = result.scalar() or 0
             if count > 0:
@@ -468,18 +484,12 @@ class SafetyLimitExceeded(Exception):
 # Helpers
 # ---------------------------------------------------------------------------
 
-_cached_all_tables: Optional[frozenset] = None
-
-
-def _all_known_tables() -> frozenset:
-    """Return the set of all known table names (cached)."""
-    global _cached_all_tables
-    if _cached_all_tables is None:
-        tables: List[str] = []
-        for tlist in LAYER_TABLES.values():
-            tables.extend(tlist)
-        _cached_all_tables = frozenset(tables)
-    return _cached_all_tables
+def _quote_sql_identifier(identifier: str, *, allowed: frozenset[str]) -> str:
+    """Validate and quote a trusted SQL identifier, rejecting catalog drift."""
+    if identifier not in allowed or _SQL_IDENTIFIER_RE.fullmatch(identifier) is None:
+        message = f"Unsafe SQL identifier: {identifier!r}"
+        raise ValueError(message)
+    return f'"{identifier}"'
 
 
 # Convenience re-exports for layer modules that may provide custom overrides

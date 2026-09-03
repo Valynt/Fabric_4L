@@ -432,6 +432,58 @@ class TestSafetyLimits:
     """Test the safety guardrails."""
 
     @pytest.mark.asyncio
+    async def test_safety_check_rejects_injected_catalog_table_before_query(
+        self, mock_db, tenant_id, monkeypatch
+    ):
+        """Catalog mutations cannot introduce executable SQL identifiers."""
+        from services.api.src.gdpr import deletion
+
+        monkeypatch.setitem(
+            deletion.LAYER_TABLES,
+            "L1",
+            ["documents; DROP TABLE documents; --"],
+        )
+
+        with pytest.raises(ValueError, match="Unsafe SQL identifier"):
+            await deletion._safety_check(mock_db, tenant_id)
+
+        mock_db.execute.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_verification_rejects_injected_catalog_table_before_query(
+        self, mock_db, tenant_id, monkeypatch
+    ):
+        """The verification pass uses the same fail-closed identifier policy."""
+        from services.api.src.gdpr import deletion
+
+        monkeypatch.setitem(deletion.LAYER_TABLES, "L1", ["documents --"])
+
+        with pytest.raises(ValueError, match="Unsafe SQL identifier"):
+            await deletion._verify_all_deleted(mock_db, tenant_id, MagicMock())
+
+        mock_db.execute.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_deletion_rejects_injected_table_before_query(self, mock_db, tenant_id):
+        """The deletion path reports an unsafe identifier without executing it."""
+        from services.api.src.gdpr.deletion import LayerStatus, _LayerDeleter
+
+        result = await _LayerDeleter._delete_from_tables(
+            mock_db,
+            tenant_id,
+            ["documents; DROP TABLE documents; --"],
+            "L1",
+        )
+
+        assert result.status == LayerStatus.FAILED.value
+        assert result.records_deleted == 0
+        assert result.error == (
+            "documents; DROP TABLE documents; --: "
+            "Unsafe SQL identifier: 'documents; DROP TABLE documents; --'"
+        )
+        mock_db.execute.assert_not_awaited()
+
+    @pytest.mark.asyncio
     async def test_safety_limit_blocks_large_tenants(self, mock_db, tenant_id):
         """Tenants exceeding MAX_RECORDS limit are rejected."""
         from services.api.src.gdpr.deletion import SafetyLimitExceeded, delete_tenant_data
