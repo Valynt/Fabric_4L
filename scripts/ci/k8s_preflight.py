@@ -36,7 +36,6 @@ SERVICE_LIFECYCLE_STATUS: dict[str, str] = {
     "layer5-ground-truth": "production",
     "layer6-benchmarks": "production",
     "layer2-5-signal-refinery": "experimental",
-    "layer7-billing": "internal",
 }
 
 

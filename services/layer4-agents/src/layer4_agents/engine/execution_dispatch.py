@@ -1,11 +1,52 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from ..models.run_envelope import RunEnvelope
 from ..workflows import create_workflow
 from .types import ScheduledTask
+
+if TYPE_CHECKING:
+    from value_fabric.shared.governance.tool_gateway import ToolGateway
+
+# Canonical manifest directory: execution_dispatch.py -> engine -> layer4_agents
+# -> src -> layer4-agents; manifests live at the service root.
+_ORCHESTRATION_MANIFEST_DIR = Path(__file__).resolve().parents[3] / "manifests"
+
+
+def build_orchestration_tool_gateway(
+    *,
+    registry: object,
+    tenant_id: str | None,
+    trace_id: str | None,
+) -> ToolGateway:
+    """Build the policy-enforced ToolGateway for workflow tool execution.
+
+    Workflow tool calls must flow through the gateway; never fall back to
+    ungoverned registry execution. Fails closed by raising ``RuntimeError``
+    when governance dependencies are unavailable.
+    """
+    try:
+        from value_fabric.shared.governance.abom import AgentBillOfMaterials
+        from value_fabric.shared.governance.tool_gateway import ToolGateway
+    except ImportError as exc:  # pragma: no cover - fail-closed at runtime
+        raise RuntimeError(
+            "Governance enforcement is unavailable; refusing to bypass policy checks."
+        ) from exc
+
+    abom = AgentBillOfMaterials.from_manifest_dir(
+        manifest_dir=_ORCHESTRATION_MANIFEST_DIR,
+        agent_type="OrchestrationController",
+    )
+    return ToolGateway(
+        registry=registry,
+        abom=abom,
+        tenant_id=tenant_id,
+        trace_id=trace_id,
+    )
 
 
 def initialize_workflow_run_context(
@@ -27,7 +68,14 @@ def initialize_workflow_run_context(
     run_id = str(uuid4())
     trace_id = str(uuid4())
 
-    workflow = create_workflow(workflow_type, tool_registry, checkpoint_saver)
+    tool_gateway = build_orchestration_tool_gateway(
+        registry=tool_registry,
+        tenant_id=tenant_id,
+        trace_id=trace_id,
+    )
+    workflow = create_workflow(
+        workflow_type, tool_registry, checkpoint_saver, tool_gateway=tool_gateway
+    )
     initial_state = workflow.create_initial_state(
         input_data,
         tenant_id=tenant_id,

@@ -37,7 +37,6 @@ FOLDERS_TO_CREATE = [
     ("layer4-agents", False),
     ("layer5-ground-truth", False),
     ("layer6-benchmarks", False),
-    ("layer7-billing", False),
     ("apps", False),
     ("apps/web", True),
     ("monitoring", False),

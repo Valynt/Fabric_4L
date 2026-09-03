@@ -1,6 +1,6 @@
 # Deployable Service Image Map
 
-This repository has **nine deployable backend services** under `services/`, each backed by a Dockerfile and a compose build definition in `docker-compose.full.yml` (and via `extends` in `docker-compose.prod.yml`):
+This repository has **eight deployable backend services** under `services/`, each backed by a Dockerfile and a compose build definition in `docker-compose.full.yml` (and via `extends` in `docker-compose.prod.yml`):
 
 1. `services/api` → `docker-compose.full.yml` service `api-gateway` (build context `./services/api`)
 2. `services/layer1-ingestion` → service `layer1-ingestion` (build context `.` + `services/layer1-ingestion/Dockerfile.live`)
@@ -10,7 +10,8 @@ This repository has **nine deployable backend services** under `services/`, each
 6. `services/layer4-agents` → service `layer4-agents` (build context `.` + `services/layer4-agents/Dockerfile.full`)
 7. `services/layer5-ground-truth` → service `layer5-ground-truth` (build context `.` + `services/layer5-ground-truth/Dockerfile.full`)
 8. `services/layer6-benchmarks` → service `layer6-benchmarks` (build context `.` + `services/layer6-benchmarks/Dockerfile.full`)
-9. `services/layer7-billing` → service `layer7-billing` (build context `.` + `services/layer7-billing/Dockerfile`)
+
+Billing is owned by Layer 4 (`services/layer4-agents`); there is no standalone Layer 7 billing service. See `docs/architecture/layer7-billing.md`.
 
 Kubernetes base manifests use image placeholders resolved by `k8s/base/kustomization.yaml`:
 
@@ -22,8 +23,6 @@ Kubernetes base manifests use image placeholders resolved by `k8s/base/kustomiza
 - `services/layer4-agents` → `k8s/base/layer4-agents.yml`
 - `services/layer5-ground-truth` → `k8s/base/layer5-ground-truth.yml`
 - `services/layer6-benchmarks` → `k8s/base/layer6-benchmarks.yml`
-
-`services/layer7-billing` is deployable through the Docker/Compose path above. A dedicated Kubernetes base workload is not present in this tree yet; do not add a Layer 7 Kubernetes image mapping until the workload manifest exists.
 
 Root-level deployable app directory:
 
