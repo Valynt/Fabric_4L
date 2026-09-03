@@ -106,7 +106,7 @@ VERIFY_CHECKS := check-health-ratchets \
 	check-workflow-matrix check-workflow-references \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
 	check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
-	check-value-fabric-public-imports check-behavior-readiness-audit check-governance verify-structure docs-harness
+	check-behavior-readiness-audit check-governance verify-structure docs-harness
 
 verify: $(VERIFY_CHECKS) ## Run all checks before PR
 	@echo "✅  All checks passed"

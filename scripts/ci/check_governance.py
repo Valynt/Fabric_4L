@@ -18,7 +18,7 @@ Composed logical checks
                                        "baseline is regenerable" check for the
                                        duplication baseline.
 
-Each sub-check yields ``status`` in ``pass | fail | error | skipped``. ``error``
+Each sub-check yields ``status`` in ``pass | fail | error``. ``error``
 means the check itself could not run (missing script, Python traceback, or
 timeout) rather than a discovered violation.
 
@@ -67,7 +67,12 @@ def _status_from_exit(exit_code: int | None, stderr: str) -> str:
         return "pass"
     if "Traceback (most recent call last)" in stderr:
         return "error"
-    return "fail"
+    if exit_code == 1:
+        return "fail"
+    # Any other non-zero exit code (e.g. argparse usage errors, which exit 2)
+    # indicates the check itself could not run cleanly, not a discovered
+    # violation — classify as error to fail closed.
+    return "error"
 
 
 def _truncate(text: str, limit: int = MAX_OUTPUT_CHARS) -> str:

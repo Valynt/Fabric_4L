@@ -88,7 +88,7 @@ def is_excluded(path: str) -> bool:
 def tracked_files(root: Path) -> list[str]:
     """Return git-tracked python files under SCOPE, exclusions applied."""
     proc = subprocess.run(
-        ["git", "ls-files"],
+        ["git", "ls-files", "--", SCOPE],
         cwd=root,
         check=True,
         text=True,
@@ -98,8 +98,6 @@ def tracked_files(root: Path) -> list[str]:
     for line in proc.stdout.splitlines():
         posix = line.replace("\\", "/")
         if not posix.endswith(".py"):
-            continue
-        if not posix.startswith(SCOPE):
             continue
         if is_excluded(posix):
             continue
@@ -138,11 +136,8 @@ def _collect_defs(
             _collect_defs(child, prefix, results)
 
 
-def collect_defs(source: str) -> list[tuple[str, _FuncDef]]:
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
+def collect_defs(source: str, filename: str = "<unknown>") -> list[tuple[str, _FuncDef]]:
+    tree = ast.parse(source, filename=filename)
     results: list[tuple[str, _FuncDef]] = []
     _collect_defs(tree, "", results)
     return results
@@ -281,16 +276,13 @@ def scan(root: Path) -> tuple[list[tuple[str, list[str]]], list[tuple[str, list[
         if not module:
             continue
         path = root / f
-        try:
-            source = path.read_text(encoding="utf-8")
-        except (UnicodeDecodeError, OSError):
-            try:
-                source = path.read_text()
-            except OSError:
-                continue
-        all_defs.extend(
-            (f"{module}::{name}", node) for name, node in collect_defs(source)
-        )
+                try:
+                    source = path.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
+                all_defs.extend(
+                    (f"{module}::{name}", node) for name, node in collect_defs(source, filename=f)
+                )
     exact = _cluster(all_defs, normalize=False, min_statements=MIN_STATEMENTS_EXACT)
     normalized = _cluster(all_defs, normalize=True, min_statements=MIN_STATEMENTS_NORMALIZED)
     return exact, normalized
@@ -425,7 +417,15 @@ def main(argv: list[str] | None = None) -> int:
     baseline = load_baseline(baseline_path)
     if not baseline:
         print("No baseline found; run with --update to record the current state.")
-        return 1
+            if args.json is not None:
+                out_path = args.json if args.json.is_absolute() else root / args.json
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+                out_path.write_text(
+                    json.dumps(envelope("fail", False, []), indent=2, sort_keys=True)
+                    + "\n",
+                    encoding="utf-8",
+                )
+            return 1
 
     violations = compare(exact, normalized, baseline)
     status = "fail" if violations else "pass"
