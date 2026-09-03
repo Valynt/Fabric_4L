@@ -50,8 +50,9 @@ REFRESHABLE_ONLY_SPECS = (
 )
 
 # These specs are regenerated but allowed to evolve in a backwards-compatible way
-# against their committed baseline. They must not remove paths, methods, or
-# required response fields that existing consumers depend on.
+# against their committed baseline. They must not remove operations (path + HTTP
+# method) that existing consumers depend on. (Required response-field removals are
+# not asserted here; that deeper compatibility signal is covered elsewhere.)
 COMPATIBILITY_SPECS = (
     "layer7-billing.json",
 )
