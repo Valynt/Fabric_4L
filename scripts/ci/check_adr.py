@@ -6,7 +6,6 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -14,10 +13,6 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts.ci.check_adr_numbering import numbering_failures
 
-try:
-    import yaml
-except ImportError:  # pragma: no cover
-    yaml = None  # type: ignore[assignment]
 REGISTRY_PATH = Path("docs/decisions/adr-registry.yaml")
 
 DECISIONS_FILENAME_RE = re.compile(r"^(\d{4})-[a-z0-9][a-z0-9-]*\.md$")
@@ -77,7 +72,7 @@ def normalize_status(raw: str) -> str:
     return text.split()[0] if text else ""
 
 
-def _rules(raw: Any, *, field_name: str, entry_id: str, failures: list[str]) -> list[ContentRule]:
+def _rules(raw: object, *, field_name: str, entry_id: str, failures: list[str]) -> list[ContentRule]:
     if not raw:
         return []
     if not isinstance(raw, list):
@@ -97,7 +92,9 @@ def load_registry(repo_root: Path, failures: list[str]) -> tuple[dict[str, Corpu
     if not path.exists():
         failures.append(f"missing ADR registry: {REGISTRY_PATH.as_posix()}")
         return {}, []
-    if yaml is None:
+    try:
+        import yaml
+    except ImportError:
         failures.append("PyYAML is required to load docs/decisions/adr-registry.yaml")
         return {}, []
     payload = yaml.safe_load(path.read_text(encoding="utf-8"))
