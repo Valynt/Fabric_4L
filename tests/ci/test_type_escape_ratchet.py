@@ -71,10 +71,11 @@ def test_type_escape_ratchet_has_public_local_entrypoints() -> None:
     assert package_json["scripts"]["check:type-escapes"] == "make check-type-escape-ratchet"
 
 
-def test_structural_preflight_runs_type_escape_ratchet() -> None:
+def test_structural_preflight_runs_type_escape_via_health_aggregate() -> None:
     workflow = yaml.safe_load(
         (REPO_ROOT / ".github/workflows/pr-checks.yml").read_text(encoding="utf-8")
     )
 
     commands = [step.get("run", "") for step in workflow["jobs"]["structural-preflight"]["steps"]]
-    assert "make check-type-escape-ratchet" in commands
+    assert "make check-health-ratchets" in commands
+    assert "make check-type-escape-ratchet" not in commands
