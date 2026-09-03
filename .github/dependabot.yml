@@ -29,10 +29,10 @@ updates:
         patterns:
           - "*"
 
-  # Archived docs snapshot (historical frontend lockfile) — alerts noise only.
-  # The snapshot is excluded from canonical workspace tooling (pnpm-workspace.yaml);
-  # removed from Dependabot entirely (previously suppressed via `ignore`) because
-  # Dependabot only scans explicitly-listed directories. See
+  # Archived dependency snapshots are intentionally absent from this list.
+  # They are excluded from canonical workspace tooling (pnpm-workspace.yaml) and
+  # from both Dependabot coverage validators. Dependabot only scans explicitly
+  # listed directories, so adding an archive entry would recreate update noise. See
   # docs/supply-chain/dependabot-triage-2026-08-29.md.
   # Frontend
   - package-ecosystem: npm
