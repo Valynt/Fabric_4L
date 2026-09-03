@@ -8,9 +8,11 @@ from unittest.mock import patch
 import pytest
 
 from valuefabric.cli.config import (
+    DEFAULT_PROFILE,
     _load_config,
     _load_profile_toml,
     _parse_toml_value,
+    get_active_profile,
     get_profile_config,
 )
 from valuefabric.cli.main import main
@@ -125,6 +127,22 @@ def test_missing_required_profile_fields_remain_explicitly_empty() -> None:
     config = {"active_profile": "empty", "profiles": {"empty": {}}}
     with patch("valuefabric.cli.config._load_config", return_value=config):
         assert get_profile_config() == {}
+
+
+@pytest.mark.parametrize(
+    ("config", "expected"),
+    [
+        ({"active_profile": "production"}, "production"),
+        ({}, DEFAULT_PROFILE),
+        ({"active_profile": 42}, DEFAULT_PROFILE),
+    ],
+    ids=["configured", "unset", "invalid-type"],
+)
+def test_get_active_profile_returns_configured_profile_or_default(
+    config: dict[str, object], expected: str
+) -> None:
+    with patch("valuefabric.cli.config._load_config", return_value=config):
+        assert get_active_profile() == expected
 
 
 def test_cli_main_converts_configuration_error_to_safe_exit() -> None:
