@@ -58,6 +58,7 @@ const AcceptInvitePage = lazy(() => import("@/pages/AcceptInvite"));
 const SelectOrganizationPage = lazy(() => import("@/pages/SelectOrganization"));
 const OnboardingPage = lazy(() => import("@/pages/Onboarding"));
 const ValueNarrativeHome = lazy(() => import("@/pages/ValueNarrativeHome"));
+const ValueStudioMissionPage = lazy(() => import("@/features/value-studio/mission/ValueStudioPage"));
 const Accounts = lazy(() => import("@/pages/Accounts"));
 const TasksPage = lazy(() => import("@/pages/TasksPage"));
 const CollaborationCommentsPage = lazy(() => import("@/pages/CollaborationCommentsPage"));
@@ -474,6 +475,21 @@ export const router = createBrowserRouter([
               title: "Value Studio",
               category: "Workspace",
               journeyTimeline: true,
+              requiresAuth: true,
+            },
+          },
+          {
+            path: "studio/mission",
+            element: (
+              <Suspense fallback={<div className="flex h-full items-center justify-center gap-2"><Skeleton className="h-8 w-48" /></div>}>
+                <ValueStudioMissionPage />
+              </Suspense>
+            ),
+            handle: {
+              accessPolicy: accountStdPolicy("studio.mission"),
+              title: "Value Studio — Mission",
+              category: "Workspace",
+              journeyTimeline: false,
               requiresAuth: true,
             },
           },
