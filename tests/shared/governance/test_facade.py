@@ -13,19 +13,10 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from value_fabric.shared.governance.abom import ABOMInvariants, AgentBillOfMaterials
+from tests.shared.governance.builders import make_abom
 from value_fabric.shared.governance.decision import DecisionEffect
 from value_fabric.shared.governance.facade import PolicyDecisionFacade
 from value_fabric.shared.governance.policy_engine import PolicyDecision
-
-
-def _make_abom() -> AgentBillOfMaterials:
-    """Build a minimal ABOM for tool-action policy tests."""
-    return AgentBillOfMaterials(
-        agent_type="test_agent",
-        allowed_tools=["some_tool"],
-        invariants=ABOMInvariants(max_tool_calls_per_run=10),
-    )
 
 
 @pytest.mark.asyncio
@@ -109,7 +100,7 @@ async def test_denies_missing_tenant() -> None:
 @pytest.mark.asyncio
 async def test_tool_allow_preserves_opa_obligations_and_bundle_hash() -> None:
     """A tool-action ALLOW must carry OPA allow-side obligations and hash."""
-    abom = _make_abom()
+    abom = make_abom()
     policy_client = Mock()
     policy_client.evaluate = AsyncMock(
         return_value=PolicyDecision(
@@ -137,7 +128,7 @@ async def test_tool_allow_preserves_opa_obligations_and_bundle_hash() -> None:
 @pytest.mark.asyncio
 async def test_tool_allow_defaults_obligation_to_audit_when_opa_returns_none() -> None:
     """An ALLOW with no OPA obligations must still default to AUDIT."""
-    abom = _make_abom()
+    abom = make_abom()
     policy_client = Mock()
     policy_client.evaluate = AsyncMock(
         return_value=PolicyDecision(allowed=True, obligations=[], policy_bundle_hash=None)
@@ -155,3 +146,33 @@ async def test_tool_allow_defaults_obligation_to_audit_when_opa_returns_none() -
     assert decision.effect == DecisionEffect.ALLOW
     assert decision.obligations == ["AUDIT"]
     assert decision.policy_bundle_hash == abom.manifest_hash()
+
+
+@pytest.mark.asyncio
+async def test_tool_deny_preserves_opa_obligations_and_bundle_hash() -> None:
+    """A tool-action DENY must carry OPA deny-side obligations and hash."""
+    abom = make_abom()
+    policy_client = Mock()
+    policy_client.evaluate = AsyncMock(
+        return_value=PolicyDecision(
+            allowed=False,
+            reason="OPA denied",
+            obligations=["manual_review"],
+            policy_bundle_hash="bundle-denied-xyz",
+        )
+    )
+
+    facade = PolicyDecisionFacade(policy_client=policy_client, abom=abom)
+
+    decision = await facade.evaluate_action(
+        action="tool.call",
+        resource="tool",
+        tenant_id="tenant-123",
+        tool_name="some_tool",
+        input_data={"q": "x"},
+    )
+
+    assert decision.effect == DecisionEffect.DENY
+    assert decision.reason_code == "policy_denied"
+    assert decision.obligations == ["manual_review"]
+    assert decision.policy_bundle_hash == "bundle-denied-xyz"
