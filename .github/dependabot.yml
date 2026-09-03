@@ -3,6 +3,12 @@ updates:
   # Root npm workspace
   - package-ecosystem: npm
     directory: /
+    exclude-paths:
+      - "docs/archive/**"
+      - "archive/**"
+      - "**/source-snapshot/**"
+      - "**/evidence-bundle*/**"
+      - "**/signoff-evidence/**"
     schedule:
       interval: weekly
       day: monday

@@ -27,6 +27,11 @@ on:
       - "**/pnpm-lock.yaml"
       - "**/Dockerfile"
       - ".github/workflows/dependency-scan.yml"
+      - "!docs/archive/**"
+      - "!archive/**"
+      - "!**/source-snapshot/**"
+      - "!**/evidence-bundle*/**"
+      - "!**/signoff-evidence/**"
   push:
     branches: [main]
     paths:
@@ -37,6 +42,11 @@ on:
       - "**/package.json"
       - "**/pnpm-lock.yaml"
       - "**/Dockerfile"
+      - "!docs/archive/**"
+      - "!archive/**"
+      - "!**/source-snapshot/**"
+      - "!**/evidence-bundle*/**"
+      - "!**/signoff-evidence/**"
   schedule:
     - cron: "0 6 * * 1" # Weekly: Monday 06:00 UTC
   workflow_dispatch:

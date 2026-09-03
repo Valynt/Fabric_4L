@@ -7,6 +7,7 @@ import path from 'node:path';
 const CANONICAL_PNPM_VERSION = '10.34.5';
 const CANONICAL_PNPM_SPEC = `pnpm@${CANONICAL_PNPM_VERSION}`;
 const LOCKFILE_PATTERN = /(\/(?:package-lock\.json|yarn\.lock)$|^(?:package-lock\.json|yarn\.lock)$|\/(?:pnpm-lock\.yaml|uv\.lock|requirements-test\.lock)$|^(?:pnpm-lock\.yaml|uv\.lock|requirements-test\.lock)$)/;
+const EXECUTABLE_MANIFEST_PATTERN = /(^|\/)(?:package\.json|pnpm-lock\.yaml|uv\.lock|package-lock\.json|yarn\.lock|poetry\.lock|requirements(?:[-._a-zA-Z0-9]*)?\.txt)$/i;
 const ALLOWED_LOCKFILE_PATHS = new Set([
   'pnpm-lock.yaml',
   'apps/web/pnpm-lock.yaml',
@@ -23,6 +24,10 @@ const ALLOWED_NPM_YARN_LOCKFILE_PATHS = new Set([
   'prototypes/ui-prototype/app/package-lock.json',
 ]);
 const WORKFLOW_DIRS = ['.github/workflows', '.depot/workflows'];
+const GRANDFATHERED_ARCHIVAL_MANIFEST_PATHS = new Set([
+  'docs/archive/frontend-root-2026-05-02/source-snapshot/package.json',
+  'docs/archive/frontend-root-2026-05-02/source-snapshot/pnpm-lock.yaml',
+]);
 const WORKFLOW_FORBIDDEN_PM_PATTERN = /(^|[^a-z])(?:npm|yarn)(?:\s|$)/i;
 const UNSUPPORTED_PNPM_ACTION_PATTERN = /pnpm\/action-setup@v2(?:\.\d+)?\b/;
 const COREPACK_PNPM_PATTERN = /\bcorepack\s+pnpm\b/;
@@ -135,6 +140,11 @@ function resolveDiffRange() {
 
 function getChangedFiles() {
   const output = gitOutput(resolveDiffRange());
+  return output ? output.split('\n').map((line) => line.trim()).filter(Boolean) : [];
+}
+
+function getTrackedFiles() {
+  const output = gitOutput('ls-files');
   return output ? output.split('\n').map((line) => line.trim()).filter(Boolean) : [];
 }
 
@@ -289,6 +299,44 @@ function checkCorepackPnpmInScripts() {
   }
 }
 
+function isArchivedEvidencePath(filePath) {
+  return (
+    filePath.startsWith('docs/archive/')
+    || filePath.startsWith('archive/')
+    || filePath.includes('/source-snapshot/')
+    || /(^|\/)[^/]*evidence-bundle[^/]*\//.test(filePath)
+    || filePath.startsWith('signoff-evidence/')
+    || filePath.includes('/signoff-evidence/')
+  );
+}
+
+function checkArchivedEvidenceManifestPolicy() {
+  const trackedFiles = getTrackedFiles();
+  const unexpectedArchivedManifests = trackedFiles.filter(
+    (filePath) => (
+      isArchivedEvidencePath(filePath)
+      && EXECUTABLE_MANIFEST_PATTERN.test(filePath)
+      && !GRANDFATHERED_ARCHIVAL_MANIFEST_PATHS.has(filePath)
+    ),
+  );
+  if (unexpectedArchivedManifests.length > 0) {
+    fail(
+      'Archived evidence manifests/lockfiles are forbidden outside approved immutable exceptions: '
+      + unexpectedArchivedManifests.join(', '),
+    );
+  }
+
+  const modifiedGrandfatheredArchivedManifests = getChangedFiles().filter((filePath) =>
+    GRANDFATHERED_ARCHIVAL_MANIFEST_PATHS.has(filePath),
+  );
+  if (modifiedGrandfatheredArchivedManifests.length > 0) {
+    fail(
+      'Grandfathered archived manifests are immutable evidence and must not be modified: '
+      + modifiedGrandfatheredArchivedManifests.join(', '),
+    );
+  }
+}
+
 if (existsSync('package-lock.json')) {
   fail('Root package-lock.json is not allowed. Use pnpm-lock.yaml as the canonical lockfile.');
 }
@@ -317,6 +365,7 @@ if (unauthorizedLockfiles.length > 0) {
 checkWorkflowPackageManagerPolicy();
 checkPnpmActionSetupVersions();
 checkCorepackPnpmInScripts();
+checkArchivedEvidenceManifestPolicy();
 
 console.log(
   `✅ Package manager policy checks passed (canonical pnpm ${CANONICAL_PNPM_VERSION} + lockfile path guard + workflow YAML enforcement + pnpm setup patterns).`,
