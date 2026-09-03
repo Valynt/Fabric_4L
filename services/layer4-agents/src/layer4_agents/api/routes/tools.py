@@ -312,7 +312,10 @@ async def export_document_tool(
         if not get_settings().export_storage_endpoint:
             raise ServiceUnavailableError(message = "Export storage endpoint is not configured")
 
-        result = await workflow_executor.get_result(request.business_case_id)
+        result = await workflow_executor.get_result_for_tenant(
+            request.business_case_id,
+            str(context.tenant_id),
+        )
 
         if not result:
             raise NotFoundError(message = str(f"Business case {request.business_case_id} not found"))
@@ -483,6 +486,8 @@ async def export_document_tool(
             format=request.format,
         )
 
+    except ValueFabricException:
+        raise
     except asyncio.CancelledError:
         raise
     except Exception:
