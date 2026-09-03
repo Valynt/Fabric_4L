@@ -9,6 +9,8 @@ All significant technical decisions for Value Fabric are documented here using A
 3. Status starts as "proposed"
 4. After implementation and validation, update to "accepted"
 5. If superseded, update status to "superseded by ADR-XXXX" and update the superseder
+6. Add the ADR to [`adr-registry.yaml`](./adr-registry.yaml) with related code paths — `make check-adr` fails any ADR file missing from the registry, including proposed ones
+7. Run `make check-adr` before opening the PR
 
 ## Index
 
