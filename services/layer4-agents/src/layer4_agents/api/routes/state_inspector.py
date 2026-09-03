@@ -183,7 +183,7 @@ async def get_state_schema(
     """
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
-        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
 
     # Extract schema from Pydantic model
     schema = state.model_json_schema()
@@ -244,7 +244,7 @@ async def get_state_values(
     """
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
-        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
 
     state_dict = state.model_dump()
     values = {}
@@ -310,7 +310,7 @@ async def inspect_output_data(
     """
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
-        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
 
     output_data = state.output_data if hasattr(state, "output_data") else {}
 
@@ -361,7 +361,7 @@ async def analyze_errors(
     """
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
-        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
 
     errors = state.errors if hasattr(state, "errors") else []
 
@@ -629,26 +629,41 @@ def _summarize_output(output_data: dict) -> dict[str, Any]:
     return summary
 
 
+_NETWORK_TERMS = ("timeout", "connection", "network", "http")
+_DATABASE_TERMS = ("database", "sql", "query", "db")
+_VALIDATION_TERMS = ("validation", "invalid", "schema", "format")
+_AUTH_TERMS = ("permission", "auth", "unauthorized", "forbidden")
+_LLM_TERMS = ("llm", "model", "openai", "anthropic")
+_CODE_TERMS = ("keyerror", "indexerror", "typeerror", "attributeerror")
+_SYSTEM_TERMS = ("memory", "disk", "cpu", "resource")
+
+
 def _categorize_error(error: str) -> str:
     """Categorize an error string."""
     error_lower = error.lower()
 
-    if any(x in error_lower for x in ["timeout", "connection", "network", "http"]):
-        return "network"
-    elif any(x in error_lower for x in ["database", "sql", "query", "db"]):
-        return "database"
-    elif any(x in error_lower for x in ["validation", "invalid", "schema", "format"]):
-        return "validation"
-    elif any(x in error_lower for x in ["permission", "auth", "unauthorized", "forbidden"]):
-        return "auth"
-    elif any(x in error_lower for x in ["llm", "model", "openai", "anthropic"]):
-        return "llm"
-    elif any(x in error_lower for x in ["keyerror", "indexerror", "typeerror", "attributeerror"]):
-        return "code"
-    elif any(x in error_lower for x in ["memory", "disk", "cpu", "resource"]):
-        return "system"
-    else:
-        return "other"
+    for x in _NETWORK_TERMS:
+        if x in error_lower:
+            return "network"
+    for x in _DATABASE_TERMS:
+        if x in error_lower:
+            return "database"
+    for x in _VALIDATION_TERMS:
+        if x in error_lower:
+            return "validation"
+    for x in _AUTH_TERMS:
+        if x in error_lower:
+            return "auth"
+    for x in _LLM_TERMS:
+        if x in error_lower:
+            return "llm"
+    for x in _CODE_TERMS:
+        if x in error_lower:
+            return "code"
+    for x in _SYSTEM_TERMS:
+        if x in error_lower:
+            return "system"
+    return "other"
 
 
 def _detect_error_pattern(errors: list[str]) -> str | None:

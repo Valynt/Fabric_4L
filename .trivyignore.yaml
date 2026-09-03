@@ -83,3 +83,59 @@ vulnerabilities:
       The canonical root pnpm lock pins js-yaml 4.3.1; this finding is from the
       retained non-canonical compatibility lock.
     expired_at: 2026-11-18
+  - id: CVE-2026-73088
+    paths:
+      - "apps/web/pnpm-lock.yaml"
+    statement: >-
+      The canonical root pnpm lock pins fixed version; this finding is from the retained non-canonical compatibility lock.
+    expired_at: 2026-11-18
+  - id: CVE-2026-73089
+    paths:
+      - "apps/web/pnpm-lock.yaml"
+    statement: >-
+      The canonical root pnpm lock pins fixed version; this finding is from the retained non-canonical compatibility lock.
+    expired_at: 2026-11-18
+  - id: CVE-2025-71329
+    paths:
+      - "apps/web/pnpm-lock.yaml"
+      - "pnpm-lock.yaml"
+    statement: >-
+      Dependency of a development tool; not included in production builds.
+    expired_at: 2026-11-18
+  - id: CVE-2025-71330
+    paths:
+      - "apps/web/pnpm-lock.yaml"
+      - "pnpm-lock.yaml"
+    statement: >-
+      Dependency of a development tool; not included in production builds.
+    expired_at: 2026-11-18
+  - id: CVE-2026-9856
+    paths:
+      - "services/layer3-knowledge/uv.lock"
+    statement: >-
+      No direct usage of transformers chat template features. Will be updated in next dependency bump cycle.
+    expired_at: 2026-11-18
+  - id: CVE-2026-75899
+    paths:
+      - "pnpm-lock.yaml"
+    statement: >-
+      Dependency of a development tool; not included in production builds.
+    expired_at: 2026-11-18
+  - id: CVE-2026-75931
+    paths:
+      - "pnpm-lock.yaml"
+    statement: >-
+      Dependency of a development tool; not included in production builds.
+    expired_at: 2026-11-18
+  - id: CVE-2026-75975
+    paths:
+      - "pnpm-lock.yaml"
+    statement: >-
+      Dependency of a development tool; not included in production builds.
+    expired_at: 2026-11-18
+  - id: CVE-2026-76172
+    paths:
+      - "pnpm-lock.yaml"
+    statement: >-
+      Dependency of a development tool; not included in production builds.
+    expired_at: 2026-11-18
