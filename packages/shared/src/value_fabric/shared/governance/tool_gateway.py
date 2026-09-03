@@ -140,11 +140,26 @@ class ToolGateway:
             raise ToolGatewayDenied(tool_name, reason)
 
         # ── Step 2: OPA policy evaluation ──
+        tenant_id = self._tenant_id
+        if tenant_id is not None and isinstance(tenant_id, str):
+            tenant_id = tenant_id.strip()
+        if not tenant_id or tenant_id in {"unknown", "None", "null"}:
+            reason = "Tenant context is required for policy evaluation."
+            await self._emit_policy_decision_audit(
+                tool_name=tool_name,
+                allowed=False,
+                reason=reason,
+                obligations=["AUDIT"],
+                policy_bundle_hash=self._abom.manifest_hash(),
+            )
+            await self._emit_denied_audit(tool_name, request_hash, reason, "missing_tenant")
+            raise ToolGatewayDenied(tool_name, reason)
+
         policy_decision = await self._policy_client.evaluate(
             abom=self._abom,
             tool_name=tool_name,
             input_data=input_data,
-            tenant_id=self._tenant_id,
+            tenant_id=tenant_id,
         )
         await self._emit_policy_decision_audit(
             tool_name=tool_name,

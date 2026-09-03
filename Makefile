@@ -27,7 +27,7 @@
 	build-reproducibility-check validate-monitoring-stack \
 	validate-launch-contract release-baseline certify-release-candidate build-release-evidence \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
-	check-pytest-skip-governance check-type-escape-ratchet check-conflict-markers check-legacy-debt check-operational-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
+	check-pytest-skip-governance check-type-escape-ratchet check-conflict-markers check-adr check-legacy-debt check-operational-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
 	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip \
 	check-temporal-skips check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
 	check-keycloak-realm-seed-security \
@@ -54,7 +54,7 @@
 	test-layer1-security-postgres test-layer5 test-layer6 test-shared test-e2e \
 	security-smoke security-test-gating security-test security-test-isolation \
 	security-test-rbac security-test-owasp security-test-injection security-coverage \
-	evals-full perf-test-journeys check-tool-contracts check-deprecated-tracer-imports \
+	evals-full perf-test-journeys check-tool-contracts check-prompt-registry check-deprecated-tracer-imports \
 	check-risk-register debt-baseline-snapshot check-health-ratchets gate-tenant-isolation \
 	promote-staging lint-release clean-root-debris check-value-fabric-public-imports
 
@@ -102,7 +102,7 @@ VERIFY_CHECKS := check-health-ratchets \
 	check-trivy-ignore-policy check-security-exceptions check-model-provider-boundaries \
 	lint typecheck test contract-tests security-smoke \
 	check-deprecations check-tool-contracts check-deprecated-tracer-imports \
-	platform-contract-lint check-ui-duplicates check-readiness-consistency \
+	platform-contract-lint check-ui-duplicates check-readiness-consistency check-adr \
 	check-workflow-matrix check-workflow-references \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
 	check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
@@ -164,6 +164,9 @@ check-workflow-references: ## Validate task inventory and GitHub/Depot workflow 
 
 check-conflict-markers: ## Fail if unresolved merge conflict markers exist in tracked source files
 	@$(PYTHON) scripts/ci/check_conflict_markers.py
+
+check-adr: ## Validate ADR registry, indexes, numbering, and related-code links
+	@$(PYTHON) scripts/ci/check_adr.py
 
 check-no-nul-bytes: ## Fail if tracked source/config files contain NUL bytes
 	@$(PYTHON) scripts/ci/check_no_nul_bytes.py
@@ -736,17 +739,16 @@ docker-build: ## Build all deployable production Docker images locally
 	docker build -t fabric-4l/layer4-agents:local -f services/layer4-agents/Dockerfile .
 	docker build -t fabric-4l/layer5-ground-truth:local -f services/layer5-ground-truth/Dockerfile .
 	docker build -t fabric-4l/layer6-benchmarks:local -f services/layer6-benchmarks/Dockerfile .
-	docker build -t fabric-4l/layer7-billing:local -f services/layer7-billing/Dockerfile .
 	docker build -t fabric-4l/web:local -f apps/web/Dockerfile .
 	# When certifying a candidate (RELEASE_SHA set), bind each built image's
 	# immutable content digest to the candidate evidence manifest. 04b records
 	# this file (scripts/release/build_evidence_bundle.py:image-digests.txt).
-	if test -n "$(RELEASE_SHA)" && test "$(RELEASE_SHA)" != UNKNOWN; then outdir="$(ARTIFACT_DIR)/$(RELEASE_SHA)"; mkdir -p "$$outdir"; : > "$$outdir/image-digests.txt"; for service in api-gateway layer1-ingestion layer2-extraction layer2-5-signal-refinery layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks layer7-billing web; do digest=$$(docker inspect --format='{{.Id}}' "fabric-4l/$$service:local"); echo "fabric-4l/$$service@$$digest" >> "$$outdir/image-digests.txt"; done; echo "Recorded release image digests to $$outdir/image-digests.txt"; fi
+	if test -n "$(RELEASE_SHA)" && test "$(RELEASE_SHA)" != UNKNOWN; then outdir="$(ARTIFACT_DIR)/$(RELEASE_SHA)"; mkdir -p "$$outdir"; : > "$$outdir/image-digests.txt"; for service in api-gateway layer1-ingestion layer2-extraction layer2-5-signal-refinery layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks web; do digest=$$(docker inspect --format='{{.Id}}' "fabric-4l/$$service:local"); echo "fabric-4l/$$service@$$digest" >> "$$outdir/image-digests.txt"; done; echo "Recorded release image digests to $$outdir/image-digests.txt"; fi
 
 docker-build-multi: ## Build all deployable images for linux/amd64 and linux/arm64 (requires docker buildx)
 	@echo "→ Building multi-arch images (requires docker buildx)..."
 	@set -e; \
-	for ctx in services/api services/layer1-ingestion services/layer2-extraction services/layer2-5-signal-refinery services/layer3-knowledge services/layer4-agents services/layer5-ground-truth services/layer6-benchmarks services/layer7-billing apps/web; do \
+	for ctx in services/api services/layer1-ingestion services/layer2-extraction services/layer2-5-signal-refinery services/layer3-knowledge services/layer4-agents services/layer5-ground-truth services/layer6-benchmarks apps/web; do \
 		service=$$(basename $$ctx); \
 		echo "Building $$service..."; \
 		docker buildx build --platform linux/amd64,linux/arm64 -t fabric_4l/$$service:multi-arch $$ctx; \
@@ -852,6 +854,11 @@ check-tool-contracts: ## CI gate — validate tool error structure (CONTRACT.md 
 	@echo "→ Checking tool contracts in Layer 4..."
 	$(PYTHON) scripts/ci/check_tool_contracts.py services/layer4-agents/src/layer4_agents/tools/
 	@echo "✅ Tool contract check passed"
+
+check-prompt-registry: ## CI gate — validate prompt-version contracts and agent operating contracts
+	@echo "→ Checking prompt registry contracts..."
+	$(PYTHON) scripts/ci/check_prompt_registry.py
+	@echo "✅ Prompt registry check passed"
 
 check-deprecated-tracer-imports: ## CI gate — block imports from deprecated custom tracer modules
 	@echo "→ Checking for deprecated custom tracer imports..."
@@ -1096,7 +1103,7 @@ gate-backup-restore-readiness: ## Gate: PostgreSQL backup/restore production-rea
 	@bash scripts/ops/test_postgres_backup_restore.sh
 	@echo "✅  gate-backup-restore-readiness passed"
 
-gate-api-contracts: contract-tests platform-contract-lint check-tool-contracts ## Gate: API/platform contract compliance and tool contract structure
+gate-api-contracts: contract-tests platform-contract-lint check-tool-contracts check-prompt-registry ## Gate: API/platform contract compliance, tool contract structure, and prompt-version registry
 	@echo "→ Gate: API Contracts"
 	@$(PNPM) run check:contract-compliance
 	@echo "✅  gate-api-contracts passed"

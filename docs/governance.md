@@ -93,15 +93,16 @@ There are no non-production runtime exceptions for these patterns outside the al
 
 ## ADR Numbering Policy
 
-Architecture Decision Records use a single canonical filename and header format:
+Architecture Decision Records use a canonical filename and header format per corpus:
 
-- Filename: `ADR-###-slug.md`
-- H1 header: `# ADR-###: Title`
-- Sequence policy: IDs are contiguous across ADR directories (currently `docs/explanations/adr/` and `docs/architecture/`).
+- Canonical architecture corpus: `docs/explanations/adr/` with filename `ADR-###-slug.md` and H1 `# ADR-###: Title`
+- Implementation decisions corpus: `docs/decisions/` with filename `NNNN-slug.md` and H1 `# ADR-NNNN: Title`
+- Sequence policy: IDs are contiguous within each corpus
+- Machine registry: `docs/decisions/adr-registry.yaml` maps every ADR to related code paths and optional content assertions
 
 Legacy ADR IDs are normalized during migration by reindexing to the next available sequential ID and preserving the original title/decision content.
 
-CI enforcement: `python scripts/ci/check_adr_numbering.py` fails if IDs are duplicated, sequence IDs are missing, or filename/header IDs drift.
+CI enforcement: `make check-adr` (`python scripts/ci/check_adr.py`) fails if IDs are duplicated, sequence IDs are missing, filename/header IDs drift, the registry is incomplete, a related path is missing, an index table is stale, or a declared `must_contain` / `must_not_contain` rule fails.
 
 ## Kubernetes Deployment SecurityContext Standard
 

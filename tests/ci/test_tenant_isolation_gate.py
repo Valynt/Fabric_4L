@@ -85,7 +85,8 @@ def test_tenant_isolation_gate_provides_strict_auth_and_shared_paths() -> None:
     tenant_job = pr_checks.split("  tenant-isolation-gate:", 1)[1].split("  critical-behaviors-gate:", 1)[0]
     assert "FABRIC_AUTH_PUBLIC_KEYS=%s" in tenant_job
     assert "cat config/ci/fabric_auth_test_public_keys.json" in tenant_job
-    assert "PYTHONPATH: packages/shared/src:services/layer4-agents/src:services/layer5-ground-truth/src:services/layer7-billing/src" in tenant_job
+    assert "PYTHONPATH: ${{ github.workspace }}/packages/shared/src:${{ github.workspace }}/services/layer4-agents/src:${{ github.workspace }}/services/layer5-ground-truth/src" in tenant_job
+    assert "layer7-billing" not in tenant_job
     assert "python -m pip install --require-hashes -r tests/requirements-test.lock" in tenant_job
 
 

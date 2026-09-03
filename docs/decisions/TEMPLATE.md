@@ -39,3 +39,5 @@ Include exact test commands and expected results.
 - Related ADRs: [links]
 - Related files: [paths]
 - Related tests: [test commands]
+
+Also add a `docs/decisions/adr-registry.yaml` entry for this ADR. Accepted ADRs need at least one related path; optional `must_contain` / `must_not_contain` rules are enforced by `make check-adr`.

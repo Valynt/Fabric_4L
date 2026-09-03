@@ -390,40 +390,6 @@ components:
             cpus: '0.25'
             memory: '512MiB'
   -
-    kind: Application
-    name: layer7
-    gitRepo: 'https://github.com/bmsull560/Fabric_4L.git'
-    gitBranch: main
-    gitApplicationPath: .
-    dockerCompose:
-      build:
-        context: .
-        dockerfile: ./services/layer7-billing/Dockerfile
-      environment:
-        API_KEY_HMAC_SECRET: ${API_KEY_HMAC_SECRET}
-        ENVIRONMENT: development
-        JWT_SECRET: ${JWT_SECRET}
-        LAYER7_DATABASE_URL: 'postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/layer7_billing'
-        LOG_LEVEL: info
-        PORT: '8008'
-        REDIS_URL: 'redis://:${REDIS_PASSWORD}@redis:6379/0'
-        SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
-      healthcheck:
-        test:
-          - CMD
-          - curl
-          - '-f'
-          - 'http://localhost:8008/health'
-        timeout: 5s
-        interval: 15s
-        retries: 5
-        start_period: 5s
-      deploy:
-        resources:
-          limits:
-            cpus: '0.25'
-            memory: '512MiB'
-  -
     kind: Service
     name: minio
     dockerCompose:
@@ -498,7 +464,6 @@ components:
           create_db ground_truth
           create_db layer4_agents
           create_db layer6_benchmarks
-          create_db layer7_billing
       depends_on:
         postgres:
           condition: service_healthy
@@ -543,7 +508,7 @@ components:
       environment:
         POSTGRES_DB: ingestion
 
-        POSTGRES_MULTIPLE_DATABASES: 'ingestion,layer2_extraction,ground_truth,layer4_agents,layer6_benchmarks,layer7_billing'
+        POSTGRES_MULTIPLE_DATABASES: 'ingestion,layer2_extraction,ground_truth,layer4_agents,layer6_benchmarks'
         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
         POSTGRES_USER: ${POSTGRES_USER}
       healthcheck:

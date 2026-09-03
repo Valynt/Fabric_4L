@@ -180,14 +180,6 @@ def inferred_external_prefix(source: Path, route_path: str, local_prefix: str) -
     candidate = join_paths(local_prefix, route_path)
     if candidate.startswith(("/v1/", "/api/", "/auth/")) or candidate in {"/", "/health", "/ready", "/metrics", "/openapi.json"}:
         return ""
-    if "/services/layer7-billing/src/layer7_billing/api/routes/billing.py" in f"/{src}":
-        return "/v1"
-    if "/services/layer7-billing/src/layer7_billing/api/routes/billing_overages.py" in f"/{src}":
-        return "/v1/billing"
-    if "/services/layer7-billing/src/layer7_billing/api/routes/billing_usage.py" in f"/{src}":
-        return "/v1/billing"
-    if "/services/layer7-billing/src/layer7_billing/api/routes/billing_webhooks.py" in f"/{src}":
-        return "/v1/billing"
     if "/services/api/app/routers/" in f"/{src}":
         if source.name == "clerk_webhooks.py":
             return ""

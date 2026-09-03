@@ -123,6 +123,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `verify-structure` | Run structural preflight and Python contract lint checks. |
 | `verify-strict` | Run `verify` plus contract drift detection. |
 | `check-conflict-markers` | Fail on unresolved merge conflict markers. |
+| `check-adr` | Validate ADR registry, indexes, numbering, and related-code links. |
 | `check-no-nul-bytes` | Fail on tracked NUL bytes. |
 | `check-health-ratchets` | Run the complete fail-on-net-new health-ratchet set. |
 | `check-dead-code` | Fail on net-new unreferenced top-level Python symbols. |
@@ -266,6 +267,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `contract-lint` | Run ESLint contract rules. |
 | `platform-contract-lint` | Run platform contract lint. |
 | `check-tool-contracts` | Validate tool error structure. |
+| `check-prompt-registry` | Validate prompt-version contracts (content hash + eval baseline) and agent operating contracts. |
 | `check-deprecated-tracer-imports` | Block deprecated tracer imports. |
 | `check-deprecations` | Check overdue deprecations. |
 | `gate-api-contracts` | API/platform contract readiness gate. |

@@ -53,7 +53,7 @@ spec:
             - name: POSTGRES_DB
               value: "ingestion"
             - name: POSTGRES_MULTIPLE_DATABASES
-              value: "ingestion,extraction,signal_refinery,layer4_agents,ground_truth,benchmarks,layer7_billing"
+              value: "ingestion,extraction,signal_refinery,layer4_agents,ground_truth,benchmarks"
           resources:
             requests:
               memory: "256Mi"

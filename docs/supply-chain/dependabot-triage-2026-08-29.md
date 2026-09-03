@@ -9,7 +9,7 @@
 | Bucket | Alerts | Action required |
 |---|---|---|
 | **Live code** | **14** | **Remediated** — only `image-size` (no patched version yet) remains unfixable |
-| Archived docs snapshot (`docs/archive/`) | 136 | Ignored via `.github/dependabot.yml` (added `ignore: dependency-name: "*"` for the snapshot directory) |
+| Archived docs snapshot (`docs/archive/`) | 136 | Excluded from active dependency discovery via root-scan `exclude-paths`; historical artifacts remain immutable evidence |
 
 **1 critical alert exists but lives in the archived docs snapshot, not live code.** No critical or high alert currently reaches production runtime paths.
 
@@ -83,8 +83,9 @@ The **only stale manifest** is the nested `apps/web/pnpm-lock.yaml` (undici `7.2
 
 - `docs/archive/frontend-root-2026-05-02/source-snapshot/pnpm-lock.yaml` is an **archived snapshot** (not a live dependency root; the `pnpm-workspace.yaml` comment explicitly excludes `archive/` from canonical tooling).
 - This includes the **only critical alert** (vitest `CVE-2026-47429`).
-- **Remediated** (2026-08-29): added a Dependabot `ignore` (`dependency-name: "*"`) scoped to `directory: /docs/archive/frontend-root-2026-05-02/source-snapshot` in `.github/dependabot.yml`. This stops new alerts/PRs for the snapshot. Existing open alerts remain open on GitHub until Dependabot re-evaluates (it auto-dismisses ignored/already-fixed alerts on its next run after this config is merged to the default branch).
-- **Superseded** (2026-08-29): the archived-snapshot entry was **removed** from `.github/dependabot.yml` entirely. Dependabot only scans explicitly-listed directories, so dropping the entry stops the scan wholesale — the strongest form of noise suppression for an archived, non-canonical tree. See AC3 of the CI-baseline work.
+- **Historical note:** adding a Dependabot `ignore` (`dependency-name: "*"`) on the snapshot directory suppressed PR noise but did not solve inventory classification.
+- **Root cause correction:** removing the dedicated `/docs/archive/frontend-root-2026-05-02/source-snapshot` Dependabot entry was **not sufficient** because the root npm updater (`directory: /`) still recursed into nested manifests. The durable fix is `exclude-paths` on the root updater (and matching CI/path guards) so the snapshot is treated as evidence, not installable software.
+- **Operational guidance:** PR [#1616](https://github.com/Valynt/Fabric_4L/pull/1616) is the concrete example of archive-only Dependabot noise. After the root exclusion lands on the default branch, close or skip #1616 rather than patching historical artifacts.
 
 ---
 
@@ -98,7 +99,7 @@ Root-cause history: the overrides were added in commit `e36fb409e` ("fix(securit
 
 ## 4. Remediation execution order
 
-1. **Silence archive noise.** ✅ Done — Dependabot ignore for `docs/archive/frontend-root-2026-05-02/source-snapshot` added on 2026-08-29, later superseded by removing the archived directory entry from `.github/dependabot.yml` entirely (Dependabot only scans explicitly-listed directories).
+1. **Silence archive noise.** ✅ Done — the real fix is root npm `exclude-paths` for `docs/archive/**`, `archive/**`, and historical snapshot/evidence paths. Removing the dedicated archive entry alone was insufficient because the root `/` scan still discovered nested manifests.
 2. **npm lockfiles.** ✅ Verified — root `pnpm-lock.yaml` already resolves fixed versions via overrides. The nested `apps/web/pnpm-lock.yaml` is legacy/inert and intentionally left as-is (CI hash pin).
 3. **Bump Protego.** ✅ Done — `services/layer1-ingestion/pyproject.toml`: `protego>=0.3.0` → `protego>=0.6.2`; `uv lock` re-resolved to `0.6.2`.
 4. **`auditConfig.ignoreCves` check.** ⏳ Verify root `package.json` still lists `CVE-2026-14257` (brace-expansion) and `GHSA-qwww-vcr4-c8h2` — confirmed present; these remain legitimate ignores (brace-expansion is now `5.0.9` with the security patch applied).
@@ -113,4 +114,4 @@ Root-cause history: the overrides were added in commit `e36fb409e` ("fix(securit
   - `services/layer1-ingestion/uv.lock` now resolves `protego 0.6.2` (verified via `grep`).
   - Root `pnpm-lock.yaml`: undici `7.29.0`, brace-expansion `5.0.9`, fast-uri `3.1.5`, js-yaml `4.3.2`, image-size `2.0.2`, extract-zip `>=2.0.2` (verified via `Select-String`).
   - `pnpm audit --prod` residual: 2 high = `image-size` (no patched version yet).
-- Next step after merging to the default branch: Dependabot's next scan will auto-dismiss the archive alerts (ignore config) and the Protego alert (fixed version). The `image-size` alerts will remain open until an upstream patched version exists.
+- Next step after merging to the default branch: Dependabot's next scan should stop reopening archive-only update PRs (for example #1616) because the root `/` npm scan now excludes archived manifests instead of merely dropping the dedicated archive entry. Close or skip #1616 after this lands; do not patch historical snapshots. The `image-size` alerts will remain open until an upstream patched version exists.
