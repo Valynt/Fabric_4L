@@ -1,8 +1,6 @@
 {
   "mandatory_deps": {
-    "respx": "pip install 'respx>=0.21'  (layer1-ingestion[dev] or tests/requirements-test.txt)",
     "aiohttp": "pip install 'aiohttp>=3.14.3'  (tests/requirements-test.txt)",
-    "trafilatura": "pip install 'trafilatura>=1.6'  (layer1-ingestion dependency)",
     "defusedxml": "pip install 'defusedxml>=0.7'  (layer1-ingestion dependency)",
     "email_validator": "pip install 'email-validator>=2.1'  (layer4-agents[dev])",
     "jose": "pip install 'python-jose[cryptography]>=3.3'  (layer4-agents dependency)",

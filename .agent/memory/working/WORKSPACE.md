@@ -1,9 +1,9 @@
 # Workspace (live task state)
 
 ## Active task
-- Goal: Merge the latest main into the supply-chain security PR and preserve the Axios lockfile review fixes.
-- Status: IN PROGRESS — resolving merge conflicts and validating the combined branch.
-- Prior work: Axios lockfile tests compare importer specifiers with package.json and enforce a >=1.18.0 resolved version; the web lockfile entry is aligned to axios 1.19.0.
+- Goal: Implement the stacked PR merge strategy for Valynt/Fabric_4L.
+- Status: COMPLETE WITH BLOCKERS — verified 35 open PRs, reconciled duplicate/dependency coverage, documented decisions on affected PRs.
+- Result: No merges performed. Required CI was failing/stale; protected-ref branch updates were rejected; API requests to close duplicate/superseded PRs did not take effect, so those PRs (e.g. #1597, #1598) remain open.
 
 ## Decisions
 - #1597 and #1598 are covered by grouped dependency PR #1629.
