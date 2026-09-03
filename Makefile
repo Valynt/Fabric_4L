@@ -100,6 +100,7 @@ help: ## Show this help
 VERIFY_CHECKS := check-health-ratchets \
 	check-keycloak-realm-seed-security check-manifest-secret-hygiene check-path-env-hygiene \
 	check-trivy-ignore-policy check-security-exceptions check-model-provider-boundaries \
+	check-ownership-registry \
 	lint typecheck test contract-tests security-smoke \
 	check-deprecations check-tool-contracts check-deprecated-tracer-imports \
 	platform-contract-lint check-ui-duplicates check-readiness-consistency check-adr \
