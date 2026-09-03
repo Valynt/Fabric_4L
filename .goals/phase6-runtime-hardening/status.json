@@ -1,0 +1,10 @@
+{
+  "goal_id": "phase6-runtime-hardening",
+  "status": "building",
+  "iteration": 1,
+  "builder_model": "GPT:5.6-Luna",
+  "inspector_model": "GPT:5.6-Sol",
+  "initial_sha": "3cd7e0599deaaaeffc3efa0cb4387a66d9550a62",
+  "created_at": "2026-09-03T08:55:00-04:00",
+  "history": []
+}
