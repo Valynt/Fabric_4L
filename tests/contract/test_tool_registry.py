@@ -23,18 +23,11 @@ import pytest
 from layer4_agents.tools_manifest import load_manifests, filter_tools_for_agent
 from layer4_agents.tools_manifest.loader import validate_manifest
 from layer4_agents.tools_manifest.models import (
-    ApprovalRequirement,
-    AuditRequirement,
-    Implementation,
-    PrincipalType,
-    ResourceResolver,
-    Runtime,
+    AgentPolicy,
     SideEffectClass,
     TenantBinding,
-    ToolManifest,
     ToolManifestSummary,
     ToolRegistryIndex,
-    AgentPolicy,
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -293,7 +286,14 @@ def _summary(
         action_id=tool_id,
         principal_types=["user"],
         human_confirmation_required=False,
-        financial_state_change=(side_effect != "READ_ONLY"),
+        financial_state_change=(
+            side_effect
+            in {
+                SideEffectClass.REVERSIBLE_MUTATION,
+                SideEffectClass.PROTECTED_MUTATION,
+                SideEffectClass.IRREVERSIBLE,
+            }
+        ),
         supported_agent_classes=supported,
         tenant_binding=tenant_binding,
         source_path="synthetic",
@@ -385,9 +385,45 @@ class TestGeneratedIndex:
         assert len(payload["tool_manifests"]) >= 6
 
     def test_generated_index_is_deterministic(self) -> None:
-        p1 = (GENERATED_DIR / "layer4-tool-index.json").read_text()
-        p2 = (GENERATED_DIR / "layer4-tool-index.json").read_text()
-        assert p1 == p2
+        """Regenerating the index from the current manifests twice must be
+        byte-identical (the generator has no incidental sources of
+        nondeterminism, e.g. dict/set ordering or timestamps)."""
+        import importlib.util
+        import shutil
+        import uuid
+
+        generator_path = REPO_ROOT / "scripts" / "ci" / "generate_tool_index.py"
+        spec = importlib.util.spec_from_file_location(
+            "generate_tool_index_under_test", generator_path
+        )
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        # Write into a scratch dir *inside* the repo tree (rather than
+        # pytest's tmp_path) because the generator prints
+        # Path.relative_to(REPO_ROOT) status messages, which only resolve
+        # for paths under the real repo root.
+        scratch_root = REPO_ROOT / f".pytest-determinism-{uuid.uuid4().hex}"
+        scratch_root.mkdir()
+        try:
+            outputs: list[str] = []
+            for i in range(2):
+                run_dir = scratch_root / f"run{i}"
+                run_dir.mkdir()
+                module.GENERATED_DIR = run_dir
+                module.INDEX_PATH = run_dir / "layer4-tool-index.json"
+                module.COVERAGE_PATH = run_dir / "action-coverage.json"
+                rc = module.main()
+                assert rc == 0, "generator run failed while proving determinism"
+                outputs.append(module.INDEX_PATH.read_text(encoding="utf-8"))
+        finally:
+            shutil.rmtree(scratch_root, ignore_errors=True)
+
+        assert outputs[0] == outputs[1], (
+            "regenerating the tool index from identical manifests must be "
+            "byte-identical across runs"
+        )
 
     def test_generated_index_matches_loader(self, compiled) -> None:
         index, _ = compiled

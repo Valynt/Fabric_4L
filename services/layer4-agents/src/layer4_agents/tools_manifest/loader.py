@@ -154,6 +154,23 @@ def _check_caller_selected_tenant_authority(raw: dict[str, Any]) -> list[str]:
     return violations
 
 
+def _source_path(src: Path, root: Path) -> str:
+    """Derive a deterministic, repo-relative ``source_path`` for a manifest.
+
+    Prefers a path relative to the repository root (``root.parents[1]`` in the
+    canonical ``contracts/<layer>/<tool-manifests>`` layout), which keeps the
+    loader's output consistent with the CI generator and committed artifacts.
+    Falls back to a path relative to the manifests dir, then to the absolute
+    path, so non-canonical or temp locations never raise ``ValueError``.
+    """
+    for base in (root.parents[1], root):
+        try:
+            return src.relative_to(base).as_posix()
+        except ValueError:
+            continue
+    return str(src).replace("\\", "/")
+
+
 def validate_manifest(
     raw: dict[str, Any],
     manifest_schema: dict[str, Any],
@@ -221,7 +238,16 @@ def validate_manifest(
             "IRREVERSIBLE tool must set human_confirmation_required = true."
         )
 
-    # 4. Tenant isolation: reject caller-selected tenant authority
+    # 4. Resource resolver: if present it must name an authoritative service.
+    #    Mirrors the CI validator so the loader and the CI gate agree (no drift).
+    resource_resolver = raw.get("resource_resolver")
+    if resource_resolver is not None and not resource_resolver.get("authoritative_service"):
+        violations.append(
+            "resource_resolver.authoritative_service must be non-empty when a "
+            "resource_resolver is declared."
+        )
+
+    # 5. Tenant isolation: reject caller-selected tenant authority
     violations.extend(_check_caller_selected_tenant_authority(raw))
 
     if strict:
@@ -381,7 +407,7 @@ def load_manifests(
             financial_state_change=m.financial_state_change,
             supported_agent_classes=m.supported_agent_classes,
             tenant_binding=m.tenant_binding,
-            source_path=src.relative_to(root.parents[1]).as_posix(),
+            source_path=_source_path(src, root),
         )
         for m, src in zip(valid_manifests, valid_sources)
     ]

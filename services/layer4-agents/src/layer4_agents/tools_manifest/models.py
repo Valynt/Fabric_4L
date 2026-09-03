@@ -167,7 +167,7 @@ class ToolManifest(RegistryModel):
     input_schema_ref: str = Field(..., min_length=1, description="Resolvable reference to the input JSON Schema")
     output_schema_ref: str = Field(..., min_length=1, description="Resolvable reference to the output JSON Schema")
     resource_resolver: ResourceResolver | None = Field(None, description="Reviewed server-side resolver")
-    tenant_binding: TenantBinding | None = Field(None, description="Tenant isolation binding")
+    tenant_binding: TenantBinding = Field(..., description="Tenant isolation binding (required by the canonical schema)")
     side_effect: SideEffectClass = Field(..., description="Side-effect classification")
     financial_state_change: bool | None = Field(None, description="Whether the tool can mutate financial state")
     human_confirmation_required: bool | None = Field(None, description="Whether human confirmation is required before execution")

@@ -221,9 +221,7 @@ jobs:
         run: python scripts/ci/check_layer4_canonical_paths.py
 
       - name: Validate tool manifest registry
-        run: |
-          python scripts/ci/generate_tool_index.py
-          git diff --exit-code contracts/tool-manifests/generated/
+        run: make check-tool-registry
 
       - name: Enforce dead-code regression guard
         run: python scripts/ci/check_dead_code.py

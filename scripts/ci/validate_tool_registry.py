@@ -35,7 +35,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 MANIFESTS_DIR = REPO_ROOT / "contracts" / "tool-manifests"
 SCHEMA_PATH = MANIFESTS_DIR / "tool-manifest.schema.json"
 POLICIES_DIR = MANIFESTS_DIR / "policies"
-POLICY_SCHEMA_PATH = MANIFESTS_DIR / "registry.schema.json"
 
 # Known action IDs from the canonical permission catalog (populated at runtime)
 # If a catalog file exists, it is loaded; otherwise the set stays empty and
@@ -100,8 +99,14 @@ def _validate_manifest(
     report: Report,
     source_path: str,
 ) -> None:
-    """Validate a single manifest dict against the schema and policy rules."""
+    """Validate a single manifest dict against the schema and policy rules.
+
+    ``manifests_valid`` is only incremented once *all* checks pass, so a
+    manifest that validates against the schema but fails a policy/cross-refer
+    check is not mis-reported as valid.
+    """
     report.manifests_loaded += 1
+    valid = True
 
     # 1. JSON Schema validation
     # NOTE: source_path is injected for reporting (see main()). It is not part of
@@ -121,8 +126,6 @@ def _validate_manifest(
         )
         return
 
-    report.manifests_valid += 1
-
     # 2. Cross-reference: action_id must exist in action catalog (if catalog present)
     action_id = manifest.get("action_id")
     if action_id and action_catalog and action_id not in action_catalog:
@@ -134,6 +137,7 @@ def _validate_manifest(
                 severity="error",
             )
         )
+        valid = False
 
     # 3. Mutating tools must have idempotency, revision, approval, and audit declarations
     side_effect = manifest.get("side_effect", "")
@@ -236,6 +240,7 @@ def _validate_manifest(
                     severity="error",
                 )
             )
+            valid = False
     else:
         # Resource resolver is optional, but if missing we warn
         report.add(
@@ -246,6 +251,11 @@ def _validate_manifest(
                 severity="warning",
             )
         )
+
+    # manifests_valid reflects manifests that pass schema AND every policy/cross-
+    # reference check, not just schema validation (see comment 3915922764).
+    if valid:
+        report.manifests_valid += 1
 
 
 def _validate_policy(policy: dict[str, Any], report: Report, source_path: str) -> None:
@@ -296,6 +306,21 @@ def _check_billing_copilot_policy(
     allowed = set(billing_policy.get("allowed_side_effects", []))
     denied = set(billing_policy.get("denied_side_effects", []))
 
+    # Enforce the invariant: billing-copilot must never be allowed IRREVERSIBLE
+    # tools, regardless of how the policy is expressed (allowed vs denied lists).
+    if "IRREVERSIBLE" in allowed or "IRREVERSIBLE" not in denied:
+        report.add(
+            Violation(
+                path="policies/billing-agent-policy.yaml",
+                rule="billing-copilot-policy",
+                message=(
+                    "Billing-copilot policy must not allow IRREVERSIBLE tools; "
+                    "add IRREVERSIBLE to denied_side_effects and keep it out of allowed_side_effects"
+                ),
+                severity="error",
+            )
+        )
+
     for manifest in manifests:
         side_effect = manifest.get("side_effect", "")
         tool_id = manifest.get("tool_id", "")
@@ -336,6 +361,23 @@ def _check_general_agent_policy(
         return
 
     denied = set(general_policy.get("denied_side_effects", []))
+
+    # Enforce the invariant: general-agent must never be allowed IRREVERSIBLE
+    # tools, regardless of how the policy is expressed (allowed vs denied lists).
+    allowed = set(general_policy.get("allowed_side_effects", []))
+    if "IRREVERSIBLE" in allowed or "IRREVERSIBLE" not in denied:
+        report.add(
+            Violation(
+                path="policies/general-agent-policy.yaml",
+                rule="general-agent-policy",
+                message=(
+                    "General-agent policy must not allow IRREVERSIBLE tools; "
+                    "add IRREVERSIBLE to denied_side_effects and keep it out of allowed_side_effects"
+                ),
+                severity="error",
+            )
+        )
+
     for manifest in manifests:
         side_effect = manifest.get("side_effect", "")
         tool_id = manifest.get("tool_id", "")

@@ -107,12 +107,21 @@ def _build_policy_map(policies: list[dict[str, Any]]) -> dict[str, Any]:
     return out
 
 
-def _compute_snapshot_version(manifests: list[Path]) -> str:
-    """Compute a content-addressable SHA-256 snapshot version from manifest contents."""
+def _compute_snapshot(manifests: list[Path]) -> tuple[str, str]:
+    """Compute (snapshot_sha, registry_version) from manifest contents.
+
+    ``snapshot_sha`` is the SHA-256 digest prefix of every source manifest.
+    ``registry_version`` mirrors the loader's scheme: ``0.1.<patch>`` where the
+    numeric patch component is derived from the same digest, so the CI generator
+    and the runtime loader always emit an identical ``registry_version``.
+    """
     hasher = hashlib.sha256()
     for p in manifests:
         hasher.update(p.read_bytes())
-    return hasher.hexdigest()[:16]
+    snapshot_sha = hasher.hexdigest()[:16]
+    patch = str(int(hasher.hexdigest()[:16], 16))[:10]
+    registry_version = f"0.1.{patch}"
+    return snapshot_sha, registry_version
 
 
 def _git_generation_timestamp() -> str:
@@ -190,10 +199,10 @@ def main() -> int:
     agent_class_bindings = _build_agent_class_bindings(policies)
 
     # 3. Build index
-    snapshot_version = _compute_snapshot_version(manifest_paths)
+    snapshot_version, registry_version = _compute_snapshot(manifest_paths)
     generated_at = _git_generation_timestamp()
     index = {
-        "registry_version": "0.1.0",
+        "registry_version": registry_version,
         "generated_at": generated_at,
         "snapshot_sha": snapshot_version,
         "tool_manifests": manifests,
