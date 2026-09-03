@@ -61,7 +61,15 @@ def _make_signature(payload: bytes, secret: str, timestamp: int | None = None) -
 
 
 def _verify(payload: bytes, signature: str | None, secret: str | None, **kwargs):
-    """Exercise the production Stripe verification path with a fixed observation time."""
+    """Exercise the production Stripe verification path with a fixed observation time.
+
+    ``construct_event`` is always invoked so the production SDK path (HMAC
+    signature authenticity plus its own past-staleness tolerance) is exercised
+    on every test, including the out-of-window cases. The deterministic,
+    symmetric ``now``-based tolerance check is then enforced as a
+    post-condition, mirroring the production ``ensure_timestamp_within_tolerance``
+    behavior (which rejects stale and future timestamps alike via ``abs``).
+    """
     if signature is None:
         raise ValueError("Missing Stripe-Signature header")
     if secret is None or not secret.strip():
@@ -70,17 +78,23 @@ def _verify(payload: bytes, signature: str | None, secret: str | None, **kwargs)
     parsed = parse_stripe_signature_header(signature)
     tolerance_seconds = int(kwargs.get("tolerance_seconds", 300))
     now = int(kwargs.get("now", CURRENT_TS))
-    if abs(now - parsed.timestamp) > tolerance_seconds:
-        raise ValueError("Stripe webhook timestamp is outside tolerance")
 
+    # Always run the SDK verification first so signature authenticity (and the
+    # SDK's own tolerance) is validated by the production path.
     try:
         # Pass the configured tolerance through so the SDK applies the same
-        # acceptance window as the pre-check above (default SDK tolerance is 300s).
+        # acceptance window (default SDK tolerance is 300s).
         stripe.Webhook.construct_event(payload, signature, secret, tolerance=tolerance_seconds)
     except ValueError as exc:
         raise ValueError(str(exc)) from exc
     except stripe.error.SignatureVerificationError as exc:
         raise ValueError(str(exc)) from exc
+
+    # Symmetric (stale + future) tolerance check, matching production
+    # ensure_timestamp_within_tolerance. The SDK only rejects past-stale
+    # timestamps; this post-condition adds the future-side rejection.
+    if abs(now - parsed.timestamp) > tolerance_seconds:
+        raise ValueError("Stripe webhook timestamp is outside tolerance")
 
     return parsed
 
@@ -182,7 +196,10 @@ def test_empty_secret_rejected() -> None:
 
 def test_stale_timestamp_rejected() -> None:
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, STALE_TS)
-    with pytest.raises(ValueError, match="outside tolerance"):
+    # A genuinely stale timestamp is rejected by the SDK's own tolerance path
+    # ("outside the tolerance zone") and/or the symmetric post-check
+    # ("outside tolerance"), depending on which fires first.
+    with pytest.raises(ValueError, match="outside the tolerance zone|outside tolerance"):
         _verify(
             PAYLOAD, sig, WEBHOOK_SECRET, tolerance_seconds=300, now=CURRENT_TS
         )
@@ -190,6 +207,8 @@ def test_stale_timestamp_rejected() -> None:
 
 def test_future_timestamp_outside_tolerance_rejected() -> None:
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, FUTURE_TS)
+    # The SDK does not reject future timestamps; the symmetric post-check
+    # (mirroring production ensure_timestamp_within_tolerance) does.
     with pytest.raises(ValueError, match="outside tolerance"):
         _verify(
             PAYLOAD, sig, WEBHOOK_SECRET, tolerance_seconds=300, now=CURRENT_TS
