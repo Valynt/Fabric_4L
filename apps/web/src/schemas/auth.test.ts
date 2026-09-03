@@ -76,7 +76,7 @@ describe('auth schemas', () => {
       try {
         validateTokenResponse({
           user_id: 'user123',
-          email: '<script>alert(1)</script>@example.com',
+          email: "ou're@example.com",
           role: 'standard',
         });
         throw new Error('Expected validateTokenResponse to throw');
