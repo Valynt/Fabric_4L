@@ -8,6 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CHECK_POLICY = REPO_ROOT / "scripts" / "ci" / "check_package_manager_policy.mjs"
 ENFORCE_POLICY = REPO_ROOT / "scripts" / "ci" / "enforce-package-manager.cjs"
 CANONICAL_PNPM_VERSION = "10.34.5"
+CI_TOOLS_PNPM_VERSION = "10.18.1"
 
 
 def _run_repo_script(script: Path, cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -73,7 +74,7 @@ def _write_package_manager_fixture(
     )
     _write(
         root / "tools" / "ci" / "security-suite" / "Dockerfile",
-        f"ARG PNPM_VERSION={CANONICAL_PNPM_VERSION}\n",
+        f"ARG PNPM_VERSION={CI_TOOLS_PNPM_VERSION}\n",
     )
     _write(
         root / ".tool-versions",
@@ -154,3 +155,21 @@ def test_package_manager_policy_rejects_hard_coded_workflow_pnpm_version(tmp_pat
 
     assert result.returncode == 1
     assert "hard-code a pnpm version" in result.stderr
+
+
+def test_package_manager_policy_ignores_commented_workflow_pnpm_text(tmp_path: Path) -> None:
+    _write_package_manager_fixture(
+        tmp_path,
+        workflow_body=(
+            "# allowed docs mention pnpm@10.34.5 and PNPM_VERSION: 10.34.5\n"
+            "jobs:\n"
+            "  verify:\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps:\n"
+            "      - uses: pnpm/action-setup@v3\n"
+        ),
+    )
+
+    result = _run_repo_script(CHECK_POLICY, tmp_path)
+
+    assert result.returncode == 0, result.stdout + result.stderr

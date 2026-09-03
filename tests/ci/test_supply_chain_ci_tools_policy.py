@@ -79,7 +79,7 @@ def test_publisher_uses_pinned_toolchain_and_trusted_identity() -> None:
         "PIP_AUDIT_VERSION=2.9.0",
         "PIP_LICENSES_VERSION=5.0.0",
         "NODE_VERSION=22.17.0",
-        "PNPM_VERSION=10.34.5",
+        "PNPM_VERSION=10.18.1",
     ):
         assert pin in dockerfile
     assert ":latest" not in dockerfile

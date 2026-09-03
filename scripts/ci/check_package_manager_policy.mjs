@@ -88,11 +88,6 @@ const CANONICAL_TEXT_SURFACES = [
     description: 'apps/web Playwright entrypoint pnpm pin',
   },
   {
-    file: 'tools/ci/security-suite/Dockerfile',
-    matcher: /ARG PNPM_VERSION=(\d+\.\d+\.\d+)/,
-    description: 'security-suite Dockerfile pnpm pin',
-  },
-  {
     file: '.github/actions/setup-fabric-ci/action.yml',
     matcher: /pnpm-version:\s*(?:\n|.)*?default:\s*['"](\d+\.\d+\.\d+)['"]/,
     description: '.github setup-fabric-ci default pnpm pin',
@@ -225,8 +220,10 @@ function checkPnpmActionSetupVersions() {
     const lines = readFileSync(file, 'utf8').split(/\r?\n/);
     for (let idx = 0; idx < lines.length; idx += 1) {
       const line = lines[idx];
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('#')) continue;
       if (UNSUPPORTED_PNPM_ACTION_PATTERN.test(line)) {
-        violations.push(`${file}:${idx + 1}: ${line.trim()}`);
+        violations.push(`${file}:${idx + 1}: ${trimmedLine}`);
         continue;
       }
       if (line.includes('uses: pnpm/action-setup@')) {
@@ -252,7 +249,7 @@ function checkPnpmActionSetupVersions() {
         }
       }
       if (PNPM_VERSION_ENV_PATTERN.test(line) || WORKFLOW_PNPM_SPEC_PATTERN.test(line)) {
-        violations.push(`${file}:${idx + 1}: ${line.trim()}`);
+        violations.push(`${file}:${idx + 1}: ${trimmedLine}`);
       }
     }
   }

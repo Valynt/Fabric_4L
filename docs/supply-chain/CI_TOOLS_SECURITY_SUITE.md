@@ -20,7 +20,7 @@ The trusted publisher is the `Valynt/Fabric_4L` repository workflow
 | pip-licenses | 5.0.0 |
 | Python | 3.12.10 |
 | Node.js | 22.17.0 |
-| pnpm | 10.34.5 |
+| pnpm | 10.18.1 |
 
 > **Planned rotation:** the platform is canonicalizing on Node 22.22.2 for CI
 > executions (`.github/`, `.depot/`, and frontend/backend runtime pins). The CI
