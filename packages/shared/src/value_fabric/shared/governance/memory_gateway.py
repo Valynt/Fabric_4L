@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 from value_fabric.shared.audit.emitter import emit_audit_event
 from value_fabric.shared.audit.models import (
@@ -25,6 +25,8 @@ from value_fabric.shared.audit.models import (
     MemoryAccessRecord,
 )
 from value_fabric.shared.crypto.canonical import canonical_hash
+
+from .facade import PolicyDecisionFacade
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +52,7 @@ class MemoryGateway:
         agent_id: str | None = None,
         trace_id: str | None = None,
         source_blocklist: list[str] | set[str] | None = None,
-        policy_facade: Any | None = None,
+        policy_facade: PolicyDecisionFacade | None = None,
     ) -> None:
         self._engine = retrieval_engine
         self._tenant_id = tenant_id
@@ -61,8 +63,12 @@ class MemoryGateway:
         self._policy_facade = policy_facade
 
     @staticmethod
-    def _decision_allows(decision: Any) -> bool:
-        """Normalize a policy-facade decision into an allow/deny boolean."""
+    def _decision_allows(decision: object) -> bool:
+        """Normalize a policy-facade decision into an allow/deny boolean.
+
+        Accepts the canonical ``Decision`` as well as duck-typed stand-ins
+        used in tests, and fails closed (returns False) for unknown shapes.
+        """
         effect = getattr(decision, "effect", None)
         if effect is not None:
             value = getattr(effect, "value", effect)
@@ -73,16 +79,19 @@ class MemoryGateway:
                 if normalized in {"DENY", "DENIED", "INDETERMINATE"}:
                     return False
 
-        if isinstance(getattr(decision, "allowed", None), bool):
-            return bool(decision.allowed)
-        if isinstance(getattr(decision, "denied", None), bool):
-            return not bool(decision.denied)
-        if isinstance(getattr(decision, "indeterminate", None), bool):
-            return not bool(decision.indeterminate)
+        allowed = getattr(decision, "allowed", None)
+        if isinstance(allowed, bool):
+            return allowed
+        denied = getattr(decision, "denied", None)
+        if isinstance(denied, bool):
+            return not denied
+        indeterminate = getattr(decision, "indeterminate", None)
+        if isinstance(indeterminate, bool):
+            return not indeterminate
 
         return False
 
-    async def _enforce_policy(self, *, action: str, resource: str, input_data: dict[str, Any]) -> None:
+    async def _enforce_policy(self, *, action: str, resource: str, input_data: dict[str, object]) -> None:
         """Fail closed before a memory call is allowed through."""
         tenant_id = self._tenant_id.strip() if isinstance(self._tenant_id, str) else self._tenant_id
         if not tenant_id or tenant_id in {"unknown", "None", "null"}:
@@ -316,16 +325,17 @@ class MemoryGateway:
         return bool(source_id and source_id in blocklist)
 
     @staticmethod
-    def _build_source_lineage(result_dict: dict[str, Any]) -> list[dict[str, object]]:
+    def _build_source_lineage(result_dict: dict[str, object]) -> list[dict[str, object]]:
         """Extract source lineage from retrieval results."""
         lineage: list[dict[str, object]] = []
 
         # Extract from sources list
-        for source in result_dict.get("sources", []) or []:
+        for source in cast(list[object], result_dict.get("sources") or []):
             lineage.append({"source": source, "type": "graph_source"})
 
         # Extract entity IDs as lineage
-        for entity in (result_dict.get("entities", []) or [])[:5]:  # Cap at 5
+        entities = cast(list[dict[str, object]], result_dict.get("entities") or [])
+        for entity in entities[:5]:  # Cap at 5
             entity_id = entity.get("id") or entity.get("name", "unknown")
             lineage.append({"entity_id": str(entity_id), "type": "entity"})
 

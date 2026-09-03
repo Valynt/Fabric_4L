@@ -1850,24 +1850,6 @@
     },
     {
       "kind": "python-any",
-      "line": 249,
-      "path": "packages/shared/src/value_fabric/shared/governance/memory_gateway.py",
-      "text": "def _build_source_lineage(result_dict: dict[str, Any]) -> list[dict[str, Any]]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 251,
-      "path": "packages/shared/src/value_fabric/shared/governance/memory_gateway.py",
-      "text": "lineage: list[dict[str, Any]] = []"
-    },
-    {
-      "kind": "python-any",
-      "line": 268,
-      "path": "packages/shared/src/value_fabric/shared/governance/memory_gateway.py",
-      "text": "source_lineage: list[dict[str, Any]],"
-    },
-    {
-      "kind": "python-any",
       "line": 15,
       "path": "packages/shared/src/value_fabric/shared/governance/policy_engine.py",
       "text": "from typing import Any"

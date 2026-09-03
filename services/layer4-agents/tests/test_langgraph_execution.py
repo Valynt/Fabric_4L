@@ -61,7 +61,7 @@ def _make_passthrough_gateway(registry: ToolRegistry) -> Mock:
     """
     gateway = Mock()
 
-    async def _execute(tool_name: str, input_data: dict[str, Any]) -> Any:
+    async def _execute(tool_name: str, input_data: dict[str, object]) -> object:
         return await registry.execute(tool_name, input_data)
 
     gateway.execute = AsyncMock(side_effect=_execute)
