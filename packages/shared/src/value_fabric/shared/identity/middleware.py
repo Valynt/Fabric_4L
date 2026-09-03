@@ -35,25 +35,16 @@ from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
+from value_fabric.shared.error_handling.helpers import sanitize_log_error
 from value_fabric.shared.tenant_kill_switch import (
     TenantKillSwitch,
     TenantSuspensionStatus,
 )
 
-from .audit import audit_protected_routes
 from .compat import register_middleware_module
 from .constants import (
-    _LEGACY_TEST_TENANT_ID_RE,
-    _RATE_LIMIT_WINDOW_SECONDS,
-    DEFAULT_REQUESTS_PER_MINUTE,
     ERR_AUTH_CONTEXT_INVALID,
-    ERR_AUTH_INVALID_TOKEN,
     ERR_AUTH_SERVICE_UNAVAILABLE,
-    EXTERNAL_AUTH_BOOTSTRAP_ALLOWLIST,
-    MIN_SERVICE_SECRET_LENGTH,
-    RATE_LIMIT_WINDOW_SECONDS,
-    SERVICE_AUTH_HEADER,
-    SESSION_COOKIE_NAME,
     TENANT_ID_HEADER,
     _is_external_auth_bootstrap_path,
 )
@@ -63,40 +54,20 @@ from .context import (
     set_request_context,
 )
 from .context_builders import (
-    _KNOWN_PERMISSION_VALUES,
-    _allow_legacy_test_tenant_ids,
-    _coerce_tenant_id_for_context,
-    _is_known_permission,
-    extract_context_from_api_key,
     extract_context_from_jwt,
-    lookup_api_key,
     validate_context_consistency,
 )
 from .context_builders import (
     build_context_from_role as _build_context_from_role,
 )
-from .exceptions import (
-    DeletedTenantError,
-    MultiWorkerRateLimitError,
-    PendingTenantError,
-    RateLimiterConfigurationError,
-    RateLimitExceeded,
-    SuspendedTenantError,
-)
-from .jwt_wrapper import decode_jwt
 from .logging_helpers import _request_log_context
 from .rate_limit_handler import (
     RateLimitHandler,
-    _check_tenant_rate_limit,
-    _evict_stale_rate_limit_entries,
-    _get_worker_count,
-    _tenant_rate_limit_buckets,
     _validate_multi_worker_rate_limit_configuration,
 )
 from .rate_limiter import RateLimitResult, RedisRateLimiter
-from .rate_limiting import ROLE_DEFAULT_RATE_LIMITS, RateLimitConfig, RateLimitScope
+from .rate_limiting import RateLimitConfig
 from .resolvers import (
-    build_context_from_claims,
     resolve_api_key,
     resolve_bearer_jwt,
     resolve_identity,
@@ -104,7 +75,6 @@ from .resolvers import (
     resolve_service_to_service,
     resolve_session_cookie,
 )
-from .tenant_status import enforce_tenant_status
 
 logger = logging.getLogger(__name__)
 
@@ -325,7 +295,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 extra={
                     "event": "jwt_context_rejected",
                     "error_code": ERR_AUTH_CONTEXT_INVALID,
-                    "error_type": type(exc).__name__,
+                    "error": str(exc),
                     **_request_log_context(request),
                 },
             )
@@ -353,7 +323,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                     extra={
                         "event": "tenant_status_resolver_failed",
                         "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
-                        "error_type": type(exc).__name__,
+                        "error": sanitize_log_error(exc),
                         "tenant_id": str(ctx.tenant_id),
                     },
                 )

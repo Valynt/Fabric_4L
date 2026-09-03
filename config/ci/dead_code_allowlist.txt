@@ -144,3 +144,6 @@ services/layer3-knowledge/src/db/cypher_execution_helper.py|execute_tenant_cyphe
 services/layer3-knowledge/src/db/dual_store_coordinator.py|DualStoreTransactionCoordinator
 services/layer3-knowledge/src/services/kg_sync.py|link_ground_truth_to_entity
 services/layer3-knowledge/src/services/kg_sync.py|get_ground_truth_node
+value_fabric.shared.identity.exceptions.DeletedTenantError
+value_fabric.shared.identity.exceptions.PendingTenantError
+value_fabric.shared.identity.exceptions.SuspendedTenantError
