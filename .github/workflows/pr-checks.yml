@@ -38,7 +38,7 @@ jobs:
   # safe, never assumed).
   change-scope:
     name: Change Scope
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read
@@ -516,7 +516,7 @@ jobs:
 
   pr-overlap-guard:
     name: PR Overlap Guard
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     if: github.event_name == 'pull_request'
     permissions:
@@ -580,7 +580,7 @@ jobs:
 
   governance-docs-check:
     name: Governance Docs Guard
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
 
     steps:
@@ -2040,6 +2040,10 @@ jobs:
         run: |
           python scripts/ci/check_tool_contracts.py services/layer4-agents/src/layer4_agents/tools/
 
+      - name: Run prompt registry validation
+        run: |
+          python scripts/ci/check_prompt_registry.py
+
       - name: Run endpoint-hook coverage validation
         run: |
           python scripts/ci/check_endpoint_coverage.py \
@@ -2840,7 +2844,7 @@ jobs:
 
       - name: Run first-class tenant isolation gate
         env:
-          PYTHONPATH: ${{ github.workspace }}/packages/shared/src:${{ github.workspace }}/services/layer4-agents/src:${{ github.workspace }}/services/layer5-ground-truth/src:${{ github.workspace }}/services/layer7-billing/src
+          PYTHONPATH: ${{ github.workspace }}/packages/shared/src:${{ github.workspace }}/services/layer4-agents/src:${{ github.workspace }}/services/layer5-ground-truth/src
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fabric_test
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fabric_test
           REDIS_URL: redis://localhost:6379
@@ -3016,7 +3020,7 @@ jobs:
 
   unified-readiness-gate:
     name: Unified Readiness Gate
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     if: always()
     needs:
       - change-scope
@@ -3191,7 +3195,7 @@ jobs:
   # ---------------------------------------------------------------------------
   aggregate-01-repository-integrity:
     name: 01-repository-integrity
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     if: always()
     needs:
@@ -3215,7 +3219,7 @@ jobs:
 
   aggregate-02-code-quality-and-tests:
     name: 02-code-quality-and-tests
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     if: always()
     needs:
@@ -3255,7 +3259,7 @@ jobs:
 
   aggregate-05-tenant-isolation-and-behavior:
     name: 05-tenant-isolation-and-behavior
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     if: always()
     needs:
@@ -3293,7 +3297,7 @@ jobs:
   # branch-protection and CODEOWNER requirements.
   aggregate-09-change-risk-and-approval:
     name: 09-change-risk-and-approval
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     permissions:

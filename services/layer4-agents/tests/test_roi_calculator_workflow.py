@@ -61,10 +61,23 @@ def _make_state_with_output(**outputs: Any) -> ROIAgentState:
 
 @pytest.fixture
 def workflow():
-    """Fresh ROICalculatorWorkflow with a mocked tool registry."""
+    """Fresh ROICalculatorWorkflow with a mocked tool registry and gateway.
+
+    Workflows fail closed when no policy gateway is present, so tests that
+    actually execute tools must inject one. This gateway delegates to
+    ``registry.execute`` at call time, so tests may still reassign the
+    registry's return value or side effects after workflow construction.
+    """
     registry = Mock()
     registry.execute = AsyncMock()
-    return ROICalculatorWorkflow(tool_registry=registry), registry
+
+    gateway = Mock()
+
+    async def _execute(tool_name: str, input_data: dict[str, object]) -> object:
+        return await registry.execute(tool_name, input_data)
+
+    gateway.execute = AsyncMock(side_effect=_execute)
+    return ROICalculatorWorkflow(tool_registry=registry, tool_gateway=gateway), registry
 
 
 # ---------------------------------------------------------------------------
