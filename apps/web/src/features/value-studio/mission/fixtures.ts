@@ -303,8 +303,7 @@ export function makeDecisionProjection(
     status: "OPEN",
     title: "Resolve downtime target conflict",
     reasonForEscalation:
-      "Working target (340 hours/year) conflicts with the upside scenario (280 hours/year). " +
-      "Selecting the working target changes governed economics and requires human authority.",
+      "Working target (340 hours/year) conflicts with the upside scenario (280 hours/year). Selecting the working target changes governed economics and requires human authority.",
     currentWorkingValue: { value: 340, unit: "hours/year" },
     alternative: {
       value: 280,
@@ -584,8 +583,7 @@ function makeResolvedButFinanceBlockedProjection(): ValueStudioProjection {
         resolvedByDisplayName: "R. Chen",
         outcomeLabel: "Working target accepted",
         summary:
-          "Working downtime target set to 340 hours/year; 280 hours/year retained as upside scenario. " +
-          "Finance validation and program-cost approval remain open.",
+          "Working downtime target set to 340 hours/year; 280 hours/year retained as upside scenario. Finance validation and program-cost approval remain open.",
       },
     }),
     activity: [
