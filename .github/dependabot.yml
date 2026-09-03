@@ -29,6 +29,134 @@ updates:
         patterns:
           - "*"
 
+  # Clerk skill templates
+  - package-ecosystem: npm
+    directory: /.agents/skills/clerk/clerk-astro-patterns/templates/astro-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.agents/skills/clerk/clerk-chrome-extension-patterns/templates/chrome-ext-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.agents/skills/clerk/clerk-expo-patterns/templates/expo-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.agents/skills/clerk/clerk-nextjs-patterns/templates/nextjs-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.agents/skills/clerk/clerk-nuxt-patterns/templates/nuxt-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.agents/skills/clerk/clerk-react-patterns/templates/react-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.agents/skills/clerk/clerk-react-router-patterns/templates/react-router-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.agents/skills/clerk/clerk-tanstack-patterns/templates/tanstack-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.agents/skills/clerk/clerk-vue-patterns/templates/vue-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.claude/skills/clerk-astro-patterns/templates/astro-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.claude/skills/clerk-chrome-extension-patterns/templates/chrome-ext-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.claude/skills/clerk-expo-patterns/templates/expo-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.claude/skills/clerk-nextjs-patterns/templates/nextjs-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.claude/skills/clerk-nuxt-patterns/templates/nuxt-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.claude/skills/clerk-react-patterns/templates/react-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.claude/skills/clerk-react-router-patterns/templates/react-router-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.claude/skills/clerk-tanstack-patterns/templates/tanstack-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+  - package-ecosystem: npm
+    directory: /.claude/skills/clerk-vue-patterns/templates/vue-basic-auth
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 2
+    labels: [dependencies, nodejs]
+    reviewers: [value-fabric/sre-leads]
+    commit-message: {prefix: chore(deps)}
+
   # Archived docs snapshot (historical frontend lockfile) — alerts noise only.
   # The snapshot is excluded from canonical workspace tooling (pnpm-workspace.yaml);
   # removed from Dependabot entirely (previously suppressed via `ignore`) because
