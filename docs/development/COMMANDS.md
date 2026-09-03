@@ -2,7 +2,7 @@
 title: "Command Inventory"
 category: "reference"
 audience: "contributors"
-last-reviewed: "2026-06-04"
+last-reviewed: "2026-08-31"
 freshness: "current"
 related: ["./BUILD_SYSTEM", "../../README", "../../CONTRIBUTING", "../../AGENTS"]
 ---
@@ -11,12 +11,15 @@ related: ["./BUILD_SYSTEM", "../../README", "../../CONTRIBUTING", "../../AGENTS"
 
 This is the canonical command map for local contributors, CI agents, and AI coding agents. Use [BUILD_SYSTEM.md](./BUILD_SYSTEM.md) for the build-system policy and this file for command lookup.
 
+During DP-3, these Make targets remain stable compatibility interfaces. Phase A freezes their inventory and consolidates health-ratchet entry points; Phase B introduces the `fabric` facade in shadow mode before any target changes owner. See [ADR-047](../explanations/adr/ADR-047-task-graph-build-orchestration.md).
+
 ## Root pnpm Scripts
 
 Every root `package.json` script is a stable public npm-script interface.
 
 | Script | Command | Category |
 |---|---|---|
+| `auth:dev` | `python scripts/dev_auth_seed.py` | Local auth fixture setup |
 | `generate:contracts` | `python scripts/ci/contract_compliance_gate.py --mode full --refresh-only` | Contract generation |
 | `generate:api` | `pnpm --filter ./apps/web run generate:types` | Frontend API types |
 | `check:contract-compliance` | `python scripts/ci/contract_compliance_gate.py --mode full` | Contract gate |
@@ -64,6 +67,7 @@ Every root `package.json` script is a stable public npm-script interface.
 | `verify:frontend` | `pnpm --filter ./apps/web run verify:frontend` | Frontend verification |
 | `verify` | `pnpm run check:default-scope && pnpm run verify:frontend` | Root pnpm verification alias |
 | `check:test-skip-governance` | `python scripts/ci/check_test_skip_governance.py --register config/ci/test_skip_register.yaml` | Test governance |
+| `check:health-ratchets` | `make check-health-ratchets` | Complete health-ratchet gate |
 | `check:type-escapes` | `make check-type-escape-ratchet` | Type-escape ratchet |
 | `check:structural-fitness` | `make check-structural-fitness-ratchet` | Structural hotspot ratchet (Initiative E) |
 | `dev:web` | `infisical run --env=dev --path=/shared --path=/apps/web -- pnpm --filter web dev` | Dev server |
@@ -84,7 +88,7 @@ Every root `package.json` script is a stable public npm-script interface.
 | `production:scorecard` | `python scripts/ci/check_production_readiness_scorecard.py --scorecard-only` | Production readiness scorecard |
 | `production:check` | `python scripts/ci/check_production_readiness_scorecard.py && python scripts/ci/validate_production_readiness_plan.py` | Production readiness validation |
 | `ci:workflow-registry` | `python scripts/ci/verify_workflow_registry.py` | Workflow registry validation |
-| `ci:workflow-references` | `python scripts/ci/check_workflow_targets_and_artifacts.py` | Workflow command and artifact reference validation |
+| `ci:workflow-references` | `python scripts/ci/check_workflow_targets_and_artifacts.py && python scripts/ci/check_workflow_task_parity.py && python scripts/ci/generate_make_task_inventory.py --check` | Workflow command, provider parity, and Make inventory validation |
 | `ops:backup:verify` | `python -m pytest tests/recovery/test_backup_exists.py tests/recovery/test_restore_smoke.py` | Backup recovery validation |
 | `ops:restore:dry-run` | `python scripts/ops/restore_dry_run.py --output-dir artifacts/recovery` | Restore dry-run evidence |
 | `ops:walg:gate` | `python scripts/ci/check_walg_enablement_gate.py` | WAL-G physical backup enablement evidence gate |
@@ -105,6 +109,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `setup` | Install all service dev dependencies into the pytest pipx venv. |
 | `setup-layer2-5` | Install Layer 2.5 dev dependencies. |
 | `setup-hooks` | Configure repository git hooks. |
+| `auth-dev` | Seed the local development auth environment. |
 | `preflight` | Check Docker, environment, and ports before starting services. |
 | `harness-task` | Assemble Value Fabric harness context. |
 | `harness-guard` | Run harness pre-edit boundary and contract checks. |
@@ -119,12 +124,21 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `verify-strict` | Run `verify` plus contract drift detection. |
 | `check-conflict-markers` | Fail on unresolved merge conflict markers. |
 | `check-no-nul-bytes` | Fail on tracked NUL bytes. |
+| `check-health-ratchets` | Run the complete fail-on-net-new health-ratchet set. |
+| `check-dead-code` | Fail on net-new unreferenced top-level Python symbols. |
+| `check-model-provider-boundaries` | Block direct model-provider access outside the migration baseline. |
+| `check-hostile-tenant-evidence` | Validate hostile-tenant evidence across isolation contracts. |
+| `check-operational-debt` | Enforce the operational-debt baseline. |
+| `check-risk-register` | Fail on uncountersigned accepted P0 risks. |
+| `debt-baseline-snapshot` | Refresh the aggregate checked-in debt baseline. |
 | `check-readiness-consistency` | Check readiness percentage and archive consistency. |
 | `check-workflow-matrix` | Validate workflow traceability matrices. |
 | `check-workflow-registry` | Validate GitHub Actions workflow ownership and artifact registry. |
-| `check-workflow-references` | Validate GitHub Actions workflow command and artifact references. |
+| `check-workflow-references` | Validate task inventory and GitHub/Depot workflow task and artifact references. |
 | `check-keycloak-realm-seed-security` | Fail when Keycloak realm seeds embed secrets or default credentials. |
 | `check-manifest-secret-hygiene` | Enforce secret-only references and denylisted sensitive patterns in manifests. |
+| `check-trivy-ignore-policy` | Validate Trivy waiver governance and expiry. |
+| `check-security-exceptions` | Validate security-exception governance and lifecycle. |
 | `check-path-env-hygiene` | Fail on suspicious path artifacts and unapproved tracked env files. |
 | `check-pytest-skip-governance` | Enforce pytest skip governance. |
 | `check-type-escape-ratchet` | Fail on net-new unapproved Python or TypeScript type escapes. |
@@ -171,6 +185,12 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `typecheck-layer4-strict` | Type-check the unified Layer 4 namespace with strict settings. |
 | `typecheck-layer5` | Type-check Layer 5. |
 | `typecheck-layer6` | Type-check Layer 6. |
+| `mypy-baseline-write-layer2` | Refresh the Layer 2 mypy baseline. |
+| `mypy-baseline-write-layer2-5` | Refresh the Layer 2.5 mypy baseline. |
+| `mypy-baseline-write-layer3` | Refresh the Layer 3 mypy baseline. |
+| `mypy-baseline-write-layer4` | Refresh the Layer 4 mypy baseline. |
+| `mypy-baseline-write-layer5` | Refresh the Layer 5 mypy baseline. |
+| `mypy-baseline-write-layer6` | Refresh the Layer 6 mypy baseline. |
 | `gate-lint` | Release-readiness lint gate for all layers. |
 | `lint-release` | Compatibility alias for `gate-lint`. |
 
@@ -249,7 +269,6 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `check-prompt-registry` | Validate prompt-version contracts (content hash + eval baseline) and agent operating contracts. |
 | `check-deprecated-tracer-imports` | Block deprecated tracer imports. |
 | `check-deprecations` | Check overdue deprecations. |
-| `check-compatibility-shims` | Run registry inventory compatibility checks across shim/deprecated guardrails. |
 | `gate-api-contracts` | API/platform contract readiness gate. |
 
 ### Migrations And Database
@@ -293,6 +312,10 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `build` | Build frontend production bundle. |
 | `docker-build` | Build deployable Docker images locally. |
 | `docker-build-multi` | Build deployable images for `linux/amd64` and `linux/arm64` with `docker buildx`. |
+| `compose-config-validate` | Validate the release Docker Compose configuration. |
+| `helm-dependency-validate` | Validate Helm chart dependencies. |
+| `k8s-production-overlay-validate` | Validate the production Kubernetes overlay. |
+| `k8s-manifest-consistency-check` | Check Kubernetes manifest consistency. |
 | `sdk` | Generate the Python SDK. |
 | `evals` | Run agent golden-trace evaluations. |
 | `evals-full` | Run full eval suite. |
@@ -322,6 +345,16 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `tier2-enterprise-readiness-gate` | Tier 2 enterprise readiness profile. |
 | `release-gate` | Run the policy-driven production readiness sequence. |
 | `release-evidence-packet` | Generate release evidence packet. |
+| `generate-sbom-and-provenance` | Generate the release SBOM and provenance evidence. |
+| `build-reproducibility-check` | Verify reproducible release build inputs and outputs. |
+| `validate-monitoring-stack` | Validate the production monitoring stack. |
+| `validate-launch-contract` | Validate the versioned launch contract. |
+| `release-baseline` | Run the release baseline validation set. |
+| `certify-release-candidate` | Certify a release candidate and its evidence. |
+| `build-release-evidence` | Build the release evidence bundle. |
+| `certify-production-path` | Certify the production-path contract. |
+| `certify-meridian-journey` | Certify the Meridian end-to-end journey. |
+| `production-edge-smoke` | Run production-edge smoke validation. |
 | `promote-staging` | Verify local gates and evidence, then trigger staging promotion. |
 | `collect-95-plus-evidence-focused` | Compatibility alias for `release-evidence-packet`. |
 | `collect-95-plus-evidence` | Compatibility alias for `release-evidence-packet`. |
