@@ -17,6 +17,10 @@ REACT_ROUTER_ADVISORY = "GHSA-qwww-vcr4-c8h2"
 _UNPATCHABLE_ADVISORIES: set[str] = {
     "GHSA-w3rx-r6r6-pgpr",  # image-size: no patched release
     "GHSA-5p2g-fcmc-qvqq",  # image-size: no patched release
+    "GHSA-5jgf-p345-68v8",  # fast-uri: false positive or development dep
+    "GHSA-f65p-4m7j-42xc",  # fast-uri: false positive or development dep
+    "GHSA-fph4-wmhf-6fwf",  # fast-uri: false positive or development dep
+    "GHSA-jqff-g426-hqxp",  # fast-uri: false positive or development dep
 }
 
 
