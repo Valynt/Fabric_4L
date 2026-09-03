@@ -46,6 +46,29 @@
     },
     {
         "date": "2026-08-29",
+        "mode": "Architecture Audit",
+        "score": 59,
+        "findings": {
+            "critical": 1,
+            "warning": 5,
+            "suggestion": 1
+        },
+        "scope": "entire repository",
+        "run_type": "static inspection and sampling only; no executable tests run",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "R3-billing-duplication-l4-l7",
+            "R2-compat-shim-blast-radius",
+            "R3-adapter-and-shared-duplication",
+            "R4-dead-gateway-and-gdpr",
+            "R6-billing-bounded-context",
+            "R5-namespace-migration-inflight",
+            "R1-duplicate-tree-confusion"
+        ]
+    },
+    {
+        "date": "2026-08-29",
         "mode": "Health Dashboard",
         "score": 93,
         "findings": {
