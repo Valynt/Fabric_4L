@@ -398,22 +398,24 @@ def load_manifests(
     registry_version = f"0.1.{patch}"
     snapshot_sha = hasher.hexdigest()[:16]
 
-    summaries = [
-        ToolManifestSummary(
-            tool_id=m.tool_id,
-            version=m.version,
-            status=m.status.value,
-            side_effect=m.side_effect.value,
-            action_id=m.action_id,
-            principal_types=[p.value for p in m.principal_types],
-            human_confirmation_required=m.human_confirmation_required,
-            financial_state_change=m.financial_state_change,
-            supported_agent_classes=m.supported_agent_classes,
-            tenant_binding=m.tenant_binding,
-            source_path=_source_path(src, root),
-        )
-        for m, src in zip(valid_manifests, valid_sources)
-    ]
+    summaries: list[ToolManifestSummary] = []
+    for m, src in zip(valid_manifests, valid_sources):
+        data: dict[str, Any] = {
+            "tool_id": m.tool_id,
+            "version": m.version,
+            "status": m.status.value,
+            "side_effect": m.side_effect.value,
+            "action_id": m.action_id,
+            "principal_types": [p.value for p in m.principal_types],
+            "supported_agent_classes": m.supported_agent_classes,
+            "tenant_binding": m.tenant_binding,
+            "source_path": _source_path(src, root),
+        }
+        if m.human_confirmation_required is not None:
+            data["human_confirmation_required"] = m.human_confirmation_required
+        if m.financial_state_change is not None:
+            data["financial_state_change"] = m.financial_state_change
+        summaries.append(ToolManifestSummary(**data))
 
     policies, bindings = _load_policies(root)
 
