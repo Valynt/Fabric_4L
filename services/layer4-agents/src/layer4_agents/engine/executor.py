@@ -1,1 +1,1 @@
-file:///workspace/executor_for_mcp.py
+{{include:/workspace/executor_for_mcp.py}}
