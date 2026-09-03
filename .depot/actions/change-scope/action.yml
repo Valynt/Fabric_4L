@@ -50,6 +50,15 @@ outputs:
   runtime:
     description: "'true' when anything that can affect the running product changed"
     value: ${{ steps.resolve.outputs.runtime }}
+  ci-global:
+    description: "'true' when workflow/action/Makefile pipeline topology changed (CI plumbing; never gates the domain matrix)"
+    value: ${{ steps.resolve.outputs.ci-global }}
+  ci-tooling:
+    description: "'true' when CI/ops execution tooling in scripts/** changed (validated by structural-preflight every PR)"
+    value: ${{ steps.resolve.outputs.ci-tooling }}
+  ci-governance:
+    description: "'true' when gate inputs / config policy (config/**, pytest.ini) changed"
+    value: ${{ steps.resolve.outputs.ci-governance }}
 
 runs:
   using: 'composite'
@@ -90,6 +99,9 @@ runs:
         FILTER_DEPS: ${{ steps.filter.outputs.deps_any_changed }}
         FILTER_RELEASE_POLICY: ${{ steps.filter.outputs.release-policy_any_changed }}
         FILTER_RUNTIME: ${{ steps.filter.outputs.runtime_any_changed }}
+        FILTER_CI_GLOBAL: ${{ steps.filter.outputs.ci-global_any_changed }}
+        FILTER_CI_TOOLING: ${{ steps.filter.outputs.ci-tooling_any_changed }}
+        FILTER_CI_GOVERNANCE: ${{ steps.filter.outputs.ci-governance_any_changed }}
       run: |
         set -euo pipefail
         # emit <scope> <detected-value>
@@ -119,3 +131,6 @@ runs:
         emit deps    "${FILTER_DEPS}"
         emit release-policy "${FILTER_RELEASE_POLICY}"
         emit runtime "${FILTER_RUNTIME}"
+        emit ci-global "${FILTER_CI_GLOBAL}"
+        emit ci-tooling "${FILTER_CI_TOOLING}"
+        emit ci-governance "${FILTER_CI_GOVERNANCE}"

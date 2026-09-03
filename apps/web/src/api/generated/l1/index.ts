@@ -3310,7 +3310,7 @@ export interface operations {
     delete_target_api_v1_ingestion_targets__target_id__delete: {
         parameters: {
             query?: {
-                /** @description Hard delete if no jobs exist */
+                /** @description Force removal if no jobs exist */
                 force?: boolean;
             };
             header?: never;
