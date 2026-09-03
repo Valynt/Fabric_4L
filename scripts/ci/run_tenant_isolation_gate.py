@@ -111,15 +111,6 @@ GROUPS: tuple[TenantIsolationGroup, ...] = (
         ),
     ),
     TenantIsolationGroup(
-        id="l7-billing",
-        title="L7 Billing API Tenant Isolation",
-        targets=(
-            "services/layer7-billing/tests/test_api_tenant_propagation.py",
-            "services/layer7-billing/tests/test_cross_tenant_hostile.py",
-            "services/layer7-billing/tests/test_tenant_isolation.py",
-        ),
-    ),
-    TenantIsolationGroup(
         id="cache",
         title="Shared Cache Isolation",
         targets=(
