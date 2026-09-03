@@ -10,18 +10,17 @@ Tests verify that jobs reach terminal states when max retries exhausted mid-pipe
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock, patch
+from uuid import UUID, uuid4
+
 import pytest
-from uuid import uuid4, UUID
-from unittest.mock import patch, MagicMock
-from celery.exceptions import MaxRetriesExceededError
 
 from layer1_ingestion.shared.models import (
-    ScrapingJob,
-    JobStatus,
     JobStageDetail,
+    JobStatus,
     PipelineStage,
+    ScrapingJob,
 )
-
 
 pytestmark = pytest.mark.postgres
 
@@ -33,7 +32,6 @@ class TestComplianceCheckMaxRetries:
         self, db, org_id, user_id, make_target
     ):
         """When compliance_check_stage exhausts max_retries, job should reach FAILED status."""
-        from layer1_ingestion.shared.tasks import compliance_check_stage
 
         # Create job
         target = make_target(org_id, status="ACTIVE")
@@ -189,8 +187,8 @@ class TestBrowserCrawlMaxRetries:
         db.commit()
 
         # Mark all browser crawl stages as FAILED
-        from layer1_ingestion.shared.tasks import _update_stage
         from layer1_ingestion.shared.database import get_db_session
+        from layer1_ingestion.shared.tasks import _update_stage
 
         with get_db_session(tenant_id=org_id, require_tenant=True) as session:
             for stage in (
@@ -291,8 +289,8 @@ class TestStageStatusConsistency:
         db.commit()
 
         # Simulate compliance check failure affecting subsequent stages
-        from layer1_ingestion.shared.tasks import _update_stage
         from layer1_ingestion.shared.database import get_db_session
+        from layer1_ingestion.shared.tasks import _update_stage
 
         with get_db_session(tenant_id=org_id, require_tenant=True) as session:
             # Mark compliance check as FAILED
@@ -371,12 +369,35 @@ class TestNoOrphanedRunningStates:
 
         assert len(stuck_jobs) == 0, "No jobs should be stuck in non-terminal states"
 
-    def test_stuck_jobs_metric_reflects_non_terminal_count(self, db, org_id):
+    def test_stuck_jobs_metric_reflects_non_terminal_count(
+        self, db, org_id, user_id, make_target
+    ):
         """The stuck_jobs metric should reflect the count of non-terminal jobs."""
-        # TODO(VF-L1-TERMINAL-DEBT-001): stuck-jobs gauge/histogram implemented in
-        # layer1_ingestion/metrics/prometheus_metrics.py:151,166, but refresh_stuck_jobs()
-        # is not yet invoked from a production reconciliation loop.
-        pytest.skip("TODO(VF-L1-TERMINAL-DEBT-001): stuck-jobs reconciliation loop not yet wired to metrics")
+        from layer1_ingestion.shared.tasks import refresh_stuck_jobs_metrics
+
+        target = make_target(org_id, status="ACTIVE")
+        for status in (JobStatus.VALIDATING, JobStatus.VALIDATING, JobStatus.EXTRACTING):
+            db.add(
+                ScrapingJob(
+                    id=uuid4(),
+                    tenant_id=org_id,
+                    target_id=target.id,
+                    status=status.value,
+                    configuration={"url": "https://example.com"},
+                    created_by=user_id,
+                )
+            )
+        db.commit()
+
+        metrics = MagicMock()
+        with patch(
+            "layer1_ingestion.shared.tasks.cleanup.get_metrics", return_value=metrics
+        ):
+            counts = refresh_stuck_jobs_metrics([org_id])
+
+        assert counts[JobStatus.VALIDATING.value] == 2
+        assert counts[JobStatus.EXTRACTING.value] == 1
+        metrics.refresh_stuck_jobs.assert_called_once_with(counts)
 
 
 class TestRetryMechanismBehavior:
@@ -384,8 +405,8 @@ class TestRetryMechanismBehavior:
 
     def test_max_retries_configured_correctly(self):
         """Verify that max_retries is configured correctly for each stage."""
+
         from layer1_ingestion.shared import tasks
-        import inspect
 
         # Check max_retries for each stage
         stage_tasks = {

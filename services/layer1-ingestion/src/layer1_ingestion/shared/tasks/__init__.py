@@ -1033,6 +1033,12 @@ from .cleanup import (
 from .cleanup import (
     purge_expired_raw_content as purge_expired_raw_content,
 )
+from .cleanup import (
+    reconcile_stuck_jobs_metrics as reconcile_stuck_jobs_metrics,
+)
+from .cleanup import (
+    refresh_stuck_jobs_metrics as refresh_stuck_jobs_metrics,
+)
 from .crawl import (
     _acrawl_url_with_routing as _acrawl_url_with_routing,
 )
