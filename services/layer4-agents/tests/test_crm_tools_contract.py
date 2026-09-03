@@ -342,6 +342,23 @@ async def test_salesforce_interaction_filters_reject_injection(kwargs) -> None:
     assert result.error
 
 
+@pytest.mark.parametrize("prospect_id", ["", "abc' OR 1=1", "too-short"])
+@pytest.mark.asyncio
+async def test_salesforce_interactions_reject_invalid_prospect_id_before_query(
+    prospect_id: str,
+) -> None:
+    tool = FetchInteractionHistoryTool(config())
+    client = Client([])
+    tool._client = client
+
+    result = await tool.execute(FetchInteractionHistoryInput(prospect_id=prospect_id))
+
+    assert result.error == (
+        "CRM fetch failed: Invalid prospect_id format: must be 15 or 18 alphanumeric characters"
+    )
+    assert client.calls == []
+
+
 @pytest.mark.asyncio
 async def test_interaction_unknown_error_empty_and_cancellation() -> None:
     unknown = await FetchInteractionHistoryTool(config("unknown")).execute(
