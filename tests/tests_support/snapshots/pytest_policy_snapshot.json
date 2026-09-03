@@ -13,6 +13,7 @@
     "rdflib": "pip install 'rdflib>=7.0'  (layer3-knowledge dependency)",
     "respx": "pip install 'respx>=0.21'  (layer1-ingestion[dev] or tests/requirements-test.txt)",
     "selectolax": "pip install 'selectolax>=0.3'  (layer1-ingestion dependency)",
+    "stripe": "pip install 'stripe>=11.0'  (layer4-agents dependency; required by P0 billing webhook security tests)",
     "trafilatura": "pip install 'trafilatura>=1.6'  (layer1-ingestion dependency)"
   },
   "mandatory_exclusion_markers": [
