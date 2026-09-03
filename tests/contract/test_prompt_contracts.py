@@ -90,8 +90,7 @@ def test_prompt_contract_referenced_file_exists_and_hash_matches(contract_path: 
     )
 
     content_hash = contract.get("content_hash")
-    if content_hash is None:
-        pytest.skip(f"{contract_path.name} does not yet declare content_hash")
+    assert content_hash, f"{contract_path.name} must declare content_hash"
 
     digest = hashlib.sha256(prompt_file.read_bytes()).hexdigest()
     assert digest == content_hash, (
@@ -106,8 +105,7 @@ def test_prompt_contract_referenced_file_exists_and_hash_matches(contract_path: 
 def test_prompt_contract_eval_baseline_points_to_existing_file(contract_path: Path) -> None:
     contract = _load_json(contract_path)
     baseline = contract.get("eval_baseline")
-    if baseline is None:
-        pytest.skip(f"{contract_path.name} does not yet declare eval_baseline")
+    assert baseline, f"{contract_path.name} must declare eval_baseline"
 
     rel_path = baseline.get("baseline_file")
     assert rel_path, f"{contract_path.name} eval_baseline missing baseline_file"

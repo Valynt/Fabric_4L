@@ -13,7 +13,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 _PLATFORM_CONTRACT_PYTHON = next(
     (
@@ -75,7 +75,7 @@ def _load_manifest(manifest_path: Path | None) -> dict[str, Any]:
     path = manifest_path or _default_manifest_path()
     if not path.exists():
         raise FileNotFoundError(f"Agent registry manifest not found: {path}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
 
 
 def _contract_path_for_agent(
@@ -96,7 +96,7 @@ def _contract_path_for_agent(
                 raise FileNotFoundError(
                     f"Agent {agent_type} has no operating_contract_path in the manifest"
                 )
-            return manifest_path.parent / relative
+            return manifest_path.parent / str(relative)
 
     raise FileNotFoundError(
         f"Agent {agent_type} not found in manifest: {manifest_path}"
