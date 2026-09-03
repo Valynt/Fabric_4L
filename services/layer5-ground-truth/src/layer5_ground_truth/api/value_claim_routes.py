@@ -22,6 +22,18 @@ from ..services.value_claim_service import (
     ValueNotOrderedError,
 )
 from .auth import TokenClaims, authorize_action, get_current_user
+from .authz_enforcement import (
+    build_principal,
+    guard_protected_command,
+    make_claim_approval_environment,
+    resolve_claim_approval_facts,
+)
+
+# Claim lifecycle states that legally reach APPROVED (approval is a protected
+# domain command — enforcement is layered on before the write). Only MODELED
+# may transition to APPROVED; other-current-state APPROVED targets are invalid
+# lifecycle transitions and are rejected as 400 by the service.
+_APPROVAL_SOURCE_STATES = {ClaimStatus.MODELED}
 from .value_claim_schemas import (
     ValueClaimCreate,
     ValueClaimListResponse,
@@ -157,6 +169,32 @@ async def transition_value_claim_status(
 ) -> ValueClaimResponse:
     authorize_action("layer5.value_claims.transition", caller)
     svc = ValueClaimService(db)
+
+    # Approving a claim is a protected domain command. Gate it with the shared
+    # PBAC facade (RBAC + ReBAC + ABAC + SoD) BEFORE the write. Only an
+    # already-MODELED claim may be approved; other APPROVED targets remain an
+    # invalid 400 lifecycle transition handled by the service below.
+    if payload.status == ClaimStatus.APPROVED:
+        claim_for_guard = await svc.get_claim(caller.tenant_id, claim_id)
+        if claim_for_guard is None:
+            raise NotFoundError(message=f"ValueClaim {claim_id} not found")
+        if ClaimStatus(claim_for_guard.status) in _APPROVAL_SOURCE_STATES:
+            principal = await build_principal(caller, db)
+            facts = await resolve_claim_approval_facts(claim_for_guard, caller, db)
+            env = make_claim_approval_environment(facts)
+            await guard_protected_command(
+                action="claim.approve",
+                principal=principal,
+                resource={
+                    "type": "value_claim",
+                    "id": str(claim_id),
+                    "tenant_id": str(caller.tenant_id),
+                },
+                requested_resource_revision=str(claim_for_guard.version or 1),
+                environment=env,
+                request_context={"caller": caller, "claim_id": str(claim_id)},
+            )
+
     try:
         claim = await svc.transition_status(
             caller.tenant_id, claim_id, payload.status
