@@ -67,6 +67,7 @@ export type RouteState =
   | "intelligence-solution-cost"
   // Value Studio Workspace (account-scoped)
   | "studio"
+  | "studio-mission"
   | "studio-action-plan"
   | "studio-value-model"
   | "studio-driver-tree"
@@ -208,6 +209,7 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
 
   // Value Studio Workspace
   studio: { path: "/t/:tenantSlug/accounts/:accountId/studio", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.workspace" },
+  "studio-mission": { path: "/t/:tenantSlug/accounts/:accountId/studio/mission", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.mission" },
   "studio-action-plan": { path: "/t/:tenantSlug/accounts/:accountId/studio/action-plan", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.action-plan" },
   "studio-value-model": { path: "/t/:tenantSlug/accounts/:accountId/studio/value-model", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.value-model" },
   "studio-driver-tree": { path: "/t/:tenantSlug/accounts/:accountId/studio/driver-tree", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.driver-tree" },
@@ -233,9 +235,9 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
   "context-source-detail": { path: "/t/:tenantSlug/context/sources/:sourceId", params: ["tenantSlug", "sourceId"], analyticsRouteId: "context.source-detail" },
   "context-entities": { path: "/t/:tenantSlug/context/entities", params: ["tenantSlug"], analyticsRouteId: "context.entities" },
   "context-entity-detail": { path: "/t/:tenantSlug/context/entities/:entityId", params: ["tenantSlug", "entityId"], analyticsRouteId: "context.entity-detail" },
-  "context-graph": { path: "/t/:tenantSlug/context/graph", params: ["tenantSlug"], analyticsRouteId: "context.graph" },
-  "context-ingestion-runs": { path: "/t/:tenantSlug/context/ingestion-runs", params: ["tenantSlug"], analyticsRouteId: "context.ingestion-runs" },
-  "context-ingestion-run-detail": { path: "/t/:tenantSlug/context/ingestion-runs/:runId", params: ["tenantSlug", "runId"], analyticsRouteId: "context.ingestion-run-detail" },
+  "context-graph": { path: "/t/:tenantSlug/context/ontology/graph", params: ["tenantSlug"], analyticsRouteId: "context.graph" },
+  "context-ingestion-runs": { path: "/t/:tenantSlug/context/ingestion/jobs", params: ["tenantSlug"], analyticsRouteId: "context.ingestion-jobs" },
+  "context-ingestion-run-detail": { path: "/t/:tenantSlug/context/ingestion/jobs/:runId", params: ["tenantSlug", "runId"], analyticsRouteId: "context.ingestion-run-detail" },
   "context-extraction": { path: "/t/:tenantSlug/context/extraction", params: ["tenantSlug"], analyticsRouteId: "context.extraction" },
   "context-ontology": { path: "/t/:tenantSlug/context/ontology", params: ["tenantSlug"], analyticsRouteId: "context.ontology" },
   "context-agents": { path: "/t/:tenantSlug/context/agents", params: ["tenantSlug"], analyticsRouteId: "context.agents" },

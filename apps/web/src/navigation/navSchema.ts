@@ -45,6 +45,7 @@ export const NAV_SCHEMA: NavSchemaNode[] = [
     tier: "standard",
     description: "Build the product-anchored business case",
     children: [
+      { id: "studio-mission", label: "Mission", path: "/t/:tenantSlug/accounts/:accountId/studio/mission", tier: "standard" },
       { id: "studio-action-plan", label: "Action Plan", path: "/t/:tenantSlug/accounts/:accountId/studio/action-plan", tier: "standard" },
       { id: "studio-value-model", label: "Value Model", path: "/t/:tenantSlug/accounts/:accountId/studio/value-model", tier: "standard" },
       { id: "studio-driver-tree", label: "Driver Tree", path: "/t/:tenantSlug/accounts/:accountId/studio/driver-tree", tier: "standard" },
