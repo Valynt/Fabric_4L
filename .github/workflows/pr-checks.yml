@@ -153,6 +153,9 @@ jobs:
       - name: Run all health ratchets (single entry point)
         run: make check-health-ratchets
 
+      - name: Run architecture governance checks (boundaries + ownership)
+        run: make check-architecture-boundaries check-ownership-registry
+
       - name: Verify schema index coverage
         run: pnpm test:schema
 
@@ -183,8 +186,10 @@ jobs:
           pip install pyyaml
           python scripts/ci/generate_workflow_index.py --check
 
-      - name: Enforce ADR numbering policy
-        run: python scripts/ci/check_adr_numbering.py
+      - name: Enforce ADR registry and numbering policy
+        run: |
+          pip install pyyaml
+          python scripts/ci/check_adr.py
 
       - name: Enforce production alert metadata (runbook + on-call owner)
         run: |

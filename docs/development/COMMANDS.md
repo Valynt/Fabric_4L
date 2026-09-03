@@ -123,6 +123,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `verify-structure` | Run structural preflight and Python contract lint checks. |
 | `verify-strict` | Run `verify` plus contract drift detection. |
 | `check-conflict-markers` | Fail on unresolved merge conflict markers. |
+| `check-adr` | Validate ADR registry, indexes, numbering, and related-code links. |
 | `check-no-nul-bytes` | Fail on tracked NUL bytes. |
 | `check-health-ratchets` | Run the complete fail-on-net-new health-ratchet set. |
 | `check-dead-code` | Fail on net-new unreferenced top-level Python symbols. |
@@ -143,6 +144,12 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `check-pytest-skip-governance` | Enforce pytest skip governance. |
 | `check-type-escape-ratchet` | Fail on net-new unapproved Python or TypeScript type escapes. |
 | `check-structural-fitness-ratchet` | Fail on net-new oversized modules, high-complexity functions, or import cycles (Initiative E). |
+| `check-governance` | Run the canonical architecture-governance aggregate (import/cycle/DRY + ownership). |
+| `check-import-cycles` | Import-cycle enforcement via the structural fitness ratchet. |
+| `check-architecture-boundaries` | Architecture boundary ratchet (model/provider gateway). |
+| `check-ownership-registry` | Enforce ownership and canonical-import registry. |
+| `check-shared-duplication` | Fail on net-new duplication within `packages/shared` (scoped DRY ratchet). |
+| `check-governance-baseline` | Validate governance baselines are present and regenerable. |
 | `check-hermetic-build-inputs` | Enforce digest-pinned Docker base images and approved CI external domains. |
 | `check-production-k8s-mutable-tags` | Fail if production-facing K8s manifests use `:latest` or `:main` image tags. |
 | `check-k8s-image-digests` | Fail if production K8s overlays use mutable image tags. |

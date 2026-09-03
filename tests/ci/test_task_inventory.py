@@ -45,7 +45,7 @@ def test_build_inventory_is_deterministic_and_complete(tmp_path: Path) -> None:
         "public_target_count": 2,
         "schema_version": 1,
         "source": "Makefile",
-        "source_sha256": "b2d22a526b3a6134d64642a394fe9330490b8cb7cf48a52667c91b971d781704",
+        "source_sha256": "28052788b20bf3aba96316825c9d28b6557d176364f20b856b7f0ae8bf435c15",
         "target_count": 3,
     }
     assert inventory["targets"] == [
@@ -167,8 +167,8 @@ def test_repository_inventory_is_current_and_complete() -> None:
     assert inventory == checked_in
     metadata = inventory["metadata"]
     assert metadata["internal_target_count"] == 3
-    assert metadata["phony_target_count"] == 236
-    assert metadata["public_target_count"] == 233
-    assert metadata["target_count"] == 236
+    assert metadata["phony_target_count"] == 244
+    assert metadata["public_target_count"] == 241
+    assert metadata["target_count"] == 244
     assert all(target["phony"] for target in inventory["targets"])
     assert all(target["cache_policy"] == "disabled" for target in inventory["targets"])
