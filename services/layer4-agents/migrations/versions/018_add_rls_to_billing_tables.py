@@ -43,8 +43,8 @@ def upgrade() -> None:
         op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
         op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")
 
-        # Tenant isolation policy — matches the pattern from migration 007/013
-        # SECURITY FIX: Removed tenant_id IS NULL check that caused global data leak
+        # Public access requires an exact tenant match. NULL-owned rows are never
+        # globally visible through the tenant isolation policy.
         op.execute(f"""
             CREATE POLICY tenant_isolation_policy ON {table}
                 FOR ALL

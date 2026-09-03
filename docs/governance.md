@@ -29,6 +29,24 @@ Pull requests that touch backend, frontend, or API surfaces are expected to decl
 tenant-isolation, and compatibility-shim impact explicitly and to link any required follow-up docs,
 tests, or deprecation tracking.
 
+## Architecture Governance
+
+The canonical architecture-governance entry point is `make check-governance`. It composes the resident
+checks into a single deterministic verdict (`pass` / `fail` / `error`) and writes a machine-readable
+envelope to `artifacts/governance/check-governance.json`.
+
+| Sub-check | Enforces |
+|---|---|
+| `check-import-cycles` | Oversized modules, high-complexity functions, and import cycles (`structural_fitness_ratchet.py`) |
+| `check-architecture-boundaries` | Provider-gateway boundaries (`check_model_provider_boundaries.py`) |
+| `check-ownership-registry` | Shared-import, public-import, canonical-import, and ownership registries |
+| `check-shared-duplication` | Scoped DRY ratchet for `packages/shared` (`check_shared_duplication.py`, baseline `config/ci/shared_duplication_baseline.json`) |
+| `check-governance-baseline` | Type-escape ratchet plus duplication-baseline regenerability |
+
+The import/cycle and DRY checks are ratcheted: a checked-in baseline allowlists the current state, and CI
+blocks only *new or worsened* violations. Regenerate a baseline with the owning script's `--update` flag only
+after an approved dedup or waiver decision.
+
 ## Review States
 
 - `draft` - Initial generation

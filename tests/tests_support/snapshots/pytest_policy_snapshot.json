@@ -1,6 +1,6 @@
 {
   "mandatory_deps": {
-    "aiohttp": "pip install 'aiohttp>=3.9'  (tests/requirements-test.txt)",
+    "aiohttp": "pip install 'aiohttp>=3.14.3'  (tests/requirements-test.txt)",
     "defusedxml": "pip install 'defusedxml>=0.7'  (layer1-ingestion dependency)",
     "email_validator": "pip install 'email-validator>=2.1'  (layer4-agents[dev])",
     "jose": "pip install 'python-jose[cryptography]>=3.3'  (layer4-agents dependency)",
@@ -13,6 +13,7 @@
     "rdflib": "pip install 'rdflib>=7.0'  (layer3-knowledge dependency)",
     "respx": "pip install 'respx>=0.21'  (layer1-ingestion[dev] or tests/requirements-test.txt)",
     "selectolax": "pip install 'selectolax>=0.3'  (layer1-ingestion dependency)",
+    "stripe": "pip install 'stripe>=11.0'  (layer4-agents dependency; required by P0 billing webhook security tests)",
     "trafilatura": "pip install 'trafilatura>=1.6'  (layer1-ingestion dependency)"
   },
   "mandatory_exclusion_markers": [
