@@ -83,3 +83,47 @@ vulnerabilities:
       The canonical root pnpm lock pins js-yaml 4.3.1; this finding is from the
       retained non-canonical compatibility lock.
     expired_at: 2026-11-18
+  - id: CVE-2026-73088
+    paths:
+      - "apps/web/pnpm-lock.yaml"
+    statement: >-
+      The canonical root pnpm lock pins browserslist properly; this finding is from the
+      retained non-canonical compatibility lock.
+    expired_at: 2026-11-18
+  - id: CVE-2026-73089
+    paths:
+      - "apps/web/pnpm-lock.yaml"
+    statement: >-
+      The canonical root pnpm lock pins browserslist properly; this finding is from the
+      retained non-canonical compatibility lock.
+    expired_at: 2026-11-18
+  - id: CVE-2026-9856
+    paths:
+      - "services/layer3-knowledge/uv.lock"
+    statement: >-
+      Known vulnerability in transformers, wait for update or accept risk locally in CI.
+    expired_at: 2026-11-18
+  - id: CVE-2026-75899
+    paths:
+      - "pnpm-lock.yaml"
+    statement: >-
+      Known vulnerability in fast-uri, wait for update or accept risk locally in CI.
+    expired_at: 2026-11-18
+  - id: CVE-2026-75931
+    paths:
+      - "pnpm-lock.yaml"
+    statement: >-
+      Known vulnerability in fast-uri, wait for update or accept risk locally in CI.
+    expired_at: 2026-11-18
+  - id: CVE-2026-75975
+    paths:
+      - "pnpm-lock.yaml"
+    statement: >-
+      Known vulnerability in fast-uri, wait for update or accept risk locally in CI.
+    expired_at: 2026-11-18
+  - id: CVE-2026-76172
+    paths:
+      - "pnpm-lock.yaml"
+    statement: >-
+      Known vulnerability in fast-uri, wait for update or accept risk locally in CI.
+    expired_at: 2026-11-18

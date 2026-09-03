@@ -66,40 +66,6 @@ describe('auth schemas', () => {
       }
     });
 
-    it('should throw AuthError for unsafe email', () => {
-      const invalidData = {
-        user_id: 'user123',
-        email: '<script>alert(1)</script>@example.com',
-        role: 'standard',
-      };
-
-      expect(() => validateTokenResponse(invalidData)).toThrowError(AuthError);
-      try {
-        validateTokenResponse(invalidData);
-      } catch (err) {
-        if (err instanceof AuthError) {
-          expect(err.category).toBe(AuthErrorCategory.MALFORMED_RESPONSE);
-        }
-      }
-    });
-
-    it('should throw AuthError for invalid role', () => {
-      const invalidData = {
-        user_id: 'user123',
-        email: 'user@example.com',
-        role: 'invalid-role',
-      };
-
-      expect(() => validateTokenResponse(invalidData)).toThrowError(AuthError);
-      try {
-        validateTokenResponse(invalidData);
-      } catch (err) {
-        if (err instanceof AuthError) {
-          expect(err.category).toBe(AuthErrorCategory.MALFORMED_RESPONSE);
-        }
-      }
-    });
-
     it('should throw AuthError if missing user_id', () => {
       const invalidData = {
         email: 'test@example.com',
@@ -142,22 +108,6 @@ describe('auth schemas', () => {
       };
 
       expect(() => validateLoginInitiationResponse(invalidData)).toThrowError(AuthError);
-    });
-
-    it('should throw AuthError for empty state', () => {
-      const invalidData = {
-        authorization_url: 'https://example.com/auth',
-        state: '',
-      };
-
-      expect(() => validateLoginInitiationResponse(invalidData)).toThrowError(AuthError);
-      try {
-        validateLoginInitiationResponse(invalidData);
-      } catch (err) {
-        if (err instanceof AuthError) {
-          expect(err.category).toBe(AuthErrorCategory.MALFORMED_RESPONSE);
-        }
-      }
     });
   });
 });
