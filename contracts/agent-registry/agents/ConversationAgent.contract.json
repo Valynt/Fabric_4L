@@ -1,0 +1,66 @@
+{
+  "$schema": "../schemas/agent-contract.schema.json",
+  "id": "conversation-agent-contract",
+  "version": "1.0.0",
+  "kind": "agent_contract",
+  "owner": "@layer4-agents",
+  "risk_class": "medium",
+  "description": "Operating contract for the ConversationAgent.",
+  "agent_type": "ConversationAgent",
+  "tools": [
+    "fetch_interaction_history",
+    "semantic_search",
+    "get_entity",
+    "get_relationships",
+    "score_lead"
+  ],
+  "memory_scopes": [
+    "working",
+    "episodic"
+  ],
+  "permissions": {
+    "read_paths": [
+      "services/layer3-knowledge/",
+      "contracts/agent-registry/"
+    ],
+    "write_paths": [],
+    "network": [
+      "internal_only"
+    ],
+    "isolation_level": "tenant_strict"
+  },
+  "eval_target": {
+    "suite_id": "conversation-eval",
+    "min_score": 0.0,
+    "required_capabilities": [
+      "classify_intent",
+      "route_request"
+    ]
+  },
+  "compatibility": {
+    "supported_prior_versions": [],
+    "migration_notes": "Initial operating contract."
+  },
+  "observability": {
+    "required_trace_fields": [
+      "tenant_id",
+      "trace_id",
+      "agent_type",
+      "capability"
+    ],
+    "required_metrics": [
+      "agent_run_total",
+      "agent_run_latency_ms"
+    ],
+    "audit_events": [
+      "agent_started",
+      "agent_completed"
+    ]
+  },
+  "governance": {
+    "review_requirement": "Layer 4 + Platform Contracts review for tool or isolation changes.",
+    "approval_threshold": "One Layer 4 reviewer and one Platform Contracts reviewer.",
+    "rollout_policy": "Validation runs in warning mode before runtime enforcement.",
+    "deprecation_policy": "Keep previous contract version until all consumers migrate."
+  }
+}
