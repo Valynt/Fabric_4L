@@ -1,7 +1,7 @@
 {
   "goal_id": "phase6-runtime-hardening",
   "status": "building",
-  "iteration": 1,
+  "iteration": 2,
   "builder_model": "GPT:5.6-Luna",
   "inspector_model": "GPT:5.6-Sol",
   "initial_sha": "3cd7e0599deaaaeffc3efa0cb4387a66d9550a62",

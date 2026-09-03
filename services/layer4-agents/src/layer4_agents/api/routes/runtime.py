@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import importlib
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -18,12 +18,12 @@ from pydantic import BaseModel, ConfigDict, Field
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
+from ...runtime.ports import AgentRuntime
 from ..runtime_state import runtime_state
 
 _runtime_errors = importlib.import_module("layer4_agents.runtime.errors")
 _runtime_models = importlib.import_module("layer4_agents.runtime.models")
 _runtime_observability = importlib.import_module("layer4_agents.runtime.observability")
-AgentRuntime = Any
 AgentRuntimeError = _runtime_errors.AgentRuntimeError
 CheckpointConflictError = _runtime_errors.CheckpointConflictError
 RunNotFoundError = _runtime_errors.RunNotFoundError
@@ -112,7 +112,7 @@ def _tenant(ctx: RequestContext, *, operation: str) -> str:
 
 
 def _metrics_snapshot(metrics: RuntimeMetrics | None) -> RuntimeMetricsResponse:
-    snapshot: dict[str, Any] = metrics.snapshot() if metrics is not None else {}
+    snapshot: dict[str, object] = metrics.snapshot() if metrics is not None else {}
     return RuntimeMetricsResponse(
         runs_started_total=int(snapshot.get("runs_started_total", 0)),
         runs_terminal_total=int(snapshot.get("runs_terminal_total", 0)),

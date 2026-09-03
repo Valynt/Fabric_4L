@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import httpx
 import pytest
 from fastapi import FastAPI
@@ -28,11 +26,20 @@ def _app(ctx: RequestContext) -> FastAPI:
     return app
 
 
+async def test_runtime_routes_deny_unauthenticated_requests() -> None:
+    app = FastAPI()
+    app.include_router(router, prefix="/v1")
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/v1/runtime/health")
+    assert response.status_code == 401
+
+
 def _runtime() -> AgentRuntimeImpl:
     runtime = AgentRuntimeImpl()
 
     async def factory(
-        workflow_type: str, input_data: dict[str, Any], ctx: RuntimeContext
+        workflow_type: str, input_data: dict[str, object], ctx: RuntimeContext
     ) -> WorkflowResult:
         return WorkflowResult(
             status=RunStatus.COMPLETED,
@@ -82,3 +89,19 @@ async def test_runtime_routes_return_explicit_shapes_and_scope_runs() -> None:
         hidden = await client.get(f"/v1/runtime/runs/{run_id}")
     assert hidden.status_code == 404
     assert hidden.json()["detail"]["code"] == "RUN_NOT_FOUND"
+
+
+async def test_runtime_health_and_metrics_have_stable_shapes() -> None:
+    app = _app(RequestContext(tenant_id="tenant-a"))
+    app.state.agent_runtime = _runtime()
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        health = await client.get("/v1/runtime/health")
+        metrics = await client.get("/v1/runtime/metrics")
+    assert set(health.json()) == {"status", "service", "runtime_ready", "timestamp", "metrics"}
+    assert set(health.json()["metrics"]) == {
+        "runs_started_total", "runs_terminal_total", "runs_paused_total",
+        "runs_resumed_total", "tool_calls_total", "tool_calls_allowed_total",
+        "tool_calls_denied_total", "checkpoints_saved_total",
+    }
+    assert set(metrics.json()) == set(health.json()["metrics"])

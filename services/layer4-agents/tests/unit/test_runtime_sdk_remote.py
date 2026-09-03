@@ -6,8 +6,8 @@ import httpx
 import pytest
 
 from layer4_agents.runtime import RunStatus
-from layer4_agents.runtime.errors import TenantRequiredError
-from layer4_agents.runtime.sdk import RemoteAgentRuntimeClient
+from layer4_agents.runtime.errors import AgentRuntimeError, TenantRequiredError
+from layer4_agents.runtime.sdk import RemoteAgentRuntimeClient, SDKTimeoutError
 
 pytestmark = pytest.mark.unit
 
@@ -99,3 +99,24 @@ async def test_remote_client_maps_errors_and_fails_closed() -> None:
             "http://runtime", default_tenant_id="tenant-a", http_client=http_client
         )
         assert await client_with_tenant.get_run("missing") is None
+
+
+@pytest.mark.parametrize("error", [httpx.ConnectError("offline"), httpx.ReadError("broken")])
+async def test_remote_client_maps_transport_errors(error: httpx.HTTPError) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise error
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
+        client = RemoteAgentRuntimeClient("http://runtime", default_tenant_id="tenant-a", http_client=http_client)
+        with pytest.raises(AgentRuntimeError, match="Runtime transport failed"):
+            await client.get_run("run-1")
+
+
+async def test_remote_client_maps_timeout() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("timed out")
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
+        client = RemoteAgentRuntimeClient("http://runtime", default_tenant_id="tenant-a", http_client=http_client)
+        with pytest.raises(SDKTimeoutError):
+            await client.get_run("run-1")
