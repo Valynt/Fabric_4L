@@ -4,10 +4,9 @@ from __future__ import annotations
 
 Validates the real Stripe webhook verification and idempotency boundaries:
 
-- ``stripe.Webhook.construct_event`` together with
-  ``parse_stripe_signature_header`` (``layer4_agents.services.billing_security``)
-  for signature/HMAC + timestamp tolerance checks in the production verification
-  path.
+- ``verify_stripe_webhook_signature`` / ``parse_stripe_signature_header``
+  (``layer7_billing.webhook_security``) for signature/HMAC + timestamp
+  tolerance.
 - ``IdempotencyService`` / ``InMemoryIdempotencyStore``
   (``value_fabric.shared.idempotency``) for replay rejection, duplicate
   delivery/idempotency, tenant-boundary enforcement, and retry safety.
@@ -27,8 +26,10 @@ import hmac
 import time
 
 import pytest
-import stripe
-from layer4_agents.services.billing_security import parse_stripe_signature_header
+from layer7_billing.webhook_security import (
+    parse_stripe_signature_header,
+    verify_stripe_webhook_signature,
+)
 from value_fabric.shared.idempotency.core import (
     IdempotencyConflictError,
     IdempotencyRecord,
@@ -47,7 +48,7 @@ pytestmark = [
 
 WEBHOOK_SECRET = "whsec_test_dummy_secret_1234567890"
 OTHER_SECRET = "whsec_test_dummy_secret_other_9876543210"
-PAYLOAD = b'{"id": "evt_123", "object": "event", "type": "payment.created", "data": {"amount": 1000}}'
+PAYLOAD = b'{"id": "evt_123", "type": "payment.created", "data": {"amount": 1000}}'
 CURRENT_TS = int(time.time())
 STALE_TS = CURRENT_TS - 301
 FUTURE_TS = CURRENT_TS + 301
@@ -61,42 +62,9 @@ def _make_signature(payload: bytes, secret: str, timestamp: int | None = None) -
 
 
 def _verify(payload: bytes, signature: str | None, secret: str | None, **kwargs):
-    """Exercise the production Stripe verification path with a fixed observation time.
-
-    ``construct_event`` is always invoked so the production SDK path (HMAC
-    signature authenticity plus its own past-staleness tolerance) is exercised
-    on every test, including the out-of-window cases. The deterministic,
-    symmetric ``now``-based tolerance check is then enforced as a
-    post-condition, mirroring the production ``ensure_timestamp_within_tolerance``
-    behavior (which rejects stale and future timestamps alike via ``abs``).
-    """
-    if signature is None:
-        raise ValueError("Missing Stripe-Signature header")
-    if secret is None or not secret.strip():
-        raise ValueError("Stripe webhook secret is not configured")
-
-    parsed = parse_stripe_signature_header(signature)
-    tolerance_seconds = int(kwargs.get("tolerance_seconds", 300))
-    now = int(kwargs.get("now", CURRENT_TS))
-
-    # Always run the SDK verification first so signature authenticity (and the
-    # SDK's own tolerance) is validated by the production path.
-    try:
-        # Pass the configured tolerance through so the SDK applies the same
-        # acceptance window (default SDK tolerance is 300s).
-        stripe.Webhook.construct_event(payload, signature, secret, tolerance=tolerance_seconds)
-    except ValueError as exc:
-        raise ValueError(str(exc)) from exc
-    except stripe.error.SignatureVerificationError as exc:
-        raise ValueError(str(exc)) from exc
-
-    # Symmetric (stale + future) tolerance check, matching production
-    # ensure_timestamp_within_tolerance. The SDK only rejects past-stale
-    # timestamps; this post-condition adds the future-side rejection.
-    if abs(now - parsed.timestamp) > tolerance_seconds:
-        raise ValueError("Stripe webhook timestamp is outside tolerance")
-
-    return parsed
+    """Verify with a pinned ``now`` so timing never makes these tests flaky."""
+    kwargs.setdefault("now", CURRENT_TS)
+    return verify_stripe_webhook_signature(payload, signature, secret, **kwargs)
 
 
 def test_valid_signed_delivery_is_accepted() -> None:
@@ -116,15 +84,8 @@ def test_parse_stripe_signature_header_extracts_timestamp_and_signatures() -> No
 def test_signature_tampering_rejected() -> None:
     """A payload signed once but delivered with a different body is rejected."""
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, CURRENT_TS)
-    # Keep the tampered payload event-shaped (same object/type fields as the
-    # signed payload) so construct_event fails on signature verification
-    # rather than on a payload-shape error, which would be brittle across
-    # Stripe SDK versions.
-    tampered = b'{"id": "evt_123", "object": "event", "type": "payment.created", "data": {"amount": 999999}}'
-    with pytest.raises(
-        ValueError,
-        match="Invalid Stripe webhook signature|No signatures found matching",
-    ):
+    tampered = b'{"id": "evt_123", "type": "payment.created", "data": {"amount": 999999}}'
+    with pytest.raises(ValueError, match="Invalid Stripe webhook signature"):
         _verify(tampered, sig, WEBHOOK_SECRET)
 
 
@@ -135,10 +96,7 @@ def test_signature_invalidated_by_timestamp_tampering() -> None:
     digest = hmac.new(WEBHOOK_SECRET.encode(), signed_payload, hashlib.sha256).hexdigest()
     tampered_timestamp_sig = f"t={CURRENT_TS - 5},v1={digest}"
 
-    with pytest.raises(
-        ValueError,
-        match="Invalid Stripe webhook signature|No signatures found matching",
-    ):
+    with pytest.raises(ValueError, match="Invalid Stripe webhook signature"):
         _verify(PAYLOAD, tampered_timestamp_sig, WEBHOOK_SECRET)
 
 
@@ -146,10 +104,7 @@ def test_modified_signature_rejected() -> None:
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, CURRENT_TS)
     prefix, v1 = sig.rsplit("v1=", 1)
     modified = prefix + "v1=" + ("0" if v1[0] != "0" else "1") + v1[1:]
-    with pytest.raises(
-        ValueError,
-        match="Invalid Stripe webhook signature|No signatures found matching",
-    ):
+    with pytest.raises(ValueError, match="Invalid Stripe webhook signature"):
         _verify(PAYLOAD, modified, WEBHOOK_SECRET)
 
 
@@ -175,10 +130,7 @@ def test_signature_version_validation() -> None:
 
 def test_wrong_secret_rejected() -> None:
     wrong_sig = _make_signature(PAYLOAD, OTHER_SECRET, CURRENT_TS)
-    with pytest.raises(
-        ValueError,
-        match="Invalid Stripe webhook signature|No signatures found matching",
-    ):
+    with pytest.raises(ValueError, match="Invalid Stripe webhook signature"):
         _verify(PAYLOAD, wrong_sig, WEBHOOK_SECRET)
 
 
@@ -196,10 +148,7 @@ def test_empty_secret_rejected() -> None:
 
 def test_stale_timestamp_rejected() -> None:
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, STALE_TS)
-    # A genuinely stale timestamp is rejected by the SDK's own tolerance path
-    # ("outside the tolerance zone") and/or the symmetric post-check
-    # ("outside tolerance"), depending on which fires first.
-    with pytest.raises(ValueError, match="outside the tolerance zone|outside tolerance"):
+    with pytest.raises(ValueError, match="outside tolerance"):
         _verify(
             PAYLOAD, sig, WEBHOOK_SECRET, tolerance_seconds=300, now=CURRENT_TS
         )
@@ -207,20 +156,17 @@ def test_stale_timestamp_rejected() -> None:
 
 def test_future_timestamp_outside_tolerance_rejected() -> None:
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, FUTURE_TS)
-    # The SDK does not reject future timestamps; the symmetric post-check
-    # (mirroring production ensure_timestamp_within_tolerance) does.
     with pytest.raises(ValueError, match="outside tolerance"):
         _verify(
             PAYLOAD, sig, WEBHOOK_SECRET, tolerance_seconds=300, now=CURRENT_TS
         )
 
 
-def test_timestamp_tolerance_within_window_accepted() -> None:
-    """A timestamp well inside the tolerance window is accepted."""
-    now = int(time.time())
-    sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, now - 60)
+def test_timestamp_tolerance_boundary_accepted() -> None:
+    """A timestamp exactly at the tolerance edge is accepted."""
+    sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, CURRENT_TS - 300)
     assert _verify(
-        PAYLOAD, sig, WEBHOOK_SECRET, tolerance_seconds=300, now=now
+        PAYLOAD, sig, WEBHOOK_SECRET, tolerance_seconds=300, now=CURRENT_TS
     )
 
 

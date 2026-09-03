@@ -48,7 +48,7 @@ This is the **highest architectural-drift risk** in the repository: plausible, s
 | **Ground Truth / TruthObject** | `layer5-ground-truth` | Gateway proxies `/v1/truths/*` → L5 |
 | **Benchmark Dataset / Comparison** | `layer6-benchmarks` | Gateway proxies `/v1/benchmarks/*` → L6 |
 | **Governance / Review / Audit** | `layer4-agents` (audit orchestrator) | Gateway read model only |
-| **Billing / Subscription** | `layer4-agents` (billing domain owned by Layer 4) | Gateway proxies |
+| **Billing / Subscription** | `layer7-billing` (extracted per ADR-022) | Gateway proxies |
 
 **Rule:** The gateway **never** creates, mutates, or authoritatively stores a domain object that has a designated system of record in a layer service. It may only:
 - **Delegate** mutating calls to the owning service

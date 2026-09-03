@@ -8,6 +8,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from opentelemetry import trace
+from opentelemetry.trace import Tracer
+
 REQUIRED_TRACE_ATTRIBUTES: tuple[str, ...] = (
     "tenant_id",
     "request_id",
@@ -18,36 +21,9 @@ REQUIRED_TRACE_ATTRIBUTES: tuple[str, ...] = (
 )
 
 
-class _NoOpSpan:
-    def end(self, *args: object, **kwargs: object) -> None:
-        return None
-
-    def set_attribute(self, *args: object, **kwargs: object) -> None:
-        return None
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args: object) -> None:
-        return None
-
-
-class _NoOpTracer:
-    def start_span(self, name: str, *args: object, **kwargs: object) -> _NoOpSpan:
-        return _NoOpSpan()
-
-    def start_as_current_span(self, name: str, *args: object, **kwargs: object) -> _NoOpSpan:
-        return _NoOpSpan()
-
-
-def get_tracer(module_name: str, *, service: str | None = None) -> object:
-    """Return a tracer instance for a module/service. No-op when SDK is missing."""
-    try:
-        from opentelemetry import trace
-
-        return trace.get_tracer(service or module_name)
-    except ImportError:
-        return _NoOpTracer()
+def get_tracer(module_name: str, *, service: str | None = None) -> Tracer:
+    """Return a tracer instance for a module/service."""
+    return trace.get_tracer(service or module_name)
 
 
 def span_name(http_method: str, route: str) -> str:

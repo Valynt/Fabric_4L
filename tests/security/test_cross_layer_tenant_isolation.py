@@ -326,21 +326,17 @@ class TestLayer6BenchmarksIsolation:
         pytest.skip("Requires L6 service integration")
 
 
-class TestLayer4BillingIsolation:
-    """Test Layer 4 (Billing) tenant isolation.
+class TestLayer7BillingIsolation:
+    """Test Layer 7 (Billing) tenant isolation."""
 
-    Layer 4 is the canonical owner of the billing domain (COMPAT-BILL-001);
-    the layer7-billing service was removed on 2026-09-01.
-    """
+    def test_l7_usage_records_tenant_scoped(self):
+        pytest.skip("Requires L7 service integration")
 
-    def test_l4_usage_records_tenant_scoped(self):
-        pytest.skip("Requires L4 service integration")
+    def test_l7_invoices_tenant_scoped(self):
+        pytest.skip("Requires L7 service integration")
 
-    def test_l4_invoices_tenant_scoped(self):
-        pytest.skip("Requires L4 service integration")
-
-    def test_l4_billing_overages_tenant_scoped(self):
-        pytest.skip("Requires L4 service integration")
+    def test_l7_billing_overages_tenant_scoped(self):
+        pytest.skip("Requires L7 service integration")
 
 
 class TestCrossLayerDataFlow:
@@ -363,6 +359,9 @@ class TestCrossLayerDataFlow:
         pytest.skip("Requires cross-layer integration test")
 
     def test_tenant_context_propagation_l5_to_l6(self):
+        pytest.skip("Requires cross-layer integration test")
+
+    def test_tenant_context_propagation_l6_to_l7(self):
         pytest.skip("Requires cross-layer integration test")
 
 

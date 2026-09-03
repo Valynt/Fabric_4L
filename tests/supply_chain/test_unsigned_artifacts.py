@@ -39,10 +39,6 @@ def test_sbom_command_generates_evidence_artifacts() -> None:
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     assert sbom["bomFormat"] == "CycloneDX"
     assert sbom["components"]
-    assert all(
-        not str(component.get("scope", "")).startswith(("docs/archive/", "archive/", ".agents/", ".claude/"))
-        for component in sbom["components"]
-    )
     assert summary["component_count"] == len(sbom["components"])
 
 

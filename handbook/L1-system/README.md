@@ -30,6 +30,7 @@ services/api                     FastAPI gateway / BFF — the only public ingre
     +-- services/layer4-agents         L4 agent orchestration, workflows, human gates
     +-- services/layer5-ground-truth   L5 truth, value claims, governance
     +-- services/layer6-benchmarks     L6 governed benchmarks
+    +-- services/layer7-billing        L7 billing
     +-- services/value-studio          TS domain service: value-case orchestration
 
 packages/                        shared, platform-contract, feature-flags, config,

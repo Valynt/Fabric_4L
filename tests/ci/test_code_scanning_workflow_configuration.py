@@ -14,7 +14,7 @@ def test_trivy_uses_supported_misconfig_scanner_name() -> None:
     workflow = SECURITY_GATES.read_text(encoding="utf-8")
 
     assert "scanners: 'vuln,secret,config'" not in workflow
-    assert workflow.count("scanners: 'vuln,secret,misconfig'") == 2
+    assert workflow.count('scanners: "vuln,secret,misconfig"') == 2
 
 
 def test_all_local_sarif_uploads_use_the_reviewed_codeql_v4_action() -> None:

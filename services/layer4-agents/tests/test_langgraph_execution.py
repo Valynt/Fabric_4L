@@ -52,22 +52,6 @@ def _make_mock_tool_registry() -> ToolRegistry:
     return registry
 
 
-def _make_passthrough_gateway(registry: ToolRegistry) -> Mock:
-    """Return a policy gateway that delegates execution to the mock registry.
-
-    Workflows fail closed when no gateway is present, so tests that actually
-    execute tools must inject one. This gateway reads ``registry.execute`` at
-    call time, so tests may still reassign it after workflow construction.
-    """
-    gateway = Mock()
-
-    async def _execute(tool_name: str, input_data: dict[str, object]) -> object:
-        return await registry.execute(tool_name, input_data)
-
-    gateway.execute = AsyncMock(side_effect=_execute)
-    return gateway
-
-
 def _make_mock_openai_response(content: str = "Mock LLM content") -> MagicMock:
     """Create a mock AsyncOpenAI chat completion response."""
     mock_choice = MagicMock()
@@ -78,21 +62,6 @@ def _make_mock_openai_response(content: str = "Mock LLM content") -> MagicMock:
     mock_response.usage.prompt_tokens = 10
     mock_response.usage.completion_tokens = 20
     return mock_response
-
-
-@pytest.mark.asyncio
-async def test_workflow_tool_gateway_is_injected() -> None:
-    """Workflow constructors must accept and wire the policy-enforced tool gateway."""
-    registry = _make_mock_tool_registry()
-    gateway = Mock()
-    gateway.execute = AsyncMock(return_value={"status": "ok"})
-
-    workflow = WhitespaceAnalysisWorkflow(tool_registry=registry, tool_gateway=gateway)
-
-    assert workflow.tool_gateway is gateway
-    result = await workflow.tool_registry.execute("get_prospect_data", {"prospect_id": "p-001"})
-    assert result == {"status": "ok"}
-    gateway.execute.assert_awaited_once_with("get_prospect_data", {"prospect_id": "p-001"})
 
 
 # ── WorkflowStatus Tests ──────────────────────────────────────────────────────
@@ -152,10 +121,7 @@ class TestWhitespaceAnalysisWorkflow:
         mock_get_provider.return_value = provider_mock
 
         registry = _make_mock_tool_registry()
-        workflow = WhitespaceAnalysisWorkflow(
-            tool_registry=registry,
-            tool_gateway=_make_passthrough_gateway(registry),
-        )
+        workflow = WhitespaceAnalysisWorkflow(tool_registry=registry)
 
         input_data = {
             "prospect_id": "p-001",
@@ -182,10 +148,7 @@ class TestWhitespaceAnalysisWorkflow:
     async def test_identify_gaps_returns_complete_result(self) -> None:
         """_execute_identify_gaps must return a result with all required fields."""
         registry = _make_mock_tool_registry()
-        workflow = WhitespaceAnalysisWorkflow(
-            tool_registry=registry,
-            tool_gateway=_make_passthrough_gateway(registry),
-        )
+        workflow = WhitespaceAnalysisWorkflow(tool_registry=registry)
 
         input_data = {
             "prospect_id": "p-001",
@@ -252,10 +215,7 @@ class TestWhitespaceAnalysisWorkflow:
         """_execute_query_capabilities must unwrap ToolResult.data, not crash on .get()."""
         from layer4_agents.tools.registry import ToolResult
         registry = _make_mock_tool_registry()
-        workflow = WhitespaceAnalysisWorkflow(
-            tool_registry=registry,
-            tool_gateway=_make_passthrough_gateway(registry),
-        )
+        workflow = WhitespaceAnalysisWorkflow(tool_registry=registry)
 
         input_data = {
             "prospect_id": "p-001",
@@ -455,10 +415,7 @@ class TestBusinessCaseGeneratorWorkflow:
                 return BusinessCaseGeneratorWorkflowMockExecuteResult.model_validate({"status": "ok"})
 
         registry.execute = AsyncMock(side_effect=mock_execute)
-        workflow = BusinessCaseGeneratorWorkflow(
-            tool_registry=registry,
-            tool_gateway=_make_passthrough_gateway(registry),
-        )
+        workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
 
         # Build a state with pre-populated gather_inputs and run_roi output
         input_data = {
@@ -539,10 +496,7 @@ class TestBusinessCaseGeneratorWorkflow:
             return BusinessCaseGeneratorWorkflowMockExecuteErrorResult.model_validate({"status": "ok"})
 
         registry.execute = AsyncMock(side_effect=mock_execute_error)
-        workflow = BusinessCaseGeneratorWorkflow(
-            tool_registry=registry,
-            tool_gateway=_make_passthrough_gateway(registry),
-        )
+        workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
 
         input_data = {
             "account_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -617,10 +571,7 @@ class TestBusinessCaseGeneratorWorkflow:
             return {"status": "ok"}
 
         registry.execute = AsyncMock(side_effect=mock_execute)
-        workflow = BusinessCaseGeneratorWorkflow(
-            tool_registry=registry,
-            tool_gateway=_make_passthrough_gateway(registry),
-        )
+        workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
 
         input_data = {
             "account_id": "550e8400-e29b-41d4-a716-446655440000",

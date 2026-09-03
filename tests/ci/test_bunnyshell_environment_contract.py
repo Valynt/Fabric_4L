@@ -125,11 +125,23 @@ def test_bunnyshell_application_credentials_are_required_and_auth_bypass_is_disa
         "postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ground_truth"
     )
 
-    # R3 billing dedup: the layer7-billing service was removed; no bunnyshell
-    # component may reference it (billing is owned by layer4-agents).
-    component_names = [component["name"] for component in config["components"]]
-    assert "layer7" not in component_names
-    assert not any("layer7" in yaml.safe_dump(component) for component in config["components"])
+    layer7_compose = _component(config, "layer7")["dockerCompose"]
+    layer7_env = layer7_compose["environment"]
+    assert layer7_compose["build"]["dockerfile"] == "./services/layer7-billing/Dockerfile"
+    assert layer7_env["LAYER7_DATABASE_URL"] == (
+        "postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/layer7_billing"
+    )
+    assert layer7_env["REDIS_URL"] == "redis://:${REDIS_PASSWORD}@redis:6379/0"
+    assert layer7_env["JWT_SECRET"] == "${JWT_SECRET}"
+    assert layer7_env["API_KEY_HMAC_SECRET"] == "${API_KEY_HMAC_SECRET}"
+    assert layer7_env["SERVICE_AUTH_SECRET"] == "${SERVICE_AUTH_SECRET}"
+    assert layer7_env["PORT"] == "8008"
+    assert layer7_compose["healthcheck"]["test"] == [
+        "CMD",
+        "curl",
+        "-f",
+        "http://localhost:8008/health",
+    ]
 
 
 @pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
@@ -175,7 +187,7 @@ def test_postgres_init_script_does_not_unconditionally_exit_zero(
     assert "exit 1" in script, (
         "postgres-init script must exit 1 on unexpected psql errors"
     )
-    assert "create_db layer7_billing" not in script
+    assert "create_db layer7_billing" in script
 
 
 @pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
@@ -209,6 +221,7 @@ def test_postgres_multiple_databases_includes_all_required_dbs(bunnyshell_path: 
         "ground_truth",
         "layer4_agents",
         "layer6_benchmarks",
+        "layer7_billing",
     }
     declared = {db.strip() for db in multi_db.split(",")}
     missing = required - declared

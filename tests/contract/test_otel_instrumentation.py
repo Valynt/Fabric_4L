@@ -1,8 +1,8 @@
 """P0-007: Static contract tests for OpenTelemetry instrumentation coverage.
 
-Verifies that the services identified as missing OTel instrumentation
-(billing, layer2-5-signal-refinery) are actually instrumented at the
-source-code level.  Runtime trace receipt is validated separately by
+Verifies that the three services identified as missing OTel instrumentation
+(billing, layer2-5-signal-refinery, layer7-billing) are actually instrumented
+at the source-code level.  Runtime trace receipt is validated separately by
 ``tests/backend_integrated/test_otel_trace_receipt.py``.
 """
 
@@ -105,6 +105,45 @@ class TestOtelInstrumentationStatic:
         assert _has_kwarg_in_call(source, "instrument_telemetry=True"), (
             "layer2-5-signal-refinery must pass instrument_telemetry=True to create_fabric_app"
         )
+
+    def test_layer7_passes_instrument_telemetry_true(self) -> None:
+        """layer7-billing must pass instrument_telemetry=True."""
+        path = (
+            REPO_ROOT
+            / "services"
+            / "layer7-billing"
+            / "src"
+            / "layer7_billing"
+            / "api"
+            / "main.py"
+        )
+        source = _read_source(path)
+        assert _has_kwarg_in_call(source, "instrument_telemetry=True"), (
+            "layer7-billing must pass instrument_telemetry=True to create_fabric_app"
+        )
+
+    def test_layer7_registers_health_endpoint_for_live_trace_probe(self) -> None:
+        """layer7-billing must expose the health endpoint used by live trace receipt tests."""
+        path = (
+            REPO_ROOT
+            / "services"
+            / "layer7-billing"
+            / "src"
+            / "layer7_billing"
+            / "api"
+            / "main.py"
+        )
+        source = _read_source(path)
+        assert _has_call(source, "register_health_endpoint"), (
+            "layer7-billing must register /health so live trace receipt can probe port 8008"
+        )
+
+    def test_live_trace_receipt_defaults_layer7_to_layer7_port(self) -> None:
+        """Layer 7 live trace tests must not default to the billing service port."""
+        path = REPO_ROOT / "tests" / "backend_integrated" / "test_otel_trace_receipt.py"
+        source = _read_source(path)
+        assert 'LAYER7_URL = os.getenv("LAYER7_URL", "http://localhost:8008")' in source
+        assert 'LAYER7_URL = os.getenv("LAYER7_URL", "http://localhost:8000")' not in source
 
     def test_opentelemetry_collector_yaml_is_valid(self) -> None:
         """The OpenTelemetry collector manifest must be parseable YAML

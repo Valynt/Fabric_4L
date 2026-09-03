@@ -27,13 +27,13 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Check required AWS/GitHub configuration
         run: python scripts/ci/check_terraform_preflight.py
         env:
           AWS_TERRAFORM_ROLE_ARN: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
-          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+          AWS_REGION: "us-east-1"
           GITHUB_ENVIRONMENT: ${{ matrix.environment || 'all' }}
 
   terraform-fmt:
@@ -43,7 +43,7 @@ jobs:
     needs: terraform-preflight
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - uses: hashicorp/setup-terraform@651471c36a6092792477d4013f5ca1e78f20c8a6 # v3
         with:
@@ -62,7 +62,7 @@ jobs:
         environment: [dev, staging, prod]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - uses: hashicorp/setup-terraform@651471c36a6092792477d4013f5ca1e78f20c8a6 # v3
         with:
@@ -72,7 +72,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@e3dd6a429df7310c206912c702224ff01c7c0eea # v4
         with:
           role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          aws-region: "us-east-1"
 
       - name: Terraform init
         working-directory: infra/terraform/environments/${{ matrix.environment }}
@@ -89,7 +89,7 @@ jobs:
     needs: terraform-fmt
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@90f302c25522c0652db0947a11a739e52b255ae6 # v4
@@ -113,7 +113,7 @@ jobs:
         environment: [dev, staging, prod]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - uses: hashicorp/setup-terraform@651471c36a6092792477d4013f5ca1e78f20c8a6 # v3
         with:
@@ -123,7 +123,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@e3dd6a429df7310c206912c702224ff01c7c0eea # v4
         with:
           role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          aws-region: "us-east-1"
 
       - name: Terraform init
         working-directory: infra/terraform/environments/${{ matrix.environment }}
@@ -134,7 +134,7 @@ jobs:
         run: terraform plan -out=tfplan-${{ matrix.environment }}
 
       - name: Upload plan artifact
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
           name: tfplan-${{ matrix.environment }}
           path: infra/terraform/environments/${{ matrix.environment }}/tfplan-${{ matrix.environment }}
@@ -146,7 +146,7 @@ jobs:
     needs: [terraform-preflight, terraform-fmt]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - uses: bridgecrewio/checkov-action@a5705f60b63b828a3459c359562e3a3236f746f0 # v12
         with:

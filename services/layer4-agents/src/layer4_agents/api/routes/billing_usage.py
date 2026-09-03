@@ -1,9 +1,7 @@
-"""Usage and usage-summary billing routes.
+"""Phase 1 forwarding stub — canonical implementation now in layer7-billing.
 
-Layer 4 is the canonical billing runtime; there is no separate Layer 7
-Billing Service. The handlers registered here are re-exported from the
-local ``billing`` module (UsageService, BillingService, Stripe sync).
-Patch this service, not a Layer 7 package.
+Layer 4 retains this shim for backward compatibility. All calls are
+forwarded to the Layer 7 Billing Service via HTTP client stubs.
 """
 
 from __future__ import annotations

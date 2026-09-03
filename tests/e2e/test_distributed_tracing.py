@@ -1,7 +1,7 @@
 """
 Sprint 3: Distributed Trace E2E Validation Test
 
-Validates that a single trace propagates across the platform services.
+Validates that a single trace propagates across all 10 services.
 Injects a traceparent header at the API gateway and verifies
 the same trace_id appears in logs from L1→L2→L3→L4→L5.
 
@@ -56,6 +56,7 @@ class TestDistributedTracing:
             "layer4-agents",
             "layer5-ground-truth",
             "layer6-benchmarks",
+            "layer7-billing",
         ]
         start = time.time()
         found_services = set()

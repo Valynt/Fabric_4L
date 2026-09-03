@@ -8,7 +8,6 @@ Usage:
     python scripts/ci/check_dependabot_coverage.py
     python scripts/ci/check_dependabot_coverage.py --root /path/to/repo
 """
-
 from __future__ import annotations
 
 import argparse
@@ -41,9 +40,6 @@ EXCLUDE_DIRS = frozenset(
         "__pycache__",
         ".mypy_cache",
         ".pytest_cache",
-        # Checked-in agent skill templates are scaffolding, not package roots.
-        ".agents",
-        ".claude",
         # Legacy / obsolete roots — canonical structure
         "value-fabric",
         "frontend",
@@ -96,9 +92,7 @@ def discover_manifest_dirs(root: Path) -> tuple[set[str], set[str], set[str]]:
         if file_names & NPM_MANIFESTS and not (parts & NPM_SKIP_PARENTS):
             npm_dirs.add(_repo_directory(current_path, root))
 
-        if any(
-            name == "Dockerfile" or name.startswith("Dockerfile.") for name in files
-        ):
+        if any(name == "Dockerfile" or name.startswith("Dockerfile.") for name in files):
             docker_dirs.add(_repo_directory(current_path, root))
 
     return pip_dirs, npm_dirs, docker_dirs
@@ -139,9 +133,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    root = (
-        Path(args.root).resolve() if args.root else Path(__file__).resolve().parents[2]
-    )
+    root = Path(args.root).resolve() if args.root else Path(__file__).resolve().parents[2]
     dependabot_path = root / ".github" / "dependabot.yml"
 
     if not dependabot_path.exists():

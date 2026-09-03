@@ -26,7 +26,7 @@ Value Fabric uses a dual-track backup strategy:
 ### Databases Backed Up
 
 All application databases are backed up: `ingestion`, `extraction`,
-`signal_refinery`, `layer4_agents`, `ground_truth`, `benchmarks`.
+`signal_refinery`, `layer4_agents`, `ground_truth`, `benchmarks`, `layer7_billing`.
 
 ### Verify Backup Exists
 

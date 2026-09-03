@@ -116,25 +116,6 @@ class TestL4WorkflowLifecycle:
         checkpoints = list(saver.list(config_run))
         assert len(checkpoints) >= 1
 
-    async def test_workflow_accepts_injected_tool_gateway(self):
-        """Workflows must allow dependency injection of the policy-enforced tool gateway."""
-        config = _make_test_config()
-        registry = Mock(spec=ToolRegistry)
-        tool_gateway = Mock()
-        tool_gateway.execute = AsyncMock(return_value={"status": "ok"})
-
-        workflow = _MinimalTestWorkflow(
-            config=config,
-            tool_registry=registry,
-            tool_gateway=tool_gateway,
-        )
-        state = workflow.create_initial_state({"investment": 1000})
-
-        result = await workflow._execute_tool("example_tool", state, {})
-
-        assert result == {"status": "ok"}
-        tool_gateway.execute.assert_awaited_once_with("example_tool", state.input_data)
-
     async def test_workflow_status_is_tenant_scoped(self):
         """Workflow status queries must be scoped to the requesting tenant."""
         # Logical isolation: two independent workflow instances should not

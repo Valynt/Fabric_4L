@@ -13,7 +13,7 @@
 | get_db_with_optional_tenant() | get_db_from_context() + require_super_admin() | 2026-06-15 | Admin routes only | complete | `rg` scan across canonical runtime paths (no hits); deprecated surface retained for compatibility tests only |
 | Layer 3 AuthenticationMiddleware | shared.identity.GovernanceMiddleware | 2026-05-15 | Remove duplicate middleware | waived-with-exception | DEP-EXC-2026-05-15-L3-AUTHMIDDLEWARE |
 | Raw dict agent returns | AgentResultEnvelope | 2026-12-31 | Gradual migration | in-progress | Extended by S1-T1-CI-STABILIZE; migrations continue |
-| ToolRegistry.execute() direct call | ToolGateway.execute() | 2026-12-31 | Agents must use ctx['tool_gateway'] | waived-with-exception | DEP-EXC-2026-07-17-TOOL-REGISTRY |
+| ToolRegistry.execute() direct call | ToolGateway.execute() | 2026-08-31 | Agents must use ctx['tool_gateway'] | waived-with-exception | DEP-EXC-2026-07-17-TOOL-REGISTRY |
 | GraphRAGEngine.query() direct call | MemoryGateway.query() | 2026-07-15 | Agents must use ctx['memory_gateway'] | complete | MemoryGateway wired into BaseAgent.run() and ConversationService gate context; tests in services/layer4-agents/tests/test_base_agent_memory_gateway.py |
 | datetime.utcnow() | datetime.now(timezone.utc) | 2026-06-01 | Deprecated in Python 3.12 | waived-with-exception | DEP-EXC-2026-06-04-UTCNOW |
 | asyncio.get_event_loop().time() | asyncio.get_running_loop().time() | 2026-06-01 | Deprecated in Python 3.10 | waived-with-exception | DEP-EXC-2026-06-04-LOOP-TIME |
@@ -51,7 +51,7 @@ Reference validation scope required by release policy:
 | DEP-EXC-2026-06-04-VALUE-PILOT-STORE | `useWorkflowStore + usePilotStore` | TE | frontend-platform@valuefabric.ai | Medium: store consolidation touches user workflow state and needs frontend owner validation | 2026-06-30 | release suite |
 | DEP-EXC-2026-06-15-WEB-CONTEXT | `React Context for server state` | TE | frontend-platform@valuefabric.ai | Medium: billing/auth contexts retain Context-based state; migration to TanStack Query requires frontend owner validation | 2026-07-15 | release suite |
 | DEP-EXC-2026-06-15-ERROR-ENVELOPE | `{"detail": ...}` error-only HTTP payloads | TE | platform-engineering@valuefabric.ai | Low: Layer 1 legacy `error=authentication_required` compatibility field retained for existing clients; canonical envelope used elsewhere | 2026-07-15 | release suite |
-| DEP-EXC-2026-07-17-TOOL-REGISTRY | `ToolRegistry.execute() direct call` | TE | agent-platform@valuefabric.ai | Medium: whitespace.py and roi_calculator.py workflows still call tool_registry.execute directly; migration to ToolGateway requires agent workflow owner validation. Time-boxed renewal recorded during CI-baseline incident repair (PR #1021); re-time-boxed 2026-09-02 (PR #1634) | 2026-12-31 | release suite |
+| DEP-EXC-2026-07-17-TOOL-REGISTRY | `ToolRegistry.execute() direct call` | TE | agent-platform@valuefabric.ai | Medium: whitespace.py and roi_calculator.py workflows still call tool_registry.execute directly; migration to ToolGateway requires agent workflow owner validation. Time-boxed renewal recorded during CI-baseline incident repair (PR #1021) | 2026-08-31 | release suite |
 
 ## Layer 3 API Alias Deprecation Governance (Contract Council Tracked)
 

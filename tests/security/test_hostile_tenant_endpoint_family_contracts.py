@@ -4,9 +4,10 @@ Tests explicit hostile cross-tenant access patterns for each layer's endpoint fa
 - L1: /api/v1/ingestion/**
 - L2: /signals/**
 - L3: /v1/entities/** (entities.py), /v1/graph/** (graph_viz.py), /v1/search/** (query_search.py)
-- L4: /v1/workflows/**, /v1/accounts/**, /v1/billing/**
+- L4: /v1/workflows/**, /v1/accounts/**
 - L5: /api/v1/truths/**
 - L6: /v1/benchmarks/**
+- L7: /v1/billing/**
 - API: /v1/accounts/**
 
 Each family must enforce tenant isolation at the route handler level:
@@ -71,12 +72,6 @@ ENDPOINT_FAMILIES: dict[str, tuple[str, Path, str, list[str]]] = {
         "/v1/accounts",
         ["GET", "POST", "PUT"],
     ),
-    "L4_billing": (
-        "L4",
-        REPO_ROOT / "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
-        "/v1/billing",
-        ["GET", "POST"],
-    ),
     "L5_truths": (
         "L5",
         REPO_ROOT / "services/layer5-ground-truth/src/layer5_ground_truth/api/router.py",
@@ -88,6 +83,12 @@ ENDPOINT_FAMILIES: dict[str, tuple[str, Path, str, list[str]]] = {
         REPO_ROOT / "services/layer6-benchmarks/src/layer6_benchmarks/api/routes/benchmarks.py",
         "/v1/benchmarks",
         ["GET", "POST", "PUT"],
+    ),
+    "L7_billing": (
+        "L7",
+        REPO_ROOT / "services/layer7-billing/src/layer7_billing/api/main.py",
+        "/v1/billing",
+        ["GET", "POST"],
     ),
     "API_accounts": (
         "API",

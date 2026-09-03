@@ -78,6 +78,7 @@ const VALID_LAYER_KEYS = [
   "l4",
   "l5",
   "l6",
+  "l7",
 ] as const;
 
 /** Zod schema for layer key validation */
@@ -166,6 +167,8 @@ const API_ENV_VALUES: Record<string, string | undefined> = {
   VITE_L5_PREFIX: import.meta.env.VITE_L5_PREFIX,
   VITE_LAYER6_ROUTE_PREFIX: import.meta.env.VITE_LAYER6_ROUTE_PREFIX,
   VITE_L6_PREFIX: import.meta.env.VITE_L6_PREFIX,
+  VITE_LAYER7_ROUTE_PREFIX: import.meta.env.VITE_LAYER7_ROUTE_PREFIX,
+  VITE_L7_PREFIX: import.meta.env.VITE_L7_PREFIX,
 };
 
 /** Get an API environment variable with development/test fallbacks only. */
@@ -244,6 +247,11 @@ const LAYER_PREFIXES = {
     ["VITE_LAYER6_ROUTE_PREFIX", "VITE_L6_PREFIX"],
     "/benchmarks",
     "Layer 6 route prefix"
+  ),
+  l7: getApiEnvVar(
+    ["VITE_LAYER7_ROUTE_PREFIX", "VITE_L7_PREFIX"],
+    "/billing",
+    "Layer 7 route prefix"
   ),
 } as const;
 

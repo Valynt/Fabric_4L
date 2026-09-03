@@ -15,5 +15,5 @@ note names the component. Paths on each page are repository-verified; do not gue
 | Shared packages | `packages.md` | AG-01, AG-02, AG-07 |
 
 Component NOT YET covered by a page (e.g. `services/layer1-ingestion`, `layer2-extraction`,
-`layer6-benchmarks` internals): add the page when a behavior first needs it,
+`layer6-benchmarks`, `layer7-billing` internals): add the page when a behavior first needs it,
 using only verified repository paths.

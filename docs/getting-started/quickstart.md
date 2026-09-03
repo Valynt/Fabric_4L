@@ -76,6 +76,7 @@ graph TB
 | 4 | Layer 4 Agents | `services/layer4-agents/` | 8004 | Agent orchestration |
 | 5 | Layer 5 Ground Truth | `services/layer5-ground-truth/` | 8005 | Validation & ground truth |
 | 6 | Layer 6 Benchmarks | `services/layer6-benchmarks/` | 8006 | Benchmark evaluation |
+| 7 | Layer 7 Billing | `services/layer7-billing/` | 8008 | Usage metering & entitlements |
 | 8 | Frontend UI | `apps/web/` | 5173 (`pnpm dev`) or 3001 (`docker compose`) | React/Vite user interface |
 
 ## Runtime path placement (contributors)
@@ -139,6 +140,7 @@ LAYER3_PORT=8001
 LAYER4_PORT=8004
 LAYER5_PORT=8005
 LAYER6_PORT=8006
+LAYER7_PORT=8008
 ```
 
 ---
@@ -155,7 +157,7 @@ docker compose -f docker-compose.full.yml up -d
 docker compose up -d
 
 # Expected output:
-# [+] Running 9/9
+# [+] Running 10/10
 #  ✔ Container vf-live-postgres  Started
 #  ✔ Container vf-live-redis     Started
 #  ✔ Container vf-live-neo4j     Started
@@ -165,6 +167,7 @@ docker compose up -d
 #  ✔ Container vf-live-layer4    Started
 #  ✔ Container vf-live-layer5    Started
 #  ✔ Container vf-live-layer6    Started
+#  ✔ Container vf-live-layer7    Started
 ```
 
 **Verification:**
@@ -205,6 +208,7 @@ make migrate
 # make migrate-layer2
 # make migrate-layer4
 # make migrate-layer5
+# make migrate-layer7
 
 # Expected output:
 # INFO  [alembic.runtime.migration] Context impl PostgresqlImpl

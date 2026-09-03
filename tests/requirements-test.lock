@@ -3052,7 +3052,6 @@ requests==2.34.2 \
     #   requests-toolbelt
     #   schemathesis
     #   starlette-testclient
-    #   stripe
 requests-toolbelt==1.0.0 \
     --hash=sha256:7681a0a3d047012b5bdc0ee37d7f8f07ebe76ab08caeccfc3921ce23c88d5bc6 \
     --hash=sha256:cccfdd665f0a24fcf4726e690f65639d272bb0637b9b92dfd91a5568ccf6bd06
@@ -3352,10 +3351,6 @@ starlette-testclient==0.4.1 \
     --hash=sha256:9e993ffe12fab45606116257813986612262fe15c1bb6dc9e39cc68693ac1fc5 \
     --hash=sha256:dcf0eb237dc47f062ef5925f98330af46f67e547cb587119c9ae78c17ae6c1d1
     # via schemathesis
-stripe==15.6.1 \
-    --hash=sha256:9f3986aa960419041aba9c76191746bdf2c342c95892acfbf6edb500ab006d31 \
-    --hash=sha256:b33e1ea76462d7289e5fe755a1132b82099151bfb31e961021655471e6d216bf
-    # via -r tests/requirements-test.txt
 structlog==26.1.0 \
     --hash=sha256:e081a26d6c373e6d201eca24eede26d8ffab07f88f477822e679183428d3d91e \
     --hash=sha256:f63a716cbd1b1291cf7661de7794b455acfa4c43c5bcf1630e6ad5ddc1adb3b7
@@ -3472,7 +3467,6 @@ typing-extensions==4.16.0 \
     #   schemathesis
     #   sqlalchemy
     #   starlette
-    #   stripe
     #   testcontainers
     #   typing-inspection
 typing-inspection==0.4.2 \

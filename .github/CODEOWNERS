@@ -89,6 +89,9 @@ packages/shared/src/value_fabric/shared/ @value-fabric/backend-leads @value-fabr
 # Layer 2.5: Signal Refinery
 services/layer2-5-signal-refinery/ @value-fabric/backend-leads @value-fabric/ai-ml-leads
 
+# Layer 7: Billing
+services/layer7-billing/ @value-fabric/backend-leads @value-fabric/qa-leads
+
 # Value Studio Domain
 services/value-studio/ @value-fabric/backend-leads @value-fabric/architects
 

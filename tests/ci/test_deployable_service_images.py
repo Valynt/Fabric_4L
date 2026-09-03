@@ -74,28 +74,27 @@ def test_legacy_billing_service_is_not_counted_as_deployable() -> None:
 
     deployable = module.deployable_service_dirs()
 
-    # R3 billing dedup: layer7-billing was removed on 2026-09-01; billing is
-    # owned by layer4-agents and is not a standalone deployable service.
-    assert "layer7-billing" not in deployable
+    assert "layer7-billing" in deployable
     assert "billing" not in deployable
 
 
 def test_legacy_billing_package_is_removed_and_not_reintroduced() -> None:
     # COMPAT-BILL-001: legacy services/billing package deleted 2026-08-27.
-    # Billing is owned by layer4-agents (canonical runtime); no standalone
-    # billing service exists. This ratchet fails if a parallel
-    # `services/billing/` package is ever reintroduced.
+    # Billing is split between layer7 (plans/usage/invoices/payment-state) and
+    # layer4 (membership/subscription webhook domain). This ratchet fails if a
+    # parallel `services/billing/` package is ever reintroduced.
     assert not (REPO_ROOT / "services" / "billing" / "pyproject.toml").exists()
     assert not (REPO_ROOT / "services" / "billing" / "Dockerfile").exists()
 
 
-def test_layer7_billing_service_is_removed_and_not_reintroduced() -> None:
-    # R3 billing dedup: services/layer7-billing was the duplicated billing
-    # runtime removed on 2026-09-01; canonical billing lives in layer4-agents.
-    # This ratchet fails if a parallel `services/layer7-billing/` deployable is
-    # ever reintroduced.
-    assert not (REPO_ROOT / "services" / "layer7-billing" / "pyproject.toml").exists()
-    assert not (REPO_ROOT / "services" / "layer7-billing" / "Dockerfile").exists()
+def test_layer7_readme_declares_canonical_billing_ownership() -> None:
+    readme = (REPO_ROOT / "services" / "layer7-billing" / "README.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "canonical deployable billing runtime" in readme
+    assert "legacy" in readme and "was removed" in readme
+    assert "COMPAT-BILL-001" in readme
 
 
 def test_non_deployable_service_is_excluded_from_gate(checker_module, tmp_path) -> None:
@@ -107,15 +106,15 @@ def test_non_deployable_service_is_excluded_from_gate(checker_module, tmp_path) 
 
 
 def test_missing_dockerfile_is_reported(checker_module, tmp_path, capsys) -> None:
-    write_service(tmp_path, "extra-service", dockerfile=False)
+    write_service(tmp_path, "layer7-billing", dockerfile=False)
     write_file(
         tmp_path / "docker-compose.full.yml",
         """
 services:
-  extra-service:
+  layer7-billing:
     build:
       context: .
-      dockerfile: ./services/extra-service/Dockerfile
+      dockerfile: ./services/layer7-billing/Dockerfile
 """,
     )
 
@@ -123,18 +122,18 @@ services:
 
     out = capsys.readouterr().out
     assert "Dockerfile mismatch" in out
-    assert "missing=['extra-service']" in out
+    assert "missing=['layer7-billing']" in out
 
 
 def test_missing_compose_build_is_reported(checker_module, tmp_path, capsys) -> None:
-    write_service(tmp_path, "extra-service")
+    write_service(tmp_path, "layer7-billing")
     write_file(tmp_path / "docker-compose.full.yml", "services: {}\n")
 
     assert checker_module.main() == 1
 
     out = capsys.readouterr().out
     assert "Compose build mismatch" in out
-    assert "missing=['extra-service']" in out
+    assert "missing=['layer7-billing']" in out
 
 
 def test_compose_parser_accepts_supported_build_shapes(checker_module, tmp_path) -> None:
@@ -148,15 +147,15 @@ services:
     build:
       context: ./services/layer1-ingestion
       dockerfile: Dockerfile
-  extra:
+  layer7:
     build:
       context: .
-      dockerfile: ./services/extra-service/Dockerfile
+      dockerfile: ./services/layer7-billing/Dockerfile
 """,
     )
 
     assert checker_module.compose_defined_services() == {
         "api",
         "layer1-ingestion",
-        "extra-service",
+        "layer7-billing",
     }

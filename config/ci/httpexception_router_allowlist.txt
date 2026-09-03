@@ -14,3 +14,5 @@ services/api/app/routers/product_endpoints.py:44
 services/layer1-ingestion/src/layer1_ingestion/api/main.py:217
 services/layer4-agents/src/layer4_agents/tenants/api/routes/admin_dashboard.py:453
 services/layer4-agents/src/layer4_agents/tenants/api/routes/admin_dashboard.py:462
+services/layer7-billing/src/layer7_billing/api/main.py:337
+services/layer7-billing/src/layer7_billing/api/main.py:348

@@ -41,7 +41,7 @@ runtime modules directly.
 | Capability | Canonical runtime paths | Legacy / compatibility paths (no net-new logic) | Allowed new development target | Owner / review |
 | :--------- | :---------------------- | :---------------------------------------------- | :----------------------------- | :------------- |
 | Signal Refinery | `services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/` | none approved outside service-local wrappers | `services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/` | Signal Refinery Maintainers |
-| Billing | `services/layer4-agents/src/layer4_agents/services/billing_service.py` (and `api/routes/billing*.py`) | Legacy `services/billing/` removed 2026-08-27 (COMPAT-BILL-001); parallel `services/layer7-billing/` removed 2026-09-01 (COMPAT-L4-003) | `services/layer4-agents/src/layer4_agents/` | Billing Maintainers (Layer 4) |
+| Billing | `services/layer7-billing/src/layer7_billing/` | Legacy `services/billing/` removed 2026-08-27 (COMPAT-BILL-001); membership domain owned by `services/layer4-agents/src/layer4_agents/services/billing_service.py` | `services/layer7-billing/src/layer7_billing/` | Billing Maintainers |
 
 Layer 6 note: when compatibility wrappers are present under `services/layer6-benchmarks/src/`, they are wrapper-only and cannot contain local domain logic; CI enforces this via `scripts/ci/check_layer6_wrapper_drift.py`, and `scripts/check_mirrored_files.py` enforces byte-alignment against the manifest-declared wrapper template in `scripts/mirrored_files.json`.
 

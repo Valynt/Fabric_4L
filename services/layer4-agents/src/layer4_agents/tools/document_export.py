@@ -325,7 +325,7 @@ class DocumentExportTool(BaseTool):
     ) -> ExportDocumentOutput:
         """Generate business case PDF."""
         template_str = custom_template or BUSINESS_CASE_TEMPLATE
-        template = Template(template_str, autoescape=select_autoescape(["html", "xml"]))
+        template = Template(template_str, autoescape=select_autoescape(['html', 'xml']))
 
         # Calculate derived values
         use_cases = data.get("use_cases", [])
@@ -488,12 +488,8 @@ class PDFGenerator:
         pdf_bytes = result.pdf_bytes
 
         if output_path:
-            await asyncio.to_thread(self._write_bytes_to_path, output_path, pdf_bytes)
-            self.logger.info("PDF saved to %s", output_path)
+            with open(output_path, "wb") as f:
+                f.write(pdf_bytes)
+            self.logger.info(f"PDF saved to {output_path}")
 
         return pdf_bytes
-
-    @staticmethod
-    def _write_bytes_to_path(path: str, payload: bytes) -> None:
-        with open(path, "wb") as file:
-            file.write(payload)

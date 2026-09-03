@@ -11,7 +11,7 @@ def test_billing_webhook_idempotency_coverage_exists() -> None:
         (
             "services/layer4-agents/tests/test_billing_service.py",
             "tests/integration/billing_entitlements/test_billing_entitlements_regression.py",
-            "services/layer4-agents/tests/test_webhook_security.py",
+            "tests/unit/l7/test_webhook_security.py",
         ),
         label="billing webhook idempotency coverage",
     )

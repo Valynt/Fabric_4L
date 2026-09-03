@@ -7455,6 +7455,292 @@
       "operationId": "validate_v1_benchmarks_validate_post"
     },
     {
+      "source": "layer7-billing",
+      "method": "GET",
+      "path": "/ready",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "readiness_handler_ready_get"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "GET",
+      "path": "/v1/billing/check-feature",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "check_feature_v1_billing_check_feature_get"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "POST",
+      "path": "/v1/billing/checkout",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "create_checkout_v1_billing_checkout_post"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "GET",
+      "path": "/v1/billing/customers/{customer_id}/balance",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_customer_balance_v1_billing_customers__customer_id__balance_get"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "GET",
+      "path": "/v1/billing/entitlements",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_entitlements_v1_billing_entitlements_get"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "GET",
+      "path": "/v1/billing/entitlements/{plan_id}/decision",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "entitlement_decision_v1_billing_entitlements__plan_id__decision_get"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "POST",
+      "path": "/v1/billing/events",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "ingest_usage_event_v1_billing_events_post"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "POST",
+      "path": "/v1/billing/events/batch",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "ingest_usage_batch_v1_billing_events_batch_post"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "GET",
+      "path": "/v1/billing/invoices",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "list_invoices_v1_billing_invoices_get"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "GET",
+      "path": "/v1/billing/limits/{customer_id}",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_usage_limits_v1_billing_limits__customer_id__get"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "POST",
+      "path": "/v1/billing/limits/{customer_id}/check",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "check_request_allowed_v1_billing_limits__customer_id__check_post"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "GET",
+      "path": "/v1/billing/payment-state",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "payment_state_v1_billing_payment_state_get"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "POST",
+      "path": "/v1/billing/plans",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "upsert_plan_v1_billing_plans_post"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "GET",
+      "path": "/v1/billing/plans/{plan_id}/limits",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_plan_limits_v1_billing_plans__plan_id__limits_get"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "POST",
+      "path": "/v1/billing/portal",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "create_portal_v1_billing_portal_post"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "GET",
+      "path": "/v1/billing/subscription",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_subscription_v1_billing_subscription_get"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "POST",
+      "path": "/v1/billing/subscription/cancel",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "cancel_subscription_v1_billing_subscription_cancel_post"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "POST",
+      "path": "/v1/billing/subscription/reactivate",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "reactivate_subscription_v1_billing_subscription_reactivate_post"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "POST",
+      "path": "/v1/billing/subscription/update-plan",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "update_subscription_plan_v1_billing_subscription_update_plan_post"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "POST",
+      "path": "/v1/billing/sync-customer",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "sync_customer_v1_billing_sync_customer_post"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "GET",
+      "path": "/v1/billing/usage-aggregates",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "usage_aggregates_v1_billing_usage_aggregates_get"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "POST",
+      "path": "/v1/billing/usage-events",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "ingest_usage_v1_billing_usage_events_post"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "GET",
+      "path": "/v1/billing/usage/{customer_id}/events",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "list_usage_events_v1_billing_usage__customer_id__events_get"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "GET",
+      "path": "/v1/billing/usage/{customer_id}/summary",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_usage_summary_v1_billing_usage__customer_id__summary_get"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "POST",
+      "path": "/v1/billing/usage/{customer_id}/sync",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "sync_usage_to_stripe_v1_billing_usage__customer_id__sync_post"
+    },
+    {
+      "source": "layer7-billing",
+      "method": "POST",
+      "path": "/v1/billing/webhook",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "stripe_webhook_v1_billing_webhook_post"
+    },
+    {
       "source": "privacy-dsar",
       "method": "POST",
       "path": "/v1/privacy/dsar",
@@ -7904,314 +8190,6 @@
         "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
       },
       "operationId": "readiness_handler_ready_get"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "GET",
-      "path": "/v1/billing/charges",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "list_charges_v1_billing_charges_get"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/charges",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "record_charge_v1_billing_charges_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "GET",
-      "path": "/v1/billing/check-feature",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "check_feature_v1_billing_check_feature_get"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/checkout",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "create_checkout_v1_billing_checkout_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "GET",
-      "path": "/v1/billing/customers/{customer_id}/balance",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "get_customer_balance_v1_billing_customers__customer_id__balance_get"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "GET",
-      "path": "/v1/billing/entitlements",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "get_entitlements_v1_billing_entitlements_get"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/events",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "ingest_usage_event_v1_billing_events_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/events/batch",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "ingest_usage_batch_v1_billing_events_batch_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "GET",
-      "path": "/v1/billing/invoices",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "list_invoices_v1_billing_invoices_get"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/invoices",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "create_invoice_v1_billing_invoices_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "GET",
-      "path": "/v1/billing/invoices/{invoice_id}",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "get_invoice_v1_billing_invoices__invoice_id__get"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/invoices/{invoice_id}/finalize",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "finalize_invoice_v1_billing_invoices__invoice_id__finalize_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/invoices/{invoice_id}/items",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "add_invoice_item_v1_billing_invoices__invoice_id__items_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/invoices/{invoice_id}/void",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "void_invoice_v1_billing_invoices__invoice_id__void_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "GET",
-      "path": "/v1/billing/limits/{customer_id}",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "get_usage_limits_v1_billing_limits__customer_id__get"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/limits/{customer_id}/check",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "check_request_allowed_v1_billing_limits__customer_id__check_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "GET",
-      "path": "/v1/billing/plans/{plan_id}/limits",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "get_plan_limits_v1_billing_plans__plan_id__limits_get"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/portal",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "create_portal_v1_billing_portal_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "GET",
-      "path": "/v1/billing/reports/revenue",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "get_revenue_summary_v1_billing_reports_revenue_get"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "GET",
-      "path": "/v1/billing/subscription",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "get_subscription_v1_billing_subscription_get"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/subscription/cancel",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "cancel_subscription_v1_billing_subscription_cancel_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/subscription/reactivate",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "reactivate_subscription_v1_billing_subscription_reactivate_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/subscription/update-plan",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "update_subscription_plan_v1_billing_subscription_update_plan_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/sync-customer",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "sync_customer_v1_billing_sync_customer_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "GET",
-      "path": "/v1/billing/usage/{customer_id}/events",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "list_usage_events_v1_billing_usage__customer_id__events_get"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "GET",
-      "path": "/v1/billing/usage/{customer_id}/summary",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "get_usage_summary_v1_billing_usage__customer_id__summary_get"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/usage/{customer_id}/sync",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "sync_usage_to_stripe_v1_billing_usage__customer_id__sync_post"
-    },
-    {
-      "source": "layer7-billing",
-      "method": "POST",
-      "path": "/v1/billing/webhook",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "stripe_webhook_v1_billing_webhook_post"
     }
   ]
 }

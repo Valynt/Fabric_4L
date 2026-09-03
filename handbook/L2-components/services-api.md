@@ -31,7 +31,7 @@ delegating to layers. 24 verified routers. Fail-closed on any scope uncertainty 
 
 ## Dependencies
 
-- Delegates to `services/layer1-ingestion` … `layer6-benchmarks` via internal clients; ingress to
+- Delegates to `services/layer1-ingestion` … `layer7-billing` via internal clients; ingress to
   layers flows through this gateway (gateway-only ingress policy).
 - Contracts published in `contracts/openapi/fabric-4l-api.json` (runtime OpenAPI is authoritative).
 - Frontend consumer: `apps/web` via the frontend contracts in `contracts/frontend/`.

@@ -76,8 +76,7 @@ To prevent architecture and deployment drift, service directories must be explic
 | `services/layer5-ground-truth` | production | Layer 5 in the six-layer platform.
 | `services/layer6-benchmarks` | production | Layer 6 in the six-layer platform.
 | `services/layer2-5-signal-refinery` | experimental | Cross-layer refinement prototype between extraction and ground-truth.
-
-> **Note (2026-09-01):** `services/layer7-billing` was deleted — billing runtime was consolidated back under `services/layer4-agents` (see ADR-023). The `contracts/openapi/layer7-billing.json` contract is retained as the billing API spec.
+| `services/layer7-billing` | internal | Billing/entitlements control-plane support; internal-facing.
 
 CI preflight enforces that any layer-style deployment entering Kubernetes manifests is listed in this classification set.
 

@@ -3,18 +3,14 @@
 Governance warning R3 flagged two parallel billing services encoding the same
 money-domain knowledge. Resolution: the legacy `services/billing/` package had
 zero production consumers and was deleted on 2026-08-27 (see the
-compatibility-debt-registry entry COMPAT-BILL-001). The phase-1
-`services/layer7-billing/` stub (which duplicated the same money-domain
-surface) was removed 2026-09-01 as part of the billing deduplication effort.
-Billing ownership today is a single canonical owner:
+compatibility-debt-registry entry COMPAT-BILL-001). Billing ownership today:
 
+- `services/layer7-billing/` — plans, usage metering, invoices, payment state
 - `services/layer4-agents/.../billing_service.py` — Stripe customer/
-  subscription/usage/webhook membership domain
-- `services/layer4-agents/.../api/routes/billing*.py` — billing API routes
+  subscription/webhook membership domain
 
-These tests ratchet the removal so neither the parallel package nor the stub
-service can be reintroduced and so no code can begin importing a top-level
-`billing` or `layer7_billing` runtime package.
+These tests ratchet the removal so the parallel package cannot be reintroduced
+and so no code can begin importing a top-level `billing` runtime package.
 """
 
 from __future__ import annotations
@@ -25,7 +21,6 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 LEGACY_BILLING_DIR = REPO_ROOT / "services" / "billing"
-LAYER7_BILLING_DIR = REPO_ROOT / "services" / "layer7-billing"
 
 SKIP_DIR_NAMES = {".venv", "venv", "__pycache__", "migrations", "node_modules"}
 
@@ -67,15 +62,8 @@ def _import_roots(path: Path) -> list[tuple[int, str]]:
 def test_legacy_billing_package_is_not_reintroduced() -> None:
     assert not LEGACY_BILLING_DIR.exists(), (
         "COMPAT-BILL-001: legacy services/billing/ package was removed 2026-08-27 and must "
-        "not be reintroduced; canonical ownership is the layer4-agents billing runtime "
-        "(services/layer4-agents/src/layer4_agents/services/billing_service.py)"
-    )
-
-
-def test_layer7_billing_service_is_not_reintroduced() -> None:
-    assert not LAYER7_BILLING_DIR.exists(), (
-        "R3 billing dedup: services/layer7-billing/ was removed 2026-09-01 and must not be "
-        "reintroduced; billing ownership is a single canonical owner in layer4-agents"
+        "not be reintroduced; canonical ownership is services/layer7-billing and "
+        "services/layer4-agents/src/layer4_agents/services/billing_service.py"
     )
 
 
@@ -95,13 +83,7 @@ def test_no_code_imports_legacy_top_level_billing_package() -> None:
                     violations.append(
                         f"{rel_path}:{line_number} imports top-level 'billing'; "
                         "use services/layer4-agents/src/layer4_agents/services/billing_service.py "
-                        "instead (COMPAT-BILL-001)"
-                    )
-                if imported_root == "layer7_billing":
-                    violations.append(
-                        f"{rel_path}:{line_number} imports removed 'layer7_billing'; "
-                        "use services/layer4-agents/src/layer4_agents/services/billing_service.py "
-                        "instead (R3 billing dedup)"
+                        "or services/layer7-billing/src/layer7_billing instead (COMPAT-BILL-001)"
                     )
 
     assert not violations, "\n".join(violations)

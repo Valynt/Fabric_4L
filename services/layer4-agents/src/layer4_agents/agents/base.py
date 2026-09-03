@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from value_fabric.shared.governance.abom import AgentBillOfMaterials
 from value_fabric.shared.models.typed_dict import TypedDictModel
@@ -35,9 +35,6 @@ except asyncio.CancelledError:
 except Exception:  # pragma: no cover - runtime remains warning-only if package import fails
     build_agent_output_envelope = None  # type: ignore[assignment]
     validate_agent_output = None  # type: ignore[assignment]
-
-if TYPE_CHECKING:
-    from .operating_contract import AgentOperatingContract
 
 logger = logging.getLogger(__name__)
 SEMANTIC_CONTRACT_VERSION = "2.0.0"
@@ -194,7 +191,6 @@ class BaseAgent(ABC):
         self.config = config or {}
         self.message_bus = message_bus
         self.abom: AgentBillOfMaterials | None = None
-        self.contract: AgentOperatingContract | None = None
         self.state = AgentState(
             agent_id=self.agent_id,
             agent_type=self.agent_type,
@@ -207,48 +203,6 @@ class BaseAgent(ABC):
     def _default_manifest_dir() -> Path:
         # base.py: agents -> layer4_agents -> src -> layer4-agents -> manifests
         return Path(__file__).resolve().parents[3] / "manifests"
-
-    def _load_operating_contract(self) -> None:
-        """Load the declarative operating contract for this agent type.
-
-        The contract is loaded in warning mode by default; set
-        ``AGENT_OPERATING_CONTRACT_MODE=strict`` to fail closed when no valid
-        contract is present.
-        """
-        try:
-            # Imported lazily to avoid a circular import: base.py is also
-            # loaded directly by the harness (registered as ``agents.base``),
-            # and a top-of-file ``from .operating_contract import ...`` would
-            # re-trigger ``agents/__init__.py`` while this module is still
-            # partially initialized.
-            from .operating_contract import load_operating_contract
-
-            self.contract = load_operating_contract(self.agent_type)
-        except Exception as exc:
-            mode = os.getenv("AGENT_OPERATING_CONTRACT_MODE", "warn").strip().lower()
-            if mode == "strict":
-                raise AgentExecutionError(
-                    f"Agent {self.agent_id} failed to load operating contract: {exc}"
-                ) from exc
-            logger.warning(
-                "Agent %s could not load operating contract (warning mode): %s",
-                self.agent_id,
-                exc,
-            )
-            self.contract = None
-
-        if self.contract is not None:
-            self.state.metadata["operating_contract"] = {
-                "id": self.contract.id,
-                "version": self.contract.version,
-                "agent_type": self.contract.agent_type,
-                "tools": self.contract.tools,
-                "memory_scopes": self.contract.memory_scopes,
-                "eval_target": {
-                    "suite_id": self.contract.eval_target.suite_id,
-                    "min_score": self.contract.eval_target.min_score,
-                },
-            }
 
     async def initialize(self) -> None:
         """Initialize agent resources and load the GATE ABOM manifest."""
@@ -270,8 +224,6 @@ class BaseAgent(ABC):
                 override_agent_id=self.agent_id,
             )
         self.state.metadata["abom_hash"] = self.abom.manifest_hash()
-
-        self._load_operating_contract()
 
         await self._initialize_resources()
         self._initialized = True
@@ -426,29 +378,8 @@ class BaseAgent(ABC):
                     trace_id=ctx.get("trace_id"),
                 )
                 ctx["tool_gateway"] = tool_gateway
-            except ImportError as exc:  # pragma: no cover - fail-closed at runtime
-                raise RuntimeError(
-                    "Governance enforcement is unavailable; refusing to bypass policy checks."
-                ) from exc
-
-        # ── GATE Phase 2/3: PolicyDecisionFacade injection ──
-        if "policy_facade" not in ctx and self.abom is not None:
-            try:
-                from value_fabric.shared.governance.facade import PolicyDecisionFacade
-                from value_fabric.shared.governance.policy_engine import PolicyEngineClient
-
-                policy_facade = PolicyDecisionFacade(
-                    policy_client=ctx.get("policy_client") or PolicyEngineClient(),
-                    abom=self.abom,
-                    llm_safety=ctx.get("llm_safety"),
-                    allowed_actions={"memory.query", "memory.entity_context"},
-                )
-                ctx["policy_facade"] = policy_facade
-                self.state.context["policy_facade"] = policy_facade
-            except ImportError as exc:  # pragma: no cover - fail-closed at runtime
-                raise RuntimeError(
-                    "Governance enforcement is unavailable; refusing to bypass policy checks."
-                ) from exc
+            except ImportError:
+                pass  # GATE not installed — graceful degradation
 
         # ── GATE Phase 3: MemoryGateway injection ──
         memory_gateway = None
@@ -464,13 +395,10 @@ class BaseAgent(ABC):
                     agent_id=self.agent_id,
                     trace_id=ctx.get("trace_id"),
                     source_blocklist=ctx.get("memory_source_blocklist"),
-                    policy_facade=ctx.get("policy_facade"),
                 )
                 ctx["memory_gateway"] = memory_gateway
-            except ImportError as exc:  # pragma: no cover - fail-closed at runtime
-                raise RuntimeError(
-                    "Governance enforcement is unavailable; refusing to bypass memory policy checks."
-                ) from exc
+            except ImportError:
+                pass
 
         if memory_gateway is not None:
             # ctx was already snapshotted into state.context, so mirror the

@@ -9,7 +9,7 @@
 # This forces core infrastructure and buildable services to the linux/arm64
 # platform, avoiding QEMU emulation on Apple Silicon hosts.
 # Services not present in docker-compose.dev.yml (e.g. layer1, layer3, layer5,
-# layer6) are omitted; use docker-compose.full.yml for the full stack.
+# layer6, layer7) are omitted; use docker-compose.full.yml for the full stack.
 
 services:
   postgres:

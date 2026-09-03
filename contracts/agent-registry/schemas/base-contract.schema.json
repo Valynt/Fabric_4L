@@ -17,7 +17,6 @@
       "type": "string",
       "enum": [
         "agent_output",
-        "agent_contract",
         "prompt",
         "tool",
         "workflow",
@@ -35,8 +34,7 @@
         "low",
         "medium",
         "high",
-        "regulated",
-        "critical"
+        "regulated"
       ]
     },
     "description": {

@@ -101,13 +101,17 @@ def build_evidence() -> dict[str, Any]:
             },
             "billing_state": {
                 "tables": [
+                    "l7_billing_plans",
+                    "l7_billing_usage_events",
+                    "l7_billing_usage_aggregates",
+                    "l7_billing_invoices",
+                    "l7_billing_payment_states",
                     "billing_customers",
                     "billing_subscriptions",
                     "billing_webhook_events",
                     # Layer 4 membership/billing service tables (canonical owner of the
                     # Stripe customer/subscription/webhook domain; legacy services/billing
-                    # removed 2026-08-27, COMPAT-BILL-001; services/layer7-billing removed
-                    # 2026-09-01, R3 billing dedup).
+                    # removed 2026-08-27, COMPAT-BILL-001).
                     "billing_plan_versions",
                     "billing_usage_events",
                     "billing_invoices",

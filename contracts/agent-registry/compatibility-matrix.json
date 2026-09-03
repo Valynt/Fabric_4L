@@ -36,8 +36,7 @@
     "SignalDetectionAgent": "1.0.0",
     "CRMSyncAgent": "1.0.0",
     "ConversationAgent": "1.0.0",
-    "OrchestrationController": "1.0.0",
-    "AuditOrchestrator": "1.0.0"
+    "OrchestrationController": "1.0.0"
   },
   "prompt_contracts": {
     "conversation-system-prompts": "1.0.0",

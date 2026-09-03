@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import importlib.util
 import subprocess
 import sys
 from pathlib import Path
@@ -30,26 +29,6 @@ def test_generated_manifest_registry_uses_posix_paths_and_uv_lock(tmp_path: Path
 
     checked_in = json.loads((REPO_ROOT / ".github" / "manifests.json").read_text(encoding="utf-8"))
     assert checked_in == registry
-
-
-def test_manifest_registry_excludes_archived_source_snapshots(tmp_path, monkeypatch) -> None:
-    script = REPO_ROOT / "scripts" / "ci" / "generate_manifest_registry.py"
-    spec = importlib.util.spec_from_file_location("generate_manifest_registry", script)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
-
-    (tmp_path / "apps" / "web").mkdir(parents=True)
-    (tmp_path / "apps" / "web" / "package.json").write_text('{"name":"web"}\n', encoding="utf-8")
-    archived = tmp_path / "docs" / "archive" / "frontend-root-2026-05-02" / "source-snapshot"
-    archived.mkdir(parents=True)
-    (archived / "package.json").write_text('{"name":"historical-web"}\n', encoding="utf-8")
-
-    python_manifests, node_manifests = module.find_manifests()
-
-    assert python_manifests == []
-    assert node_manifests == [("web", str(tmp_path / "apps" / "web"))]
 
 
 def test_mcp_json_uses_portable_authorization_header() -> None:

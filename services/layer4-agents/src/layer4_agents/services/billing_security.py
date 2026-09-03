@@ -2,10 +2,8 @@ from __future__ import annotations
 
 """Canonical Stripe billing webhook security primitives.
 
-This module is the single source of truth for Stripe webhook source-IP checks,
-Stripe-Signature header parsing and timestamp validation, and request metadata
-extraction used by billing webhook entry points. HMAC verification remains the
-production Stripe SDK path used by the billing runtime.
+This module is the single source of truth for Stripe webhook source-IP checks
+and request metadata extraction used by billing webhook entry points.
 """
 
 import ipaddress

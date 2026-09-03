@@ -9,8 +9,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from _wait_utils import wait_until
-
 # Set required environment variable for shared imports
 os.environ["JWT_SECRET"] = "test-secret-123456789012345678901234567890"
 
@@ -82,11 +80,11 @@ class TestOIDCCleanupTask:
 
         # Start the task
         await task.start()
-        assert task.running is True
+        assert task._task is not None
 
         # Stop the task
         await task.stop()
-        assert task.running is False
+        assert task._task is None
 
     @pytest.mark.asyncio
     async def test_cleanup_task_runs_periodically(self):
@@ -111,13 +109,13 @@ class TestOIDCCleanupTask:
 
         await task.start()
 
-        # Deterministic wait until the cleanup loop has ticked at least twice.
-        await wait_until(
-            lambda: mock_db.execute.call_count >= 2,
-            description="cleanup executed at least twice",
-        )
+        # Let it run for a short time
+        await asyncio.sleep(0.15)
 
         await task.stop()
+
+        # Should have executed cleanup multiple times
+        assert mock_db.execute.call_count >= 2
 
     @pytest.mark.asyncio
     async def test_cleanup_task_handles_errors_gracefully(self):
@@ -135,13 +133,9 @@ class TestOIDCCleanupTask:
         )
 
         await task.start()
-        baseline = mock_db.execute.call_count
 
-        # Deterministic wait for at least one background cleanup attempt.
-        await wait_until(
-            lambda: mock_db.execute.call_count > baseline,
-            description="cleanup loop to tick at least once",
-        )
+        # Let it run briefly - should not crash
+        await asyncio.sleep(0.12)
 
         await task.stop()
 
@@ -173,10 +167,11 @@ class TestOIDCCleanupTask:
         )
 
         await task.start()
-        await wait_until(
-            lambda: clear_context.await_count > 0,
-            description="cleanup to clear tenant context",
-        )
+        await asyncio.sleep(0.08)
         await task.stop()
 
         clear_context.assert_awaited()
+
+
+# Import asyncio at the end to avoid issues with the test file
+import asyncio

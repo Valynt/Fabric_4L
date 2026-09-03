@@ -15,6 +15,7 @@ This inventory captures the current baseline implementation traits for all maint
 - `services/layer5-ground-truth/src/layer5_ground_truth/api/main.py`
 - `services/layer6-benchmarks/src/api/main.py`
 - `services/api/app/main.py`
+- `services/layer7-billing/src/layer7_billing/api/main.py`
 
 ## Service Entrypoint Migration Status
 
@@ -31,6 +32,7 @@ All known maintained service entrypoints are now on `create_fabric_app`.
 | Layer 5 Ground Truth | `services/layer5-ground-truth/src/layer5_ground_truth/api/main.py` | `create_fabric_app` | Pre-existing | |
 | Layer 6 Benchmarks | `services/layer6-benchmarks/src/api/main.py` | `create_fabric_app` | Pre-existing | |
 | API Gateway | `services/api/app/main.py` | `create_fabric_app` | Pre-existing | |
+| Layer 7 Billing | `services/layer7-billing/src/layer7_billing/api/main.py` | `create_fabric_app` | py_compile pass; no tests exist yet | Async PostgreSQL + RLS; `PostgresHealthProbe` wired to `/ready` |
 
 > **Layer 3 validation caveat:** Layer 3 is not marked as fully validated until the pre-existing import issue (`services/layer3-knowledge/src/db/query_execution.py` relative import beyond top-level package) is fixed or bypassed with an agreed test shim. This blocker is tracked as compatibility debt.
 

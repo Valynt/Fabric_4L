@@ -27,6 +27,7 @@ EXPECTED_SCRAPE_JOBS = {
     "layer4-agents",
     "layer5-ground-truth",
     "layer6-benchmarks",
+    "layer7-billing",
     "blackbox-health",
     "blackbox-metrics",
 }

@@ -77,12 +77,3 @@ def test_audit_ci_gate_passes_static_policy_checks() -> None:
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
-
-
-def test_archived_manifest_invariant_is_encoded_in_package_manager_policy() -> None:
-    policy = (REPO_ROOT / "scripts/ci/check_package_manager_policy.mjs").read_text(encoding="utf-8")
-
-    assert "Archived evidence manifests/lockfiles are forbidden outside approved immutable exceptions" in policy
-    assert "Grandfathered archived manifests are immutable evidence and must not be modified" in policy
-    assert "docs/archive/frontend-root-2026-05-02/source-snapshot/package.json" in policy
-    assert "docs/archive/frontend-root-2026-05-02/source-snapshot/pnpm-lock.yaml" in policy

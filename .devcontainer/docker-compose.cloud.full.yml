@@ -25,3 +25,6 @@ services:
   layer2-5-signal-refinery:
     <<: *cloud-runtime
     depends_on: *data-dependencies
+  layer7-billing:
+    <<: *cloud-runtime
+    depends_on: *data-dependencies

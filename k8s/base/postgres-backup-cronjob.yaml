@@ -1,12 +1,11 @@
 # PostgreSQL Backup CronJob
 # Runs daily at 2 AM UTC
 # Backs up all application databases (ingestion, extraction, signal_refinery,
-# layer4_agents, ground_truth, benchmarks)
+# layer4_agents, ground_truth, benchmarks, layer7_billing)
 #
 # BACKUP STRATEGY (Sprint 1 / Phase 0 — DR gap closure):
-#   GATED PATH: WAL-G physical base backup + continuous WAL archiving to S3
-#   (ENABLE_WALG_BACKUP is set to "false" in the wal-g-config ConfigMap until restore validation evidence is available).
-#   WAL-G provides PITR; Patroni archive_command
+#   ACTIVE PATH: WAL-G physical base backup + continuous WAL archiving to S3
+#   (ENABLE_WALG_BACKUP="true"). WAL-G provides PITR; Patroni archive_command
 #   (see postgres-patroni.yaml) pushes WAL via wal-g wal-push.
 #
 #   COLD ARCHIVE PATH: pg_dump logical backups to PVC (retained 7 days).
@@ -21,7 +20,7 @@
 #   [ ] S3 destination reachable from cluster (network policy + IAM permissions)
 #   [ ] wal-g backup-push succeeds in a manual / canary run
 #   [ ] restore drill succeeds (restore to a test instance, verify data integrity)
-#   [ ] restore validation and restore evidence captured (logs, checksums, sign-off in runbook)
+#   [ ] restore evidence captured (logs, checksums, sign-off in runbook)
 #
 # Retains pg_dump backups for 7 days
 ---
@@ -79,7 +78,7 @@ spec:
                   PG_HOST=$${POSTGRES_HOST:-postgres-patroni}
 
                   # All application databases
-                  DATABASES="ingestion extraction signal_refinery layer4_agents ground_truth benchmarks"
+                  DATABASES="ingestion extraction signal_refinery layer4_agents ground_truth benchmarks layer7_billing"
 
                   for DB in $$DATABASES; do
                     # Check if the database exists before attempting backup
@@ -129,13 +128,9 @@ spec:
               envFrom:
                 - configMapRef:
                     name: wal-g-config
-                    optional: true
                 - secretRef:
                     name: aws-backup-credentials
-                    optional: true
               env:
-                - name: ENABLE_WALG_BACKUP
-                  value: "false"
                 # SECURITY: Username is not sensitive — hardcoded to match postgres Deployment.
                 # Only password is sourced from the secret.
                 - name: POSTGRES_USER
@@ -145,6 +140,8 @@ spec:
                     secretKeyRef:
                       name: postgres-patroni-credentials
                       key: superuser-password
+                - name: ENABLE_WALG_BACKUP
+                  value: "true"
               volumeMounts:
                 - name: postgres-backups
                   mountPath: /backups

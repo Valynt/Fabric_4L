@@ -36,6 +36,7 @@ ALLOWLIST = {
     # environment is production-like), so the default cannot reach production.
     "services/layer1-ingestion/src/shared/config.py",
     "services/layer1-ingestion/src/layer1_ingestion/shared/config.py",
+    "services/layer7-billing/src/layer7_billing/database.py",
     # Validator pattern lists (false positives)
     "services/layer4-agents/src/layer4_agents/config/settings.py",
 }

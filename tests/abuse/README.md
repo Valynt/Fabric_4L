@@ -19,7 +19,7 @@ This suite centralizes abuse-resistance coverage for rate limits, login throttli
 - `tests/unit/l3/test_rate_limiter_algorithms.py`
 - `services/layer4-agents/tests/test_tenant_rate_limits.py`
 - `services/layer4-agents/src/layer4_agents/services/llm_budget_guardrails.py`
-- `services/layer4-agents/tests/test_webhook_security.py`
+- `tests/unit/l7/test_webhook_security.py`
 - `config/production-readiness/tenant_quota_policy.json`
 
 ## Known Gaps

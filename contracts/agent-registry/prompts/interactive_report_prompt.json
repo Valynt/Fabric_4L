@@ -25,13 +25,6 @@
       "summary": "Initial registry metadata for existing prompt artifact."
     }
   ],
-  "content_hash": "6d00835da223672b2848d4f2bd314cd60738c984efe0a34393c90ab3a927467c",
-  "eval_baseline": {
-    "score": 0.0,
-    "eval_set_id": "interactive-report-placeholder",
-    "recorded_at": "2026-09-01T00:00:00Z",
-    "baseline_file": "../../../evals/baselines/prompt-interactive-report-prompt-1.0.0.json"
-  },
   "compatibility": {
     "supported_prior_versions": [],
     "migration_notes": "Initial prompt registry entry. Prompt text changes require changelog updates before enforcement becomes blocking."

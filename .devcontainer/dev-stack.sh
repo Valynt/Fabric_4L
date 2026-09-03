@@ -10,7 +10,7 @@ readonly infisical_paths=(
   --path=/layer1-ingestion --path=/layer2-extraction
   --path=/layer2-5-signal-refinery --path=/layer3-knowledge
   --path=/layer4-agents --path=/layer5-ground-truth
-  --path=/layer6-benchmarks
+  --path=/layer6-benchmarks --path=/layer7-billing
   --path=/apps/web
 )
 

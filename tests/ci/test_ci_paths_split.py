@@ -9,7 +9,6 @@ with live enforcement: a workflow-only or scripts-only PR resolves no domain
 scope, and the heavy matrix is skipped only because those skips are provably
 safe - never by accident.
 """
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -18,26 +17,10 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 PATHS_FILTERS = ROOT / ".github/paths-filters.yml"
-CHANGE_SCOPE_ACTIONS = (
-    ROOT / ".github/actions/change-scope/action.yml",
-    ROOT / ".depot/actions/change-scope/action.yml",
-)
-PR_CHECKS_WORKFLOWS = (
-    ROOT / ".github/workflows/pr-checks.yml",
-    ROOT / ".depot/workflows/pr-checks.yml",
-)
+CHANGE_SCOPE_ACTION = ROOT / ".github/actions/change-scope/action.yml"
+PR_CHECKS = ROOT / ".github/workflows/pr-checks.yml"
 
-BUNDLED_CI_PATHS = (
-    ".github/**",
-    ".depot/**",
-    "tools/**",
-    "nx.json",
-    "**/project.json",
-    "scripts/**",
-    "config/**",
-    "Makefile",
-    "pytest.ini",
-)
+BUNDLED_CI_PATHS = (".github/**", "scripts/**", "config/**", "Makefile", "pytest.ini")
 
 # Scopes that must never bundle CI plumbing: changes to these paths cannot
 # affect the domain surfaces those scopes represent.
@@ -66,10 +49,6 @@ def test_ci_input_scopes_are_first_class() -> None:
     for scope in ("ci-global", "ci-tooling", "ci-governance"):
         assert scope in data, f"missing CI-input scope {scope}"
     assert ".github/**" in data["ci-global"]
-    assert ".depot/**" in data["ci-global"]
-    assert "tools/**" in data["ci-global"]
-    assert "nx.json" in data["ci-global"]
-    assert "**/project.json" in data["ci-global"]
     assert "Makefile" in data["ci-global"]
     assert "scripts/**" in data["ci-tooling"]
     assert "config/**" in data["ci-governance"]
@@ -121,34 +100,30 @@ def test_code_scope_still_covers_all_runtime_security_surfaces() -> None:
         "sdk/**",
         "docs-site/**",
         "examples/**",
-        "tools/**",
-        "nx.json",
-        "**/project.json",
     ):
         assert surface in code, f"code scope dropped security surface {surface}"
 
 
 def test_change_scope_action_emits_ci_input_scopes() -> None:
-    for action_path in CHANGE_SCOPE_ACTIONS:
-        action = action_path.read_text(encoding="utf-8")
-        for scope in ("ci-global", "ci-tooling", "ci-governance"):
-            # outputs block entry (value from resolve step)
-            assert f"value: ${{{{ steps.resolve.outputs.{scope} }}}}" in action
-            # FILTER_* env passing: filter step must feed the resolve step
-            env_name = f"FILTER_{scope.upper().replace('-', '_')}"
-            assert f"{env_name}: ${{{{ steps.filter.outputs.{scope}_any_changed }}}}" in action
-            # emit line: explicit 'false' is the only skip trigger; else fail open
-            assert f'emit {scope} "${{{env_name}}}"' in action
+    action = CHANGE_SCOPE_ACTION.read_text(encoding="utf-8")
+    for scope in ("ci-global", "ci-tooling", "ci-governance"):
+        # outputs block entry (value from resolve step)
+        assert f"value: ${{{{ steps.resolve.outputs.{scope} }}}}" in action
+        # FILTER_* env passing: filter step must feed the resolve step
+        env_name = f"FILTER_{scope.upper().replace('-', '_')}"
+        assert f"{env_name}: ${{{{ steps.filter.outputs.{scope}_any_changed }}}}" in action
+        # emit line: explicit 'false' is the only skip trigger; else fail open
+        assert f"emit {scope} \"${{{env_name}}}\"" in action
 
 
 def test_pr_checks_change_scope_exposes_ci_input_scopes() -> None:
-    for workflow_path in PR_CHECKS_WORKFLOWS:
-        text = workflow_path.read_text(encoding="utf-8")
-        for scope in ("ci-global", "ci-tooling", "ci-governance"):
-            assert f"{scope}: ${{{{ steps.scope.outputs.{scope} }}}}" in text, (
-                f"{workflow_path}: change-scope job missing output {scope}"
-            )
-            # Keep the explicit non-PR fail-open marker aligned across providers.
-            assert f'echo "{scope}=true" >> $GITHUB_OUTPUT' in text, (
-                f"{workflow_path}: Post-resolve step missing {scope}=true"
-            )
+    text = PR_CHECKS.read_text(encoding="utf-8")
+    for scope in ("ci-global", "ci-tooling", "ci-governance"):
+        assert f"{scope}: ${{{{ steps.scope.outputs.{scope} }}}}" in text, (
+            f"pr-checks change-scope job missing output {scope}"
+        )
+        # Post-resolve: non-PR events (push/schedule) must force them true too,
+        # otherwise they would stay empty and read as 'false' to consumers.
+        assert f'echo "{scope}=true" >> $GITHUB_OUTPUT' in text, (
+            f"pr-checks Post-resolve step missing {scope}=true"
+        )

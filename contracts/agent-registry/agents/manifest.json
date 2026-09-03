@@ -10,7 +10,6 @@
     {
       "agent_type": "ContextExtractionAgent",
       "source_path": "services/layer4-agents/src/agents/taxonomy.py",
-      "operating_contract_path": "ContextExtractionAgent.contract.json",
       "capabilities": [
         "extract_profile",
         "extract_stakeholders",
@@ -49,7 +48,6 @@
     {
       "agent_type": "ValueModelAgent",
       "source_path": "services/layer4-agents/src/agents/taxonomy.py",
-      "operating_contract_path": "ValueModelAgent.contract.json",
       "capabilities": [
         "build_value_tree",
         "calculate_gaps",
@@ -85,7 +83,6 @@
     {
       "agent_type": "IntegrityAgent",
       "source_path": "services/layer4-agents/src/agents/taxonomy.py",
-      "operating_contract_path": "IntegrityAgent.contract.json",
       "capabilities": [
         "validate_claims",
         "verify_formulas",
@@ -123,7 +120,6 @@
     {
       "agent_type": "NarrativeAgent",
       "source_path": "services/layer4-agents/src/agents/taxonomy.py",
-      "operating_contract_path": "NarrativeAgent.contract.json",
       "capabilities": [
         "generate_summary",
         "create_proposal",
@@ -161,7 +157,6 @@
     {
       "agent_type": "CompetitiveIntelAgent",
       "source_path": "services/layer4-agents/src/agents/taxonomy.py",
-      "operating_contract_path": "CompetitiveIntelAgent.contract.json",
       "capabilities": [
         "analyze_competitors",
         "generate_battlecard",
@@ -199,7 +194,6 @@
     {
       "agent_type": "SignalDetectionAgent",
       "source_path": "services/layer4-agents/src/agents/signal_detection.py",
-      "operating_contract_path": "SignalDetectionAgent.contract.json",
       "capabilities": [
         "detect_signals",
         "score_signals",
@@ -233,7 +227,6 @@
     {
       "agent_type": "CRMSyncAgent",
       "source_path": "services/layer4-agents/src/agents/taxonomy.py",
-      "operating_contract_path": "CRMSyncAgent.contract.json",
       "capabilities": [
         "sync_accounts",
         "sync_opportunities",
@@ -267,7 +260,6 @@
     {
       "agent_type": "ConversationAgent",
       "source_path": "services/layer4-agents/src/agents/taxonomy.py",
-      "operating_contract_path": "ConversationAgent.contract.json",
       "capabilities": [
         "classify_intent",
         "route_request",
@@ -304,7 +296,6 @@
     {
       "agent_type": "OrchestrationController",
       "source_path": "services/layer4-agents/src/agents/taxonomy.py",
-      "operating_contract_path": "OrchestrationController.contract.json",
       "capabilities": [
         "schedule_workflow",
         "assign_agent",
@@ -327,43 +318,6 @@
             "recovery_action",
             "scaling_action",
             "current_instances"
-          ]
-        },
-        "required_context_fields": [
-          "tenant_id",
-          "trace_id"
-        ],
-        "error_schema": {
-          "$ref": "../schemas/tool-error.schema.json"
-        }
-      }
-    },
-    {
-      "agent_type": "AuditOrchestrator",
-      "source_path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/graph.py",
-      "operating_contract_path": "AuditOrchestrator.contract.json",
-      "capabilities": [
-        "run_full_audit",
-        "get_latest_scorecard",
-        "update_finding",
-        "get_sprint_plan",
-        "get_quick_status"
-      ],
-      "decision_envelope": {
-        "input_schema": {
-          "type": "object",
-          "required": [
-            "capability",
-            "parameters"
-          ]
-        },
-        "output_schema": {
-          "type": "object",
-          "expected_fields": [
-            "run_id",
-            "scorecard",
-            "findings",
-            "sprint_plan"
           ]
         },
         "required_context_fields": [

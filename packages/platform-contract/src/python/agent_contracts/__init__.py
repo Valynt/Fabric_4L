@@ -2,15 +2,12 @@
 
 from .models import (
     SEMANTIC_CONTRACT_VERSION,
-    AgentOperatingContract,
     AgentOutputEnvelope,
-    AgentPermission,
     CompatibilityMatrix,
     ContractValidationResult,
     ContractVersionRef,
     ContractViolation,
     ContractViolationSeverity,
-    EvalTarget,
     MemoryReference,
     PromptRef,
     ProvenanceRef,
@@ -27,15 +24,12 @@ from .models import (
 
 __all__ = [
     "SEMANTIC_CONTRACT_VERSION",
-    "AgentOperatingContract",
     "AgentOutputEnvelope",
-    "AgentPermission",
     "CompatibilityMatrix",
     "ContractValidationResult",
     "ContractVersionRef",
     "ContractViolation",
     "ContractViolationSeverity",
-    "EvalTarget",
     "MemoryReference",
     "PromptRef",
     "ProvenanceRef",

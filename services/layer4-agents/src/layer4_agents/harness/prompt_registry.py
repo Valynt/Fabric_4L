@@ -17,9 +17,7 @@ Usage::
 """
 
 
-import hashlib
 import json
-import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,12 +29,9 @@ import yaml
 # Paths
 # ---------------------------------------------------------------------------
 
-# Canonical prompts root: services/layer4-agents/prompts/.
-# In the Docker image prompts are copied into src/, so prefer the in-image
-# location when it exists (mirrors harness/tests/test_llm_rewrite.py).
-_SRC_ROOT = Path(__file__).resolve().parents[2]  # services/layer4-agents/src/
-_SERVICE_ROOT = _SRC_ROOT.parent                 # services/layer4-agents/
-_PROMPTS_ROOT = _SRC_ROOT / "prompts" if (_SRC_ROOT / "prompts").exists() else _SERVICE_ROOT / "prompts"
+# Canonical prompts root: services/layer4-agents/prompts/
+_SERVICE_ROOT = Path(__file__).resolve().parents[2]  # services/layer4-agents/
+_PROMPTS_ROOT = _SERVICE_ROOT / "prompts"
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -59,7 +54,6 @@ class PromptTemplate:
     output_schema: str | None = None
     temperature: float = 0.2
     max_tokens: int = 2000
-    content_hash: str | None = None
     raw_metadata: dict[str, Any] = field(default_factory=dict)
 
     def render(self, **kwargs: Any) -> str:
@@ -80,32 +74,6 @@ class PromptTemplate:
     def missing_variables(self, **kwargs: Any) -> list[str]:
         """Return variable names present in the body but not supplied."""
         return [v for v in self.variables() if v not in kwargs]
-
-    def to_prompt_ref(self, reasoning_policy_id: str | None = None) -> dict[str, Any]:
-        """Return a PromptRef-shaped dict for provenance envelopes.
-
-        Includes the content hash so downstream layers can detect prompt drift.
-        """
-        return {
-            "prompt_id": self.prompt_id,
-            "version": self.version,
-            "reasoning_policy_id": reasoning_policy_id,
-            "content_hash": self.content_hash,
-        }
-
-
-# ---------------------------------------------------------------------------
-# Baseline artifacts
-# ---------------------------------------------------------------------------
-
-
-def _default_baselines_root() -> Path:
-    """Return the canonical evals/baselines directory relative to the repo root.
-
-    The registry lives under services/layer4-agents/src/layer4_agents/harness/;
-    the repo root is five parents above that (parents[5]).
-    """
-    return Path(__file__).resolve().parents[5] / "evals" / "baselines"
 
 
 # ---------------------------------------------------------------------------
@@ -128,12 +96,12 @@ class PromptRegistry:
         self,
         prompts_root: Path | None = None,
         default_version: str = "v1",
-        baselines_root: Path | None = None,
     ) -> None:
+        import os
+
         env_root = os.getenv("LAYER4_PROMPTS_ROOT")
         self._root = prompts_root or (Path(env_root) if env_root else _PROMPTS_ROOT)
         self._default_version = default_version
-        self._baselines_root = baselines_root or _default_baselines_root()
         self._cache: dict[str, PromptTemplate] = {}
 
     # ------------------------------------------------------------------
@@ -195,14 +163,6 @@ class PromptRegistry:
             raise FileNotFoundError(f"No output schema at {schema_path}")
         return json.loads(schema_path.read_text(encoding="utf-8"))
 
-    def baseline_for(self, prompt_id: str, version: str | None = None) -> dict[str, Any] | None:
-        """Return the frozen eval baseline artifact for a prompt version, if present."""
-        v = version or self._default_version
-        baseline_path = self._baselines_root / f"prompt-{prompt_id}-{v}.json"
-        if not baseline_path.exists():
-            return None
-        return json.loads(baseline_path.read_text(encoding="utf-8"))
-
     # ------------------------------------------------------------------
     # Internal
     # ------------------------------------------------------------------
@@ -217,20 +177,17 @@ class PromptRegistry:
 
         raw = path.read_text(encoding="utf-8")
         metadata, body = self._parse_frontmatter(raw, path)
-        body = body.strip()
-        content_hash = hashlib.sha256(body.encode("utf-8")).hexdigest()
 
         return PromptTemplate(
             prompt_id=metadata.get("prompt_id", f"{workflow}.{name}"),
             version=metadata.get("version", version),
             workflow_type=metadata.get("workflow_type", workflow),
             model_task=metadata.get("model_task", "reasoning"),
-            body=body,
+            body=body.strip(),
             requires_json=bool(metadata.get("requires_json", False)),
             output_schema=metadata.get("output_schema"),
             temperature=float(metadata.get("temperature", 0.2)),
             max_tokens=int(metadata.get("max_tokens", 2000)),
-            content_hash=content_hash,
             raw_metadata=metadata,
         )
 

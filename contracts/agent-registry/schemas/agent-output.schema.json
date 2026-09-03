@@ -30,8 +30,7 @@
         "low",
         "medium",
         "high",
-        "regulated",
-        "critical"
+        "regulated"
       ]
     },
     "description": {
@@ -51,31 +50,6 @@
       "type": "array",
       "items": {
         "type": "object",
-        "properties": {
-          "agent_type": {
-            "type": "string",
-            "minLength": 1
-          },
-          "source_path": {
-            "type": "string",
-            "minLength": 1
-          },
-          "operating_contract_path": {
-            "type": "string",
-            "description": "Relative path to the agent's operating contract JSON.",
-            "minLength": 1
-          },
-          "capabilities": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "decision_envelope": {
-            "type": "object"
-          }
-        },
         "required": [
           "agent_type",
           "source_path",

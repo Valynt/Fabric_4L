@@ -1,47 +1,24 @@
 {
   "mandatory_deps": {
+    "respx": "pip install 'respx>=0.21'  (layer1-ingestion[dev] or tests/requirements-test.txt)",
     "aiohttp": "pip install 'aiohttp>=3.9'  (tests/requirements-test.txt)",
+    "trafilatura": "pip install 'trafilatura>=1.6'  (layer1-ingestion dependency)",
     "defusedxml": "pip install 'defusedxml>=0.7'  (layer1-ingestion dependency)",
-    "email_validator": "pip install 'email-validator>=2.1'  (layer4-agents[dev])",
-    "jose": "pip install 'python-jose[cryptography]>=3.3'  (layer4-agents dependency)",
-    "jsonschema": "pip install 'jsonschema>=4.23'  (tests/requirements-test.txt)",
-    "langgraph": "pip install 'langgraph>=0.2'  (layer4-agents dependency)",
-    "neo4j": "pip install 'neo4j>=5.15'  (layer3-knowledge dependency)",
-    "psycopg": "pip install 'psycopg[binary]>=3.1'  (layer4-agents[dev])",
     "pymupdf4llm": "pip install 'pymupdf4llm>=0.0.17'  (layer1-ingestion dependency)",
     "pytesseract": "pip install 'pytesseract>=0.3.13'  (layer1-ingestion dependency)",
-    "rdflib": "pip install 'rdflib>=7.0'  (layer3-knowledge dependency)",
-    "respx": "pip install 'respx>=0.21'  (layer1-ingestion[dev] or tests/requirements-test.txt)",
     "selectolax": "pip install 'selectolax>=0.3'  (layer1-ingestion dependency)",
-    "trafilatura": "pip install 'trafilatura>=1.6'  (layer1-ingestion dependency)"
+    "rdflib": "pip install 'rdflib>=7.0'  (layer3-knowledge dependency)",
+    "neo4j": "pip install 'neo4j>=5.15'  (layer3-knowledge dependency)",
+    "psycopg": "pip install 'psycopg[binary]>=3.1'  (layer4-agents[dev])",
+    "email_validator": "pip install 'email-validator>=2.1'  (layer4-agents[dev])",
+    "langgraph": "pip install 'langgraph>=0.2'  (layer4-agents dependency)",
+    "jose": "pip install 'python-jose[cryptography]>=3.3'  (layer4-agents dependency)",
+    "jsonschema": "pip install 'jsonschema>=4.23'  (tests/requirements-test.txt)"
   },
-  "mandatory_exclusion_markers": [
-    "e2e",
-    "flaky",
-    "integration",
-    "performance",
-    "quarantine",
-    "requires_docker",
-    "requires_neo4j",
-    "requires_openai",
-    "requires_postgres",
-    "requires_redis",
-    "slow"
-  ],
-  "mandatory_markers": [
-    "contract",
-    "security",
-    "tenant_boundary",
-    "tenant_isolation",
-    "unit"
-  ],
   "tenant_isolation_aliases": [
     "cross_tenant_write",
     "tenant_boundary",
     "tenant_matrix"
-  ],
-  "tenant_isolation_nodeids": [
-    "services/layer5-ground-truth/tests/test_api.py::TestGetTruth::test_org_isolation"
   ],
   "tenant_isolation_targets": [
     "services/api/app/tests/test_distributed_session_store.py",
@@ -69,6 +46,9 @@
     "services/layer6-benchmarks/tests/test_api_tenant_propagation.py",
     "services/layer6-benchmarks/tests/test_cross_tenant_hostile.py",
     "services/layer6-benchmarks/tests/test_repository_tenant_isolation.py",
+    "services/layer7-billing/tests/test_api_tenant_propagation.py",
+    "services/layer7-billing/tests/test_cross_tenant_hostile.py",
+    "services/layer7-billing/tests/test_tenant_isolation.py",
     "tests/cache/test_redis_tenant_isolation.py",
     "tests/security/test_cross_layer_tenant_isolation_matrix.py",
     "tests/security/test_graph_tenant_hostile_regression.py",
@@ -77,5 +57,28 @@
     "tests/security/test_tenant_boundary_fails_closed.py",
     "tests/security/test_tenant_repository_filter_presence.py",
     "tests/shared/identity/test_api_key_cache.py"
+  ],
+  "tenant_isolation_nodeids": [
+    "services/layer5-ground-truth/tests/test_api.py::TestGetTruth::test_org_isolation"
+  ],
+  "mandatory_markers": [
+    "contract",
+    "security",
+    "tenant_boundary",
+    "tenant_isolation",
+    "unit"
+  ],
+  "mandatory_exclusion_markers": [
+    "e2e",
+    "flaky",
+    "integration",
+    "performance",
+    "quarantine",
+    "requires_docker",
+    "requires_neo4j",
+    "requires_openai",
+    "requires_postgres",
+    "requires_redis",
+    "slow"
   ]
 }

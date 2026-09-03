@@ -72,7 +72,7 @@ Staging and production evidence will be appended after runtime validation.
 
 - Static contract tests: `tests/contract/test_otel_instrumentation.py`
   - Verifies `billing` calls `init_telemetry("billing")` and `instrument_fastapi_app()`
-  - Verifies `billing` and `layer2-5-signal-refinery` pass `instrument_telemetry=True`
+  - Verifies `layer2-5-signal-refinery` and `layer7-billing` pass `instrument_telemetry=True`
   - Validates OpenTelemetry Collector YAML declares OTLP receivers on 4317/4318
   - Confirms OTel environment variables are referenced in manifests
 - CI gate added to `.github/workflows/pr-checks.yml`

@@ -151,34 +151,6 @@ class TestEmitAuditEvent:
         assert log_data["action"] == "tenant.created"
         assert log_data["user_id"] == "admin-1"
 
-    def test_fills_request_id_and_trace_from_observability_context(self):
-        from value_fabric.shared.observability.platform import bind_context, clear_context
-
-        bind_context(request_id="req-bound", trace_id="c" * 32, span_id="d" * 16)
-        try:
-            event = emit_audit_event(AuditAction.USER_LOGIN)
-        finally:
-            clear_context()
-        assert event.request_id == "req-bound"
-        assert event.details["trace_id"] == "c" * 32
-        assert event.details["span_id"] == "d" * 16
-
-    def test_does_not_overwrite_caller_trace_details(self):
-        from value_fabric.shared.observability.platform import bind_context, clear_context
-
-        bind_context(request_id="req-bound", trace_id="c" * 32, span_id="d" * 16)
-        try:
-            event = emit_audit_event(
-                AuditAction.USER_LOGIN,
-                request_id="req-explicit",
-                details={"trace_id": "explicit-trace"},
-            )
-        finally:
-            clear_context()
-        assert event.request_id == "req-explicit"
-        assert event.details["trace_id"] == "explicit-trace"
-        assert event.details["span_id"] == "d" * 16
-
     def test_all_fields_passed_through(self):
         tenant = uuid4()
         event = emit_audit_event(

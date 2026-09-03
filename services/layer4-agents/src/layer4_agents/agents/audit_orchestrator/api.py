@@ -23,7 +23,6 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_tenant_admin
 
-from ..operating_contract import AgentOperatingContract, load_operating_contract
 from .config import ConfigManager
 from .graph import run_audit_async
 from .models import (
@@ -74,22 +73,6 @@ except ImportError:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-# Load the AuditOrchestrator operating contract at import time so missing or
-# drifted contracts fail loudly in strict mode at startup.
-audit_operating_contract = load_operating_contract("AuditOrchestrator")
-
-
-class AuditOperatingContractDep:
-    """Dependency that exposes the loaded AuditOrchestrator operating contract."""
-
-    async def __call__(self, request: Request) -> AgentOperatingContract | None:
-        return getattr(
-            request.app.state, "audit_operating_contract", audit_operating_contract
-        )
-
-
-get_audit_operating_contract = AuditOperatingContractDep()
 
 
 # ---------------------------------------------------------------------------

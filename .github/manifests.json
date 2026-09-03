@@ -31,6 +31,10 @@
     {
       "name": "layer6-benchmarks",
       "path": "services/layer6-benchmarks"
+    },
+    {
+      "name": "layer7-billing",
+      "path": "services/layer7-billing"
     }
   ],
   "node": [

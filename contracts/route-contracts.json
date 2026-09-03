@@ -731,7 +731,7 @@
     {
       "path": "/v1/subscriptions*",
       "method": "*",
-      "reason": "Billing service compatibility route tracked by the retained layer7-billing.json billing contract (implemented by L4)."
+      "reason": "Billing service compatibility route pending layer7 contract consolidation."
     },
     {
       "path": "/v1/benchmarks*",
@@ -756,7 +756,7 @@
     {
       "path": "/v1/customers*",
       "method": "*",
-      "reason": "Billing internal customer route tracked by the retained layer7-billing.json billing contract (implemented by L4)."
+      "reason": "Billing internal customer route pending layer7 contract consolidation."
     },
     {
       "path": "/v1/webhooks/stripe",

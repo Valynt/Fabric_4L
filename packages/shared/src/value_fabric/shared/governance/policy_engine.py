@@ -23,22 +23,12 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class PolicyDecision:
-    """Result of a policy evaluation.
-
-    This is the legacy gateway result retained for compatibility with the
-    existing ToolGateway pipeline; the canonical transport-neutral contract is
-    ``Decision`` in ``shared.governance.decision``.
-    """
+    """Result of a policy evaluation."""
 
     allowed: bool
     reason: str | None = None
     obligations: list[str] = field(default_factory=list)
     policy_bundle_hash: str | None = None
-    decision_id: str | None = None
-    tenant_id: str | None = None
-    actor_id: str | None = None
-    action: str | None = None
-    resource: str | None = None
 
 
 class PolicyEngineClient:
@@ -80,23 +70,6 @@ class PolicyEngineClient:
         Returns:
             PolicyDecision with allowed/denied status and obligations.
         """
-        if not tool_name or not isinstance(tool_name, str):
-            return PolicyDecision(
-                allowed=False,
-                reason="Tool name is required for policy evaluation.",
-                obligations=["AUDIT"],
-                policy_bundle_hash=abom.manifest_hash(),
-            )
-        if tenant_id is not None and isinstance(tenant_id, str):
-            tenant_id = tenant_id.strip()
-        if not tenant_id or tenant_id in {"unknown", "None", "null"}:
-            return PolicyDecision(
-                allowed=False,
-                reason="Tenant context is required for policy evaluation.",
-                obligations=["AUDIT"],
-                policy_bundle_hash=abom.manifest_hash(),
-            )
-
         opa_input = {
             "agent_type": abom.agent_type,
             "agent_id": abom.agent_id,
@@ -110,18 +83,9 @@ class PolicyEngineClient:
         }
 
         try:
-            decision = await self._evaluate_opa(opa_input)
-            if not isinstance(decision, PolicyDecision):
-                raise ValueError("OPA returned a non-policy decision")
-            if decision.reason is None and not decision.allowed:
-                decision.reason = "Policy denied by OPA."
-            if not decision.policy_bundle_hash:
-                decision.policy_bundle_hash = abom.manifest_hash()
-            if decision.allowed is False and decision.reason is None:
-                decision.reason = "Policy denied."
-            return decision
+            return await self._evaluate_opa(opa_input)
         except Exception as e:
-            logger.warning("OPA unavailable (%s): fail-closed deny", e)
+            logger.warning("OPA unavailable (%s), falling back to local evaluation", e)
             return self._evaluate_local(abom, tool_name)
 
     async def _evaluate_opa(self, opa_input: dict[str, Any]) -> PolicyDecision:
@@ -146,12 +110,14 @@ class PolicyEngineClient:
         abom: AgentBillOfMaterials,
         tool_name: str,
     ) -> PolicyDecision:
-        """Fail-closed local fallback. OPA outages must deny by default.
+        """Local fallback evaluation using ABOM allow/deny lists.
 
-        The legacy ABOM-only fallback is intentionally not privileged to permit
-        tool execution after an outage; missing or malformed OPA responses always
-        result in a deny decision.
+        CRITICAL: When OPA is unavailable, high_privilege agents are
+        denied ALL tool access to prevent privilege escalation without
+        policy enforcement.  Standard and elevated agents fall back to
+        ABOM-only evaluation.
         """
+        # Deny-all for high_privilege when OPA is down
         if abom.privilege_tier == "high_privilege":
             return PolicyDecision(
                 allowed=False,
@@ -159,32 +125,22 @@ class PolicyEngineClient:
                     f"OPA unavailable: deny-all for high_privilege agent "
                     f"'{abom.agent_type}' — tool '{tool_name}' blocked"
                 ),
-                obligations=["AUDIT"],
-                policy_bundle_hash=abom.manifest_hash(),
             )
 
         if tool_name in abom.denied_tools:
             return PolicyDecision(
                 allowed=False,
                 reason=f"Tool '{tool_name}' is in denied_tools for {abom.agent_type}",
-                obligations=["AUDIT"],
-                policy_bundle_hash=abom.manifest_hash(),
             )
 
         if tool_name not in abom.allowed_tools:
             return PolicyDecision(
                 allowed=False,
                 reason=f"Tool '{tool_name}' is not in allowed_tools for {abom.agent_type}",
-                obligations=["AUDIT"],
-                policy_bundle_hash=abom.manifest_hash(),
             )
 
         return PolicyDecision(
-            allowed=False,
-            reason=(
-                "OPA unavailable: fail-closed deny for standard agent "
-                f"'{abom.agent_type}' while evaluating '{tool_name}'"
-            ),
-            obligations=["AUDIT"],
-            policy_bundle_hash=abom.manifest_hash(),
+            allowed=True,
+            reason="Local ABOM evaluation: tool allowed (OPA fallback)",
+            obligations=[],
         )

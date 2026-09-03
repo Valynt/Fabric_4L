@@ -508,6 +508,52 @@ services:
       retries: 3
       start_period: 5s
 
+  # Layer 7: Billing Service
+  layer7-billing:
+    build:
+      context: ../..
+      dockerfile: ./services/layer7-billing/Dockerfile
+      args: *build-args
+    container_name: value-fabric-layer7
+    <<: *app-hardening
+    expose:
+      - "8008"
+    environment:
+      - PORT=8008
+      - LOG_LEVEL=info
+      - LAYER7_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/layer7_billing
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      # Infisical — leave blank to use plain env vars
+      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
+      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
+      - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID:-}
+      - INFISICAL_ENVIRONMENT=${INFISICAL_ENVIRONMENT:-Development}
+      - INFISICAL_HOST=${INFISICAL_HOST:-}
+      - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
+      - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+      - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/layer6_benchmarks
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - LAYER3_API_KEY=${LAYER3_API_KEY:-layer3-test-api-key-32chars-long}
+      - LAYER5_API_KEY=${LAYER5_API_KEY:-layer5-test-api-key-32chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
   # Monitoring: Prometheus
   prometheus:
     image: prom/prometheus:v2.54.1
@@ -850,7 +896,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       - POSTGRES_DB=ingestion
       # POSTGRES_MULTIPLE_DATABASES is consumed by init-multiple-dbs.sh
-      - POSTGRES_MULTIPLE_DATABASES=ingestion,extraction,signal_refinery,ground_truth,layer4_agents,layer6_benchmarks
+      - POSTGRES_MULTIPLE_DATABASES=ingestion,extraction,signal_refinery,ground_truth,layer4_agents,layer6_benchmarks,layer7_billing
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ../../scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh

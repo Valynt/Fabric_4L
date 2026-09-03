@@ -16,7 +16,7 @@ This suite centralizes billing, subscription, webhook, entitlement, trial, and t
 
 ## Existing Coverage Aggregated
 
-- `services/layer4-agents/tests/` — canonical billing service tests (layer7-billing service removed 2026-09-01; L4 is the sole billing owner)
+- `services/layer7-billing/tests/` — canonical deployable billing service tests
 - `services/layer4-agents/tests/test_billing_service.py` + `tests/billing/` — membership/subscription/webhook readiness (legacy `services/billing/` package removed 2026-08-27, COMPAT-BILL-001)
 - `tests/contract/test_billing_contracts.py`
 - `tests/integration/billing_entitlements/`

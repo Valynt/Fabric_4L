@@ -1,7 +1,7 @@
 """Hostile tenant and auth abuse regression coverage.
 
 These tests add static, cross-layer guardrail assertions for:
-- cross-tenant/IDOR controls across L1-L6 and API gateway route files,
+- cross-tenant/IDOR controls across L1-L7 and API gateway route files,
 - RBAC downgrade / privilege escalation resistance,
 - expired/tampered token handling shape,
 - contract-safe error payloads (no sensitive internals), and
@@ -27,6 +27,7 @@ LAYER_ROUTE_FILES = {
     "L4": REPO_ROOT / "services/layer4-agents/src/layer4_agents/api/routes/workflows.py",
     "L5": REPO_ROOT / "services/layer5-ground-truth/src/layer5_ground_truth/api/router.py",
     "L6": REPO_ROOT / "services/layer6-benchmarks/src/layer6_benchmarks/api/routes/benchmarks.py",
+    "L7": REPO_ROOT / "services/layer7-billing/src/layer7_billing/api/main.py",
     "API": REPO_ROOT / "services/api/app/routers/accounts.py",
 }
 

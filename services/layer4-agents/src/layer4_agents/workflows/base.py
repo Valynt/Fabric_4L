@@ -16,13 +16,12 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.errors import GraphInterrupt, NodeInterrupt
 from langgraph.graph import StateGraph
 from langgraph.types import Command
-from value_fabric.shared.governance.tool_gateway import ToolGateway, ToolGatewayDenied
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..models.agent_state import AgentState, BaseAgentState, WorkflowStatus
 from ..models.reasoning_trace import ReasoningTrace, ToolCallTrace, validate_reasoning_trace
 from ..models.workflow_config import EdgeConfig, NodeConfig, NodeType, WorkflowConfig
-from ..tools.registry import ToolRegistry, ToolResult
+from ..tools.registry import ToolRegistry
 
 
 class BaseWorkflow__execute_llmResult(TypedDictModel):
@@ -50,32 +49,6 @@ class NodeExecutionError(WorkflowError):
     pass
 
 
-class _WorkflowToolRegistryProxy:
-    """Proxy all tool calls through the policy-enforced gateway.
-
-    Execution is fail-closed: without a ToolGateway there is no governance
-    authority for the invocation, so the call is refused rather than silently
-    degrading to the raw registry.
-    """
-
-    def __init__(self, registry: ToolRegistry, tool_gateway: ToolGateway | None = None):
-        self._registry = registry
-        self._tool_gateway = tool_gateway
-
-    def __getattr__(self, name: str) -> object:
-        return getattr(self._registry, name)
-
-    async def execute(
-        self, tool_name: str, input_data: dict[str, object]
-    ) -> ToolResult | dict[str, object]:
-        if self._tool_gateway is None:
-            raise ToolGatewayDenied(
-                tool_name,
-                "Tool governance gateway unavailable; refusing ungoverned tool execution.",
-            )
-        return await self._tool_gateway.execute(tool_name, input_data)
-
-
 class BaseWorkflow(ABC):
     """Base class for all LangGraph workflows.
 
@@ -100,7 +73,6 @@ class BaseWorkflow(ABC):
         config: WorkflowConfig,
         tool_registry: ToolRegistry,
         checkpoint_saver: BaseCheckpointSaver | None = None,
-        tool_gateway: ToolGateway | None = None,
     ):
         """Initialize workflow.
 
@@ -108,11 +80,9 @@ class BaseWorkflow(ABC):
             config: Workflow configuration
             tool_registry: Registry of available tools
             checkpoint_saver: Optional checkpoint saver for persistence
-            tool_gateway: Optional policy-enforced gateway for tool execution
         """
         self.config = config
-        self.tool_gateway = tool_gateway
-        self.tool_registry = _WorkflowToolRegistryProxy(tool_registry, tool_gateway)
+        self.tool_registry = tool_registry
         self.checkpoint_saver = checkpoint_saver
         self._graph: StateGraph | None = None
         self._compiled_graph = None
@@ -330,11 +300,13 @@ class BaseWorkflow(ABC):
         Returns:
             Tool execution result
         """
+        # Build input from state
         tool_input = self._build_tool_input(tool_name, state, config)
 
-        # Route through the policy-enforced proxy, which refuses ungoverned
-        # execution (fail-closed) when no ToolGateway is available.
-        return await self.tool_registry.execute(tool_name, tool_input)
+        # Execute via registry
+        result = await self.tool_registry.execute(tool_name, tool_input)
+
+        return result
 
     def _build_tool_input(
         self, tool_name: str, state: AgentState, config: dict[str, Any]

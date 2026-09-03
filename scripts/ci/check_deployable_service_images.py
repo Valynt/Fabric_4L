@@ -37,29 +37,24 @@ def dockerfile_backed_service_dirs() -> set[str]:
 
 
 def compose_defined_services() -> set[str]:
-    compose_path = ROOT / "infra/compose/docker-compose.full.yml"
-    if not compose_path.exists():
-        compose_path = ROOT / "docker-compose.full.yml"
-    if not compose_path.exists():
-        return set()
-    compose = yaml.safe_load(compose_path.read_text(encoding="utf-8")) or {}
+    compose = yaml.safe_load((ROOT / "infra/compose/docker-compose.full.yml").read_text(encoding="utf-8")) or {}
     service_defs = compose.get("services", {}) if isinstance(compose, dict) else {}
     found = set()
     for svc in service_defs.values():
         build = svc.get("build") if isinstance(svc, dict) else None
         if isinstance(build, str):
             service = service_name_from_services_path(build)
-            if service and service != "pgbouncer":
+            if service:
                 found.add(service)
         if isinstance(build, dict):
             ctx = str(build.get("context", ""))
             dockerfile = str(build.get("dockerfile", "Dockerfile"))
             service = service_name_from_services_path(ctx)
-            if service and service != "pgbouncer":
+            if service:
                 found.add(service)
                 continue
             service = service_name_from_services_path(dockerfile)
-            if service and service != "pgbouncer":
+            if service:
                 found.add(service)
     return found
 

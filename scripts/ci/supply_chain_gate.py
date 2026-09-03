@@ -44,6 +44,7 @@ LOCKFILES = (
     REPO_ROOT / "services/layer4-agents/uv.lock",
     REPO_ROOT / "services/layer5-ground-truth/uv.lock",
     REPO_ROOT / "services/layer6-benchmarks/uv.lock",
+    REPO_ROOT / "services/layer7-billing/uv.lock",
 )
 
 PRODUCTION_DOCKERFILES = (
@@ -56,13 +57,13 @@ PRODUCTION_DOCKERFILES = (
     REPO_ROOT / "services/layer4-agents/Dockerfile",
     REPO_ROOT / "services/layer5-ground-truth/Dockerfile",
     REPO_ROOT / "services/layer6-benchmarks/Dockerfile",
+    REPO_ROOT / "services/layer7-billing/Dockerfile",
 )
 
 FLOATING_IMAGE_RE = re.compile(
     r"(?P<name>[a-z0-9][a-z0-9./_-]*):(?P<tag>(?:latest|[0-9]+|[0-9]+\.[0-9]+|[0-9]+-[a-z0-9._-]+|[0-9]+\.[0-9]+-[a-z0-9._-]+))$",
     re.IGNORECASE,
 )
-APPROVED_PACKAGE_MANIFEST_ROOTS = {"apps", "packages", "services", "sdk", "tests"}
 
 
 def repo_relative(path: Path) -> str:
@@ -77,20 +78,11 @@ def load_package_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def is_approved_package_manifest(manifest: Path) -> bool:
-    rel = manifest.resolve().relative_to(REPO_ROOT)
-    if rel.as_posix() == "package.json":
-        return True
-
-    parts = rel.parts
-    return len(parts) == 3 and parts[0] in APPROVED_PACKAGE_MANIFEST_ROOTS and parts[2] == "package.json"
-
-
 def discover_components() -> list[dict[str, str]]:
     components: list[dict[str, str]] = []
 
     for manifest in sorted(REPO_ROOT.glob("**/package.json")):
-        if "node_modules" in manifest.parts or not is_approved_package_manifest(manifest):
+        if "node_modules" in manifest.parts:
             continue
         payload = load_package_json(manifest)
         components.append(

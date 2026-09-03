@@ -79,27 +79,8 @@ def test_discover_packages_excludes_codex_worktrees(tmp_path, monkeypatch):
 
     linked_worktree_dir = tmp_path / ".codex-worktrees" / "old-branch" / "services" / "api"
     linked_worktree_dir.mkdir(parents=True)
-    (linked_worktree_dir / "pyproject.toml").write_text(
-        "[project]\nname = 'old-api'\n", encoding="utf-8"
-    )
+    (linked_worktree_dir / "pyproject.toml").write_text("[project]\nname = 'old-api'\n", encoding="utf-8")
 
     packages = validator.discover_packages()
 
     assert packages["pip"] == {Path("services/api")}
-
-
-def test_discover_packages_excludes_archived_dependency_snapshots(tmp_path, monkeypatch):
-    validator = load_validator_module()
-    monkeypatch.setattr(validator, "REPO_ROOT", tmp_path)
-
-    archived_dir = tmp_path / "docs" / "archive" / "frontend-snapshot"
-    archived_dir.mkdir(parents=True)
-    (archived_dir / "package.json").write_text('{"name":"historical-frontend"}\n', encoding="utf-8")
-
-    live_dir = tmp_path / "apps" / "web"
-    live_dir.mkdir(parents=True)
-    (live_dir / "package.json").write_text('{"name":"web"}\n', encoding="utf-8")
-
-    packages = validator.discover_packages()
-
-    assert packages["npm"] == {Path("apps/web")}

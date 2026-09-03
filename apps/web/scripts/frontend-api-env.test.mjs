@@ -12,6 +12,7 @@ const completeEnv = {
   VITE_L4_PREFIX: "/agents",
   VITE_L5_PREFIX: "/truths",
   VITE_L6_PREFIX: "/benchmarks",
+  VITE_L7_PREFIX: "/billing",
 };
 
 describe("frontend API production env validation", () => {
@@ -33,6 +34,7 @@ describe("frontend API production env validation", () => {
         VITE_LAYER4_ROUTE_PREFIX: "/agents",
         VITE_LAYER5_ROUTE_PREFIX: "/truths",
         VITE_LAYER6_ROUTE_PREFIX: "/benchmarks",
+        VITE_LAYER7_ROUTE_PREFIX: "/billing",
       },
       { production: true }
     );

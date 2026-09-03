@@ -85,7 +85,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
@@ -151,7 +151,7 @@ jobs:
           echo "Using SBOM artifact SHA: $sha"
 
       - name: Download SBOM and signing artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4
         with:
           pattern: scan-*-${{ steps.sbom-sha.outputs.sha }}
           path: artifacts/supply-chain
@@ -328,7 +328,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
@@ -499,7 +499,7 @@ jobs:
           cat deployment-record.json
 
       - name: Upload deployment record
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
           name: deployment-record-${{ env.ENVIRONMENT }}-${{ env.IMAGE_REF }}
           path: deployment-record.json
@@ -516,7 +516,7 @@ jobs:
     if: inputs.environment != 'dev'
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Wait for rollout
         run: |
@@ -566,7 +566,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
@@ -659,7 +659,7 @@ jobs:
     if: success()
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Verify metrics
         run: |
@@ -688,7 +688,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -756,7 +756,7 @@ jobs:
           git push origin main
 
       - name: Upload evidence artifact
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
           name: deployment-evidence-${{ steps.evidence.outputs.tag_safe }}
           path: ${{ steps.evidence.outputs.file }}

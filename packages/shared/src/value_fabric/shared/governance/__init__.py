@@ -8,15 +8,11 @@ from __future__ import annotations
 
 __all__ = [
     "AgentBillOfMaterials",
-    "Decision",
-    "DecisionEffect",
     "InvariantEvaluator",
     "InvariantResult",
     "InvariantViolation",
     "MemoryGateway",
-    "Obligation",
     "PolicyDecision",
-    "PolicyDecisionFacade",
     "PolicyEngineClient",
     "ReplayRecorder",
     "ToolGateway",
@@ -26,15 +22,11 @@ __all__ = [
 
 _LAZY_EXPORTS = {
     "AgentBillOfMaterials": (".abom", "AgentBillOfMaterials"),
-    "Decision": (".decision", "Decision"),
-    "DecisionEffect": (".decision", "DecisionEffect"),
     "load_abom": (".abom", "load_abom"),
     "InvariantEvaluator": (".invariants", "InvariantEvaluator"),
     "InvariantResult": (".invariants", "InvariantResult"),
     "MemoryGateway": (".memory_gateway", "MemoryGateway"),
-    "Obligation": (".decision", "Obligation"),
     "PolicyDecision": (".policy_engine", "PolicyDecision"),
-    "PolicyDecisionFacade": (".facade", "PolicyDecisionFacade"),
     "PolicyEngineClient": (".policy_engine", "PolicyEngineClient"),
     "ReplayRecorder": (".replay", "ReplayRecorder"),
     "InvariantViolation": (".tool_gateway", "InvariantViolation"),

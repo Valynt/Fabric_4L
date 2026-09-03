@@ -19,7 +19,7 @@ EXCLUDE_DIRS = {
     ".venv",
     "__pycache__",
     "node_modules",
-    "archive",
+    "docs/archive",
     ".tmp",
     ".agents",
     ".claude",

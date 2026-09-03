@@ -23,8 +23,6 @@
           "owner": { "type": "string", "minLength": 2 },
           "status": { "enum": ["OPEN", "CLOSED", "ACCEPTED", "WAIVED"] },
           "status_note": { "type": "string" },
-          "countersignature": { "type": "string", "minLength": 1 },
-          "ground_truth_status": { "type": "string", "minLength": 1 },
           "risk": { "type": "string", "minLength": 10 },
           "validation": { "type": "string", "minLength": 5 },
           "exit_criteria": { "type": "string", "minLength": 10 },
