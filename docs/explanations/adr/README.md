@@ -169,6 +169,8 @@ Do not create an ADR for routine implementation details, local refactors that do
 
 Every new ADR must include status, date, deciders or owning roles, context, decision, consequences, alternatives considered, related implementation paths, and validation evidence or the gate that will prove the decision.
 
+Register the ADR in [`docs/decisions/adr-registry.yaml`](../../decisions/adr-registry.yaml) with at least one related code path. Accepted entries may also declare `must_contain` / `must_not_contain` regex rules. `make check-adr` verifies numbering, this index, registry completeness, and those links.
+
 ---
 
 ## Contributing
