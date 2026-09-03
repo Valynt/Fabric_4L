@@ -164,7 +164,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"ERROR: {error}", file=sys.stderr)
         return 1
     print(
-        "Node security backports verified: brace-expansion 5.0.8 compatibility and "
+        "Node security backports verified: brace-expansion 5.0.9 compatibility and "
         f"React Router upstream fix for {REACT_ROUTER_ADVISORY}"
     )
     if args.audit:
