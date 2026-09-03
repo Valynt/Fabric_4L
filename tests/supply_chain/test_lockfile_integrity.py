@@ -19,6 +19,15 @@ def _version_tuple(version: str) -> tuple[int, int, int]:
     return tuple(int(part) for part in match.groups())
 
 
+def _locked_version(lock_text: str, package: str) -> tuple[int, int, int]:
+    match = re.search(
+        rf"(?m)^{re.escape(package)}==(?P<version>\d+\.\d+\.\d+)\s+\\$",
+        lock_text,
+    )
+    assert match, f"Unable to find locked version for {package}"
+    return _version_tuple(match["version"])
+
+
 def test_supply_chain_package_scripts_are_registered() -> None:
     scripts = load_package_json(REPO_ROOT / "package.json")["scripts"]
 
@@ -106,8 +115,12 @@ def test_security_dependency_floors_stay_in_sync() -> None:
     assert "aiohttp>=3.14.3" in pytest_policy
     assert '"msgpack>=1.2.1"' in layer3_pyproject
 
-    for locked_requirement in ("aiohttp==3.14.3", "protego==0.6.2", "msgpack==1.2.1"):
-        assert locked_requirement in test_lock
+    for package, minimum in {
+        "aiohttp": (3, 14, 3),
+        "protego": (0, 6, 2),
+        "msgpack": (1, 2, 1),
+    }.items():
+        assert _locked_version(test_lock, package) >= minimum
 
     match = re.search(
         r"(?m)^      axios:\n        specifier: (?P<specifier>\S+)\n"
