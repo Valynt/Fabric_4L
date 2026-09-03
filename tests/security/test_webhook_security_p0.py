@@ -102,7 +102,11 @@ def test_parse_stripe_signature_header_extracts_timestamp_and_signatures() -> No
 def test_signature_tampering_rejected() -> None:
     """A payload signed once but delivered with a different body is rejected."""
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, CURRENT_TS)
-    tampered = b'{"id": "evt_123", "type": "payment.created", "data": {"amount": 999999}}'
+    # Keep the tampered payload event-shaped (same object/type fields as the
+    # signed payload) so construct_event fails on signature verification
+    # rather than on a payload-shape error, which would be brittle across
+    # Stripe SDK versions.
+    tampered = b'{"id": "evt_123", "object": "event", "type": "payment.created", "data": {"amount": 999999}}'
     with pytest.raises(
         ValueError,
         match="Invalid Stripe webhook signature|No signatures found matching",

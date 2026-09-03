@@ -4,7 +4,7 @@ Tests explicit hostile cross-tenant access patterns for each layer's endpoint fa
 - L1: /api/v1/ingestion/**
 - L2: /signals/**
 - L3: /v1/entities/** (entities.py), /v1/graph/** (graph_viz.py), /v1/search/** (query_search.py)
-- L4: /v1/workflows/**, /v1/accounts/**
+- L4: /v1/workflows/**, /v1/accounts/**, /v1/billing/**
 - L5: /api/v1/truths/**
 - L6: /v1/benchmarks/**
 - API: /v1/accounts/**
@@ -70,6 +70,12 @@ ENDPOINT_FAMILIES: dict[str, tuple[str, Path, str, list[str]]] = {
         REPO_ROOT / "services/layer4-agents/src/layer4_agents/api/routes/accounts.py",
         "/v1/accounts",
         ["GET", "POST", "PUT"],
+    ),
+    "L4_billing": (
+        "L4",
+        REPO_ROOT / "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
+        "/v1/billing",
+        ["GET", "POST"],
     ),
     "L5_truths": (
         "L5",
