@@ -20,7 +20,6 @@ from uuid import uuid4
 import jsonschema
 import pytest
 from value_fabric.shared.governance.abom import (
-    ABOMInvariants,
     AgentBillOfMaterials,
     clear_abom_cache,
     load_abom,
@@ -32,32 +31,13 @@ from value_fabric.shared.governance.tool_gateway import (
     ToolGateway,
     ToolGatewayDenied,
 )
+from tests.shared.governance.builders import (
+    make_abom,
+    make_allowing_policy_client,
+    make_mock_registry,
+)
 
 SCHEMA_DIR = Path(__file__).resolve().parents[3] / "packages" / "platform-contract" / "schemas" / "gate"
-
-
-def _make_abom(**overrides) -> AgentBillOfMaterials:
-    """Create a test ABOM with sensible defaults."""
-    defaults = {
-        "agent_type": "TestAgent",
-        "agent_id": "TestAgent-abcd1234",
-        "privilege_tier": "standard",
-        "allowed_tools": ["tool_a", "tool_b", "tool_c"],
-        "denied_tools": [],
-        "invariants": ABOMInvariants(
-            max_tool_calls_per_run=5,
-            budget_limit_usd=10.0,
-        ),
-    }
-    defaults.update(overrides)
-    return AgentBillOfMaterials(**defaults)
-
-
-def _make_mock_registry() -> MagicMock:
-    """Create a mock ToolRegistry."""
-    registry = MagicMock()
-    registry.execute = AsyncMock(return_value={"status": "ok"})
-    return registry
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -69,12 +49,12 @@ class TestABOMModel:
     """AgentBillOfMaterials model tests."""
 
     def test_is_tool_allowed(self) -> None:
-        abom = _make_abom()
+        abom = make_abom()
         assert abom.is_tool_allowed("tool_a") is True
         assert abom.is_tool_allowed("unknown_tool") is False
 
     def test_denied_tools_override_allowed(self) -> None:
-        abom = _make_abom(
+        abom = make_abom(
             allowed_tools=["tool_a", "tool_b"],
             denied_tools=["tool_a"],
         )
@@ -82,13 +62,13 @@ class TestABOMModel:
         assert abom.is_tool_allowed("tool_b") is True
 
     def test_manifest_hash_determinism(self) -> None:
-        abom1 = _make_abom()
-        abom2 = _make_abom()
+        abom1 = make_abom()
+        abom2 = make_abom()
         assert abom1.manifest_hash() == abom2.manifest_hash()
 
     def test_manifest_hash_changes_with_tools(self) -> None:
-        abom1 = _make_abom(allowed_tools=["tool_a"])
-        abom2 = _make_abom(allowed_tools=["tool_a", "tool_b"])
+        abom1 = make_abom(allowed_tools=["tool_a"])
+        abom2 = make_abom(allowed_tools=["tool_a", "tool_b"])
         assert abom1.manifest_hash() != abom2.manifest_hash()
 
     def test_load_abom_from_file(self, tmp_path: Path) -> None:
@@ -111,7 +91,7 @@ class TestABOMModel:
         schema = json.loads(
             (SCHEMA_DIR / "abom.schema.json").read_text()
         )
-        abom = _make_abom()
+        abom = make_abom()
         payload = json.loads(abom.model_dump_json())
         jsonschema.Draft202012Validator(schema).validate(payload)
 
@@ -125,23 +105,24 @@ class TestPolicyEngineClient:
     """PolicyEngineClient local fallback tests."""
 
     @pytest.mark.asyncio
-    async def test_local_fallback_allows_listed_tool(self) -> None:
+    async def test_local_fallback_denies_when_tenant_missing(self) -> None:
         client = PolicyEngineClient(opa_url="http://nonexistent:9999", timeout=1)
-        abom = _make_abom()
-        decision = await client.evaluate(abom, "tool_a", {})
-        assert decision.allowed is True
+        abom = make_abom()
+        decision = await client.evaluate(abom, "tool_a", {}, tenant_id="")
+        assert decision.allowed is False
+        assert "Tenant context" in decision.reason
 
     @pytest.mark.asyncio
     async def test_local_fallback_denies_unlisted_tool(self) -> None:
         client = PolicyEngineClient(opa_url="http://nonexistent:9999", timeout=1)
-        abom = _make_abom()
+        abom = make_abom()
         decision = await client.evaluate(abom, "unknown_tool", {})
         assert decision.allowed is False
 
     @pytest.mark.asyncio
     async def test_local_fallback_denies_denied_tool(self) -> None:
         client = PolicyEngineClient(opa_url="http://nonexistent:9999", timeout=1)
-        abom = _make_abom(denied_tools=["tool_a"])
+        abom = make_abom(denied_tools=["tool_a"])
         decision = await client.evaluate(abom, "tool_a", {})
         assert decision.allowed is False
 
@@ -149,13 +130,22 @@ class TestPolicyEngineClient:
     async def test_high_privilege_deny_all_when_opa_down(self) -> None:
         """CRITICAL: high_privilege agents must be denied when OPA is unavailable."""
         client = PolicyEngineClient(opa_url="http://nonexistent:9999", timeout=1)
-        abom = _make_abom(privilege_tier="high_privilege")
-        decision = await client.evaluate(abom, "tool_a", {})
+        abom = make_abom(privilege_tier="high_privilege")
+        decision = await client.evaluate(abom, "tool_a", {}, tenant_id="tenant-123")
         assert decision.allowed is False
         assert "deny-all" in decision.reason
 
+    @pytest.mark.asyncio
+    async def test_standard_agent_fail_closed_when_opa_down(self) -> None:
+        """OPA outages must deny standard agents rather than silently allowing them."""
+        client = PolicyEngineClient(opa_url="http://nonexistent:9999", timeout=1)
+        abom = make_abom()
+        decision = await client.evaluate(abom, "tool_a", {}, tenant_id="tenant-123")
+        assert decision.allowed is False
+        assert "fail-closed" in decision.reason.lower()
 
-# ═══════════════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════
 # InvariantEvaluator Tests
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -164,13 +154,13 @@ class TestInvariantEvaluator:
     """InvariantEvaluator tests."""
 
     def test_allows_within_limits(self) -> None:
-        abom = _make_abom()
+        abom = make_abom()
         evaluator = InvariantEvaluator(abom)
         result = evaluator.check_pre_invocation("tool_a")
         assert result.passed is True
 
     def test_blocks_over_call_limit(self) -> None:
-        abom = _make_abom()
+        abom = make_abom()
         evaluator = InvariantEvaluator(abom)
         for _ in range(5):
             evaluator.record_invocation("tool_a")
@@ -179,21 +169,21 @@ class TestInvariantEvaluator:
         assert any("limit exceeded" in v for v in result.violations)
 
     def test_blocks_over_budget(self) -> None:
-        abom = _make_abom()
+        abom = make_abom()
         evaluator = InvariantEvaluator(abom)
         result = evaluator.check_pre_invocation("tool_a", estimated_cost_usd=15.0)
         assert result.passed is False
         assert any("Budget" in v for v in result.violations)
 
     def test_warns_near_budget(self) -> None:
-        abom = _make_abom()
+        abom = make_abom()
         evaluator = InvariantEvaluator(abom)
         result = evaluator.check_pre_invocation("tool_a", estimated_cost_usd=9.0)
         assert result.passed is True
         assert len(result.warnings) > 0
 
     def test_reset_clears_state(self) -> None:
-        abom = _make_abom()
+        abom = make_abom()
         evaluator = InvariantEvaluator(abom)
         evaluator.record_invocation("tool_a", cost_usd=5.0)
         evaluator.reset()
@@ -211,17 +201,18 @@ class TestToolGateway:
 
     @pytest.mark.asyncio
     async def test_allows_valid_invocation(self) -> None:
-        registry = _make_mock_registry()
-        abom = _make_abom()
-        gw = ToolGateway(registry=registry, abom=abom)
+        registry = make_mock_registry()
+        abom = make_abom()
+        policy_client = make_allowing_policy_client(abom)
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
         result = await gw.execute("tool_a", {"param": "value"})
         assert result == {"status": "ok"}
         registry.execute.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_denies_unlisted_tool(self) -> None:
-        registry = _make_mock_registry()
-        abom = _make_abom()
+        registry = make_mock_registry()
+        abom = make_abom()
         gw = ToolGateway(registry=registry, abom=abom)
         with pytest.raises(ToolGatewayDenied, match="ABOM denies"):
             await gw.execute("forbidden_tool", {})
@@ -229,17 +220,27 @@ class TestToolGateway:
 
     @pytest.mark.asyncio
     async def test_denies_denied_tool(self) -> None:
-        registry = _make_mock_registry()
-        abom = _make_abom(denied_tools=["tool_a"])
+        registry = make_mock_registry()
+        abom = make_abom(denied_tools=["tool_a"])
         gw = ToolGateway(registry=registry, abom=abom)
         with pytest.raises(ToolGatewayDenied, match="ABOM denies"):
             await gw.execute("tool_a", {})
 
     @pytest.mark.asyncio
+    async def test_denies_missing_tenant_context(self) -> None:
+        registry = make_mock_registry()
+        abom = make_abom()
+        gw = ToolGateway(registry=registry, abom=abom, tenant_id="")
+        with pytest.raises(ToolGatewayDenied, match="Tenant context is required"):
+            await gw.execute("tool_a", {})
+        registry.execute.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_invariant_violation_blocks(self) -> None:
-        registry = _make_mock_registry()
-        abom = _make_abom()
-        gw = ToolGateway(registry=registry, abom=abom)
+        registry = make_mock_registry()
+        abom = make_abom()
+        policy_client = make_allowing_policy_client(abom)
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
         # Exhaust call limit
         for _ in range(5):
             await gw.execute("tool_a", {})
@@ -248,18 +249,20 @@ class TestToolGateway:
 
     @pytest.mark.asyncio
     async def test_invocation_log_populated(self) -> None:
-        registry = _make_mock_registry()
-        abom = _make_abom()
-        gw = ToolGateway(registry=registry, abom=abom)
+        registry = make_mock_registry()
+        abom = make_abom()
+        policy_client = make_allowing_policy_client(abom)
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
         await gw.execute("tool_a", {"x": 1})
         assert len(gw.invocation_log) == 1
         assert gw.invocation_log[0]["tool_name"] == "tool_a"
 
     @pytest.mark.asyncio
     async def test_reset_clears_state(self) -> None:
-        registry = _make_mock_registry()
-        abom = _make_abom()
-        gw = ToolGateway(registry=registry, abom=abom)
+        registry = make_mock_registry()
+        abom = make_abom()
+        policy_client = make_allowing_policy_client(abom)
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
         await gw.execute("tool_a", {})
         gw.reset_for_new_run()
         assert len(gw.invocation_log) == 0
@@ -268,9 +271,16 @@ class TestToolGateway:
     @pytest.mark.asyncio
     async def test_policy_decision_audit_emitted_for_allowed_invocation(self) -> None:
         """Runtime policy decisions are audit evidence, separate from tool invocation."""
-        registry = _make_mock_registry()
-        abom = _make_abom()
-        gw = ToolGateway(registry=registry, abom=abom, tenant_id=str(uuid4()), trace_id="trace-allow")
+        registry = make_mock_registry()
+        abom = make_abom()
+        policy_client = make_allowing_policy_client(abom)
+        gw = ToolGateway(
+            registry=registry,
+            abom=abom,
+            policy_client=policy_client,
+            tenant_id=str(uuid4()),
+            trace_id="trace-allow",
+        )
 
         with patch(
             "value_fabric.shared.governance.tool_gateway.emit_audit_event",
@@ -295,8 +305,8 @@ class TestToolGateway:
 
     @pytest.mark.asyncio
     async def test_policy_decision_audit_emitted_for_policy_denial(self) -> None:
-        registry = _make_mock_registry()
-        abom = _make_abom()
+        registry = make_mock_registry()
+        abom = make_abom()
         policy_client = MagicMock()
         policy_client.evaluate = AsyncMock(return_value=PolicyDecision(
             allowed=False,
@@ -304,7 +314,7 @@ class TestToolGateway:
             obligations=["manual_review"],
             policy_bundle_hash="c" * 64,
         ))
-        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client)
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
 
         with patch(
             "value_fabric.shared.governance.tool_gateway.emit_audit_event",
@@ -329,9 +339,10 @@ class TestToolGateway:
 
     @pytest.mark.asyncio
     async def test_policy_decision_audit_emitted_for_invariant_denial(self) -> None:
-        registry = _make_mock_registry()
-        abom = _make_abom()
-        gw = ToolGateway(registry=registry, abom=abom)
+        registry = make_mock_registry()
+        abom = make_abom()
+        policy_client = make_allowing_policy_client(abom)
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
         for _ in range(5):
             await gw.execute("tool_a", {})
 
@@ -360,20 +371,12 @@ class TestToolGateway:
     @pytest.mark.asyncio
     async def test_high_privilege_denied_when_opa_down(self) -> None:
         """High-privilege agents must be denied when OPA is unavailable."""
-        registry = _make_mock_registry()
-        abom = _make_abom(privilege_tier="high_privilege")
+        registry = make_mock_registry()
+        abom = make_abom(privilege_tier="high_privilege")
         policy_client = PolicyEngineClient(opa_url="http://nonexistent:9999", timeout=1)
-        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client)
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
         with pytest.raises(ToolGatewayDenied, match="deny-all"):
             await gw.execute("tool_a", {})
-
-
-import re  # noqa: E402
-
-
-def _camel_to_snake(name: str) -> str:
-    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
-    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
 class TestABOMFromManifestDir:

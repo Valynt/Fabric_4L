@@ -145,14 +145,20 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         tool_registry: ToolRegistry,
         checkpoint_saver=None,
         ground_truth_client_factory: BusinessCaseGroundTruthClientFactory | None = None,
+        tool_gateway=None,
     ):
         """Initialize Business Case Generator workflow."""
         super().__init__(
             config=BUSINESS_CASE_WORKFLOW_CONFIG,
             tool_registry=tool_registry,
             checkpoint_saver=checkpoint_saver,
+            tool_gateway=tool_gateway,
         )
-        self.roi_workflow = ROICalculatorWorkflow(tool_registry, checkpoint_saver)
+        self.roi_workflow = ROICalculatorWorkflow(
+            tool_registry,
+            checkpoint_saver,
+            tool_gateway=tool_gateway,
+        )
         self._ground_truth_client_factory = ground_truth_client_factory
 
     def _get_state_type(self):

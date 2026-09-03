@@ -426,8 +426,29 @@ class BaseAgent(ABC):
                     trace_id=ctx.get("trace_id"),
                 )
                 ctx["tool_gateway"] = tool_gateway
-            except ImportError:
-                pass  # GATE not installed — graceful degradation
+            except ImportError as exc:  # pragma: no cover - fail-closed at runtime
+                raise RuntimeError(
+                    "Governance enforcement is unavailable; refusing to bypass policy checks."
+                ) from exc
+
+        # ── GATE Phase 2/3: PolicyDecisionFacade injection ──
+        if "policy_facade" not in ctx and self.abom is not None:
+            try:
+                from value_fabric.shared.governance.facade import PolicyDecisionFacade
+                from value_fabric.shared.governance.policy_engine import PolicyEngineClient
+
+                policy_facade = PolicyDecisionFacade(
+                    policy_client=ctx.get("policy_client") or PolicyEngineClient(),
+                    abom=self.abom,
+                    llm_safety=ctx.get("llm_safety"),
+                    allowed_actions={"memory.query", "memory.entity_context"},
+                )
+                ctx["policy_facade"] = policy_facade
+                self.state.context["policy_facade"] = policy_facade
+            except ImportError as exc:  # pragma: no cover - fail-closed at runtime
+                raise RuntimeError(
+                    "Governance enforcement is unavailable; refusing to bypass policy checks."
+                ) from exc
 
         # ── GATE Phase 3: MemoryGateway injection ──
         memory_gateway = None
@@ -443,10 +464,13 @@ class BaseAgent(ABC):
                     agent_id=self.agent_id,
                     trace_id=ctx.get("trace_id"),
                     source_blocklist=ctx.get("memory_source_blocklist"),
+                    policy_facade=ctx.get("policy_facade"),
                 )
                 ctx["memory_gateway"] = memory_gateway
-            except ImportError:
-                pass
+            except ImportError as exc:  # pragma: no cover - fail-closed at runtime
+                raise RuntimeError(
+                    "Governance enforcement is unavailable; refusing to bypass memory policy checks."
+                ) from exc
 
         if memory_gateway is not None:
             # ctx was already snapshotted into state.context, so mirror the
