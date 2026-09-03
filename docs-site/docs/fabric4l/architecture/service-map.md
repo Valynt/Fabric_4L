@@ -22,7 +22,6 @@ This page maps every maintained service to its port, runtime path, API module, a
 | 8006 | Layer 6 — Benchmarks | `production` | `services/layer6-benchmarks/src/layer6_benchmarks/` |
 | — | API Gateway | `production` | `services/api/` |
 | — | Layer 2.5 Signal Refinery | `experimental` | `services/layer2-5-signal-refinery/` |
-| — | Layer 7 Billing | `internal` | `services/layer7-billing/` |
 
 !!! tip "Port mnemonic"
     Ports map directly to layer numbers: `8000 + layer_number`. This convention is used by dev scripts, Docker Compose, and Kubernetes manifests.

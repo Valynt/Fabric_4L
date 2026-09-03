@@ -40,10 +40,6 @@ export const API_ENV_GROUPS = [
     label: "Layer 6 route prefix",
     names: ["VITE_LAYER6_ROUTE_PREFIX", "VITE_L6_PREFIX"],
   },
-  {
-    label: "Layer 7 route prefix",
-    names: ["VITE_LAYER7_ROUTE_PREFIX", "VITE_L7_PREFIX"],
-  },
 ];
 
 export function validateFrontendApiEnv(

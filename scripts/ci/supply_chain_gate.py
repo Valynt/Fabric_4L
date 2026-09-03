@@ -44,7 +44,6 @@ LOCKFILES = (
     REPO_ROOT / "services/layer4-agents/uv.lock",
     REPO_ROOT / "services/layer5-ground-truth/uv.lock",
     REPO_ROOT / "services/layer6-benchmarks/uv.lock",
-    REPO_ROOT / "services/layer7-billing/uv.lock",
 )
 
 PRODUCTION_DOCKERFILES = (
@@ -57,7 +56,6 @@ PRODUCTION_DOCKERFILES = (
     REPO_ROOT / "services/layer4-agents/Dockerfile",
     REPO_ROOT / "services/layer5-ground-truth/Dockerfile",
     REPO_ROOT / "services/layer6-benchmarks/Dockerfile",
-    REPO_ROOT / "services/layer7-billing/Dockerfile",
 )
 
 FLOATING_IMAGE_RE = re.compile(

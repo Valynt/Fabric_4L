@@ -17,7 +17,6 @@ const ALLOWED_LOCKFILE_PATHS = new Set([
   'services/layer4-agents/uv.lock',
   'services/layer5-ground-truth/uv.lock',
   'services/layer6-benchmarks/uv.lock',
-  'services/layer7-billing/uv.lock',
 ]);
 const ALLOWED_NPM_YARN_LOCKFILE_PATHS = new Set([
   'prototypes/ui-prototype/app/package-lock.json',

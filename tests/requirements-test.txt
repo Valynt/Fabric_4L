@@ -63,7 +63,7 @@ neo4j>=5.15.0
 msgpack>=1.0.8
 
 # ---------------------------------------------------------------------------
-# Layer 4 — PostgreSQL driver and email validation
+# Layer 4 — PostgreSQL driver, email validation, and billing
 # ---------------------------------------------------------------------------
 psycopg[binary]>=3.1.0     # Required by testcontainers postgres integration tests
 psycopg2-binary>=2.9.9     # Required by psycopg2 legacy imports in security/conftest tests
@@ -75,6 +75,7 @@ pandas>=3.0.3              # Required by Layer 4 workflow/tooling imports in man
 langgraph>=0.2.0           # Required by Layer 4 tenant/security imports during mandatory collection
 jinja2>=3.1.4              # Required by Layer 4 document export tests during root collection
 boto3>=1.34.0                # Required by Layer 4 package storage imports during tenant/security gates
+stripe>=11.0.0             # Required by P0 billing webhook security tests at mandatory collection
 
 # ---------------------------------------------------------------------------
 # Root conftest collection dependencies
