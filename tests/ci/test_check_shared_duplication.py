@@ -71,6 +71,23 @@ def test_cluster_ignores_bodies_below_min_statement_threshold() -> None:
     assert clusters == []
 
 
+def test_body_statement_count_includes_nested_control_flow_not_nested_defs() -> None:
+    source = "\n".join(
+        [
+            "def outer(value):",
+            "    if value:",
+            "        value = value + 1",
+            "        for item in [value]:",
+            "            value = item",
+            "    def helper():",
+            "        return value",
+            "    return value",
+        ]
+    )
+    node = _defs(source)[0][1]
+    assert dup.body_statement_count(node) == 5
+
+
 def test_normalized_tier_catches_renamed_logic() -> None:
     source = "\n".join(
         [

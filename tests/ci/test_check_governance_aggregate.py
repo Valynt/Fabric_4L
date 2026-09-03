@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 from scripts.ci import check_governance as gov
 
@@ -22,6 +23,24 @@ def test_status_from_exit_maps_traceback_to_error() -> None:
     assert gov._status_from_exit(1, "some violation") == "fail"
     assert gov._status_from_exit(1, "Traceback (most recent call last)") == "error"
     assert gov._status_from_exit(2, "usage: check_governance.py") == "error"
+
+
+def test_run_argv_maps_argparse_exit_to_error(monkeypatch) -> None:
+    monkeypatch.setattr(
+        gov.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=2,
+            stdout="",
+            stderr="usage: check_shared_duplication.py",
+        ),
+    )
+
+    result = gov.run_argv(["python", "check_shared_duplication.py", "--bad-flag"])
+
+    assert result["status"] == "error"
+    assert result["exit_code"] == 2
+    assert "usage:" in result["output"]
 
 
 def test_aggregate_precedence_error_over_fail_over_pass() -> None:
@@ -93,3 +112,32 @@ def test_duplication_regenerable_passes_when_baseline_is_current() -> None:
 def test_duplication_regenerable_fails_on_baseline_drift() -> None:
     result = gov._duplication_regenerable(_regenerable_runner("{}\n"))
     assert result["status"] == "fail"
+
+
+def test_duplication_error_is_not_replaced_by_stale_envelope(tmp_path, monkeypatch) -> None:
+    artifact_dir = tmp_path / "artifacts"
+    artifact_dir.mkdir()
+    (artifact_dir / "check-shared-duplication.json").write_text(
+        '{"status": "pass", "baseline_present": true, "violations": []}\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(gov, "ARTIFACT_DIR", artifact_dir)
+
+    def broken_runner(cmd: list[str]) -> dict:
+        return {
+            "command": " ".join(cmd),
+            "status": "error",
+            "exit_code": 2,
+            "output": "usage: check_shared_duplication.py",
+        }
+
+    report = gov.run_governance(
+        runner=broken_runner,
+        only="check-shared-duplication",
+    )
+
+    sub_check = report["sub_checks"][0]
+    assert report["status"] == "error"
+    assert sub_check["status"] == "error"
+    assert sub_check["details"][0]["exit_code"] == 2
+    assert sub_check["violations"] == []
