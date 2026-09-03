@@ -13,12 +13,18 @@ from ..models import (
     ToolDef,
 )
 from .agents import Agent, create_agent
-from .client import AgentRuntimeClient, RunsNamespace, SDKTimeoutError
+from .client import (
+    AgentRuntimeClient,
+    RemoteAgentRuntimeClient,
+    RunsNamespace,
+    SDKTimeoutError,
+)
 from .types import AgentSpec
 
 __all__ = [
     "Agent",
     "AgentRuntimeClient",
+    "RemoteAgentRuntimeClient",
     "AgentRuntimeImpl",
     "AgentSpec",
     "RunEnvelope",

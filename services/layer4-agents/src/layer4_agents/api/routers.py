@@ -51,6 +51,7 @@ from .routes.health_badges import health_badges_router
 from .routes.integrations import router as integrations_router
 from .routes.intelligence import router as intelligence_router
 from .routes.narratives import router as narratives_router
+from .routes.runtime import router as runtime_router
 from .routes.state_inspector import state_inspector_router
 from .routes.tenant_context import router as tenant_context_router
 from .routes.value_hypotheses import router as value_hypotheses_router
@@ -95,6 +96,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(value_hypotheses_router, prefix="/v1")
     app.include_router(narratives_router, prefix="/v1")
     app.include_router(intelligence_router, prefix="/v1")
+    app.include_router(runtime_router, prefix="/v1")
     app.include_router(ground_truth_proxy_router)
     app.include_router(governance_workflows_router, prefix="/v1")
 

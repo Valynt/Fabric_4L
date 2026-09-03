@@ -27,6 +27,8 @@ if TYPE_CHECKING:
 
 class RuntimeState:
     workflow_executor: OrchestrationController | None = None
+    agent_runtime: Any | None = None
+    runtime_metrics: Any | None = None
     state_manager: StateManager | None = None
     checkpoint_saver: AsyncPostgresSaver | None = None
     crm_sync_scheduler: CRMSyncScheduler | None = None

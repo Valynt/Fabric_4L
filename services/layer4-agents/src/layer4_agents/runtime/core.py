@@ -37,6 +37,7 @@ from .models import (
     RuntimeContext,
     ToolDef,
     ToolResult,
+    ToolSchema,
     WorkflowResult,
 )
 from .ports import (
@@ -98,6 +99,36 @@ class AgentRuntimeImpl:
     def register_model_provider(self, name: str, provider: ModelProviderPort) -> None:
         """Register a model provider adapter."""
         self._model_providers[name] = provider
+
+    def list_workflow_types(self) -> list[str]:
+        """Return the workflow types exposed by the configured runtime."""
+        types = set(self._workflow_factories)
+        if self._workflow_engine is not None:
+            types.update(self._workflow_engine.get_supported_types())
+        return sorted(types)
+
+    def list_model_providers(self) -> list[str]:
+        """Return provider names without exposing provider implementation details."""
+        return sorted(self._model_providers)
+
+    def list_tools(self, tenant_id: str) -> list[ToolSchema]:
+        """Return tenant-visible tool schemas through the configured registry."""
+        if not tenant_id:
+            raise TenantRequiredError()
+        if self._tool_registry is not None:
+            return self._tool_registry.list_tools(tenant_id)
+        return [
+            ToolSchema(
+                name=tool.name,
+                description=tool.description,
+                category=tool.category,
+                tenant_scoped=tool.tenant_scoped,
+                parameters=dict(tool.parameters),
+                required=list(tool.required),
+                version=tool.version,
+            )
+            for tool in self._tools.values()
+        ]
 
     def get_model_provider(self, name: str) -> ModelProviderPort:
         """Resolve a registered model provider, failing closed when absent.

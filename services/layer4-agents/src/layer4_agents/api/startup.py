@@ -166,6 +166,30 @@ def build_lifespan(
         await runtime_state.workflow_executor.start()
         await runtime_state.workflow_executor.recover_workflows()
 
+        # The canonical runtime is additive: legacy orchestration remains
+        # booted for existing routes while new consumers use the provider-
+        # agnostic runtime ports and tenant-scoped HTTP surface.
+        # Import dynamically because database.py registers runtime ORM models
+        # at module load; a top-level runtime import would create a database
+        # <-> runtime.orm import cycle during application bootstrap.
+        import importlib
+
+        runtime_module = importlib.import_module("layer4_agents.runtime")
+        runtime_state.runtime_metrics = runtime_module.RuntimeMetrics()
+        runtime_events = runtime_module.RuntimeEventBus()
+        runtime_events.register(runtime_state.runtime_metrics)
+        runtime_state.agent_runtime = runtime_module.AgentRuntimeImpl(
+            workflow_engine=runtime_module.LangGraphWorkflowEngineAdapter(
+                tool_registry=tool_registry,
+                checkpoint_saver=runtime_state.checkpoint_saver,
+            ),
+            tool_registry=runtime_module.LegacyToolRegistryAdapter(tool_registry),
+            event_bus=runtime_events,
+        )
+        await runtime_state.agent_runtime.start()
+        app.state.agent_runtime = runtime_state.agent_runtime
+        app.state.runtime_metrics = runtime_state.runtime_metrics
+
         # Schedule periodic stuck-workflow detection (OBS-L4-006)
         async def _stuck_workflow_detector() -> None:
             while True:
@@ -190,6 +214,8 @@ def build_lifespan(
 
         if runtime_state.workflow_executor:
             await runtime_state.workflow_executor.stop()
+        if runtime_state.agent_runtime:
+            await runtime_state.agent_runtime.stop()
         await ws_manager.stop()
         await health_tracker.stop()
         if runtime_state.crm_sync_scheduler:

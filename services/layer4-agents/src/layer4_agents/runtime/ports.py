@@ -160,3 +160,12 @@ class AgentRuntime(Protocol):
 
     def register_model_provider(self, name: str, provider: ModelProviderPort) -> None:
         """Register a model provider adapter."""
+
+    def list_workflow_types(self) -> list[str]:
+        """Return workflow types available through this runtime."""
+
+    def list_model_providers(self) -> list[str]:
+        """Return registered model provider names."""
+
+    def list_tools(self, tenant_id: str) -> list[ToolSchema]:
+        """Return tool schemas visible to a tenant."""
