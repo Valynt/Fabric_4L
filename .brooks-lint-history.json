@@ -1,59 +1,59 @@
 [
     {
-        "date":  "2026-08-26",
-        "mode":  "Tech Debt Assessment",
-        "score":  54,
-        "findings":  {
-                         "critical":  1,
-                         "warning":  6,
-                         "suggestion":  1
-                     },
-        "scope":  "entire repository"
+        "date": "2026-08-26",
+        "mode": "Tech Debt Assessment",
+        "score": 54,
+        "findings": {
+            "critical": 1,
+            "warning": 6,
+            "suggestion": 1
+        },
+        "scope": "entire repository"
     },
     {
-        "date":  "2026-08-27",
-        "mode":  "Health Dashboard",
-        "score":  97,
-        "findings":  {
-                         "critical":  0,
-                         "warning":  2,
-                         "suggestion":  2
-                     },
-        "scope":  "entire repository"
+        "date": "2026-08-27",
+        "mode": "Health Dashboard",
+        "score": 97,
+        "findings": {
+            "critical": 0,
+            "warning": 2,
+            "suggestion": 2
+        },
+        "scope": "entire repository"
     },
     {
-        "date":  "2026-08-28",
-        "mode":  "Test Quality Review",
-        "score":  88,
-        "findings":  {
-                         "critical":  0,
-                         "warning":  2,
-                         "suggestion":  2
-                     },
-        "scope":  "entire repository",
-        "inspected_commit_sha":  "00bffb308f8168f4e432a7b6bc13aa3e54501392",
-        "configuration":  "defaults; no .brooks-lint.yaml present",
-        "scoring_rubric":  "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
-        "finding_ids":  [
-                            "T3-collection-overlap",
-                            "T4-thin-suites-l2-l6",
-                            "T2b-mock-ratio",
-                            "T6-duration-telemetry"
-                        ],
-        "run_type":  "inspection and sampling only; no executable tests run",
-        "report_location":  "session files: brooks-test-review-2026-08-28.md",
-        "remediation_status":  "open - findings accepted into backlog"
+        "date": "2026-08-28",
+        "mode": "Test Quality Review",
+        "score": 88,
+        "findings": {
+            "critical": 0,
+            "warning": 2,
+            "suggestion": 2
+        },
+        "scope": "entire repository",
+        "inspected_commit_sha": "00bffb308f8168f4e432a7b6bc13aa3e54501392",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T3-collection-overlap",
+            "T4-thin-suites-l2-l6",
+            "T2b-mock-ratio",
+            "T6-duration-telemetry"
+        ],
+        "run_type": "inspection and sampling only; no executable tests run",
+        "report_location": "session files: brooks-test-review-2026-08-28.md",
+        "remediation_status": "open - findings accepted into backlog"
     },
     {
-        "date":  "2026-08-29",
-        "mode":  "Health Dashboard",
-        "score":  93,
-        "findings":  {
-                         "critical":  0,
-                         "warning":  4,
-                         "suggestion":  1
-                     },
-        "scope":  "entire repository"
+        "date": "2026-08-29",
+        "mode": "Health Dashboard",
+        "score": 93,
+        "findings": {
+            "critical": 0,
+            "warning": 4,
+            "suggestion": 1
+        },
+        "scope": "entire repository"
     },
     {
         "date": "2026-08-29",
@@ -118,6 +118,71 @@
         ],
         "run_type": "inspection and sampling only; no executable tests run",
         "report_location": "session files: brooks-test-review-2026-08-30.md",
+        "remediation_status": "open"
+    },
+    {
+        "date": "2026-08-31",
+        "mode": "Test Quality Review",
+        "score": 84,
+        "findings": {
+            "critical": 0,
+            "warning": 3,
+            "suggestion": 1
+        },
+        "scope": "services/layer4-agents test suite post-W1/S1/S2 remediation (commits 88aef94c7..6a12c228b)",
+        "inspected_commit_sha": "6a12c228b",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T2a-weak-token-bucket-assert",
+            "T4-private-member-coupling",
+            "T5-untested-fail-closed-gate",
+            "T3-factory-test-duplication"
+        ],
+        "run_type": "inspection and sampling of the 12 remediation files + suite-wide scan; prior executed validation reused from the same-cycle goal (154 unit pass, 3274 strict-markers collect, mypy 0)",
+        "remediation_status": "pending"
+    },
+    {
+        "date": "2026-09-02",
+        "mode": "Test Quality Review",
+        "score": 82,
+        "findings": {
+            "critical": 0,
+            "warning": 3,
+            "suggestion": 3
+        },
+        "scope": "Prompt Registry + Agent Operating Contract: 4 new test files (test_prompt_contracts.py, test_agent_contracts.py, test_prompt_registry.py, test_operating_contract_loader.py)",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T5-handrolled-schema-validator-ignores-keywords",
+            "T5-initialize-startup-path-untested",
+            "T3-contract-json-literal-duplication",
+            "T1-mystery-guest-real-registry",
+            "T5-caplog-unasserted",
+            "T5-prompt-registry-error-branches-untested"
+        ],
+        "run_type": "inspection and sampling only; no executable tests run (shell blocked by guardrail)",
+        "remediation_status": "open"
+    },
+    {
+        "date": "2026-09-02",
+        "mode": "Test Quality Review",
+        "score": 93,
+        "findings": {
+            "critical": 0,
+            "warning": 1,
+            "suggestion": 2
+        },
+        "scope": "Observability platform v1 tests: test_platform.py, test_slo_contract.py, TestEmitAuditEvent correlation, create_fabric_app telemetry tests",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T5-platform-sad-paths-vacuous-instrumentor",
+            "T2-eager-slo-contract-test",
+            "T1-slo-name-and-noop-instrumentor"
+        ],
+        "run_type": "inspection of current worktree tests; executable pytest previously 20 passed on targeted nodeids",
         "remediation_status": "open"
     }
 ]

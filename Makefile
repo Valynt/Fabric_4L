@@ -54,7 +54,7 @@
 	test-layer1-security-postgres test-layer5 test-layer6 test-shared test-e2e \
 	security-smoke security-test-gating security-test security-test-isolation \
 	security-test-rbac security-test-owasp security-test-injection security-coverage \
-	evals-full perf-test-journeys check-tool-contracts check-deprecated-tracer-imports \
+	evals-full perf-test-journeys check-tool-contracts check-prompt-registry check-deprecated-tracer-imports \
 	check-risk-register debt-baseline-snapshot check-health-ratchets gate-tenant-isolation \
 	promote-staging lint-release clean-root-debris check-value-fabric-public-imports
 
@@ -853,6 +853,11 @@ check-tool-contracts: ## CI gate — validate tool error structure (CONTRACT.md 
 	$(PYTHON) scripts/ci/check_tool_contracts.py services/layer4-agents/src/layer4_agents/tools/
 	@echo "✅ Tool contract check passed"
 
+check-prompt-registry: ## CI gate — validate prompt-version contracts and agent operating contracts
+	@echo "→ Checking prompt registry contracts..."
+	$(PYTHON) scripts/ci/check_prompt_registry.py
+	@echo "✅ Prompt registry check passed"
+
 check-deprecated-tracer-imports: ## CI gate — block imports from deprecated custom tracer modules
 	@echo "→ Checking for deprecated custom tracer imports..."
 	$(PYTHON) scripts/ci/check_deprecated_tracer_imports.py
@@ -1096,7 +1101,7 @@ gate-backup-restore-readiness: ## Gate: PostgreSQL backup/restore production-rea
 	@bash scripts/ops/test_postgres_backup_restore.sh
 	@echo "✅  gate-backup-restore-readiness passed"
 
-gate-api-contracts: contract-tests platform-contract-lint check-tool-contracts ## Gate: API/platform contract compliance and tool contract structure
+gate-api-contracts: contract-tests platform-contract-lint check-tool-contracts check-prompt-registry ## Gate: API/platform contract compliance, tool contract structure, and prompt-version registry
 	@echo "→ Gate: API Contracts"
 	@$(PNPM) run check:contract-compliance
 	@echo "✅  gate-api-contracts passed"
