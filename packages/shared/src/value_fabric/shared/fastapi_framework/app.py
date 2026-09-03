@@ -463,7 +463,10 @@ def create_fabric_app(
             instrument_fastapi_app as instrument_platform_app,
         )
 
-        telemetry = configure_platform(telemetry_service_name)
+        telemetry = configure_platform(
+            telemetry_service_name,
+            service_version=version,
+        )
         app.state.telemetry_provider = telemetry.provider
         if instrument_telemetry:
             instrument_platform_app(app, enabled=telemetry.provider is not None)

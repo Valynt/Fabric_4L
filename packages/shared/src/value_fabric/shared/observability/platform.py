@@ -138,13 +138,7 @@ def configure_platform(
 
     try:
         from opentelemetry import trace
-        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
-            OTLPSpanExporter,
-        )
-        from opentelemetry.sdk.resources import SERVICE_NAME, Resource
         from opentelemetry.sdk.trace import TracerProvider
-        from opentelemetry.sdk.trace.export import BatchSpanProcessor
-        from opentelemetry.sdk.trace.sampling import ParentBasedTraceIdRatio
     except ImportError:
         return PlatformTelemetry(provider=None, service_name=service_name, layer=layer)
 
@@ -160,6 +154,21 @@ def configure_platform(
 
     if not otel_endpoint:
         return PlatformTelemetry(provider=None, service_name=service_name, layer=layer)
+
+    try:
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+            OTLPSpanExporter,
+        )
+        from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        from opentelemetry.sdk.trace.sampling import ParentBasedTraceIdRatio
+    except ImportError:
+        return PlatformTelemetry(
+            provider=None,
+            service_name=service_name,
+            layer=layer,
+            sample_ratio=sample_ratio,
+        )
 
     provider: TracerProvider | None = None
     try:

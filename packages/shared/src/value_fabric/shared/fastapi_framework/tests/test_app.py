@@ -49,6 +49,7 @@ def test_create_fabric_app_installs_telemetry_when_endpoint_set(monkeypatch) -> 
     )
     assert isinstance(app.state.telemetry_provider, _FakeProvider)
     assert captured["service_name"] == "test-otel-service"
+    assert captured["kwargs"]["service_version"] == "1.0.0"
     assert captured["instrumented"] is True
 
     @app.get("/ok")

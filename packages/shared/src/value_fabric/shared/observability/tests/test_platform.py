@@ -353,3 +353,59 @@ def test_correlation_fields_use_active_span_when_unbound() -> None:
     finally:
         otel.trace.set_tracer_provider(previous)
         provider.shutdown()
+
+
+def test_get_tracer_is_noop_when_otel_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    from value_fabric.shared.observability.tracing_contract import get_tracer
+
+    real_import = builtins.__import__
+
+    def _blocked(
+        name: str,
+        globals: object = None,
+        locals: object = None,
+        fromlist: tuple[str, ...] = (),
+        level: int = 0,
+    ) -> object:
+        if name.startswith("opentelemetry"):
+            raise ImportError("simulated missing otel sdk")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", _blocked)
+    tracer = get_tracer("value_fabric.shared.observability.tests")
+    span = tracer.start_span("platform-client")
+    assert span is not None
+    span.end()
+    with tracer.start_as_current_span("nested"):
+        pass
+
+
+def test_configure_platform_reuses_provider_when_exporter_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    otel = pytest.importorskip("opentelemetry")
+    pytest.importorskip("opentelemetry.sdk.trace")
+    from opentelemetry.sdk.trace import TracerProvider
+
+    existing = TracerProvider()
+    otel.trace.set_tracer_provider(existing)
+    real_import = builtins.__import__
+
+    def _blocked(
+        name: str,
+        globals: object = None,
+        locals: object = None,
+        fromlist: tuple[str, ...] = (),
+        level: int = 0,
+    ) -> object:
+        if name.startswith("opentelemetry.exporter"):
+            raise ImportError("simulated missing otlp exporter")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", _blocked)
+    monkeypatch.delenv("OTEL_EXPORTER_OTLP_ENDPOINT", raising=False)
+    try:
+        result = configure_platform("layer4-agents")
+        assert result.provider is existing
+    finally:
+        existing.shutdown()
