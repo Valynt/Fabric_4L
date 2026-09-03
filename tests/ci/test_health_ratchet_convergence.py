@@ -28,6 +28,7 @@ HEALTH_RATCHET_LEAVES = {
     "check-migration-rollback-policy",
     "check-migration-runtime-consistency",
     "check-risk-register",
+    "check-shared-duplication",
 }
 
 

@@ -88,6 +88,8 @@ pnpm --dir apps/web run test
 make verify
 ```
 
+Use `make check-governance` when the change touches import topology, layer/provider boundaries, ownership or canonical-import registries, or shared-package logic. It composes those checks into one deterministic verdict and writes machine-readable evidence to `artifacts/governance/check-governance.json`. Its ratcheted leaves also run under `make check-health-ratchets`.
+
 For docs-only command-map changes, run:
 
 ```bash
