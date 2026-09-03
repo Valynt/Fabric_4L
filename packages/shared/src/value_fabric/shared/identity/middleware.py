@@ -32,7 +32,10 @@ from typing import Callable, Optional
 from uuid import UUID
 
 from fastapi import HTTPException, Request, Response, status
-from value_fabric.shared.error_handling import sanitize_log_error
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
+from value_fabric.shared.tenant_kill_switch import (
     TenantKillSwitch,
     TenantSuspensionStatus,
 )
@@ -322,7 +325,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 extra={
                     "event": "jwt_context_rejected",
                     "error_code": ERR_AUTH_CONTEXT_INVALID,
-                    "error": sanitize_log_error(exc),
+                    "error_type": type(exc).__name__,
                     **_request_log_context(request),
                 },
             )
@@ -350,7 +353,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                     extra={
                         "event": "tenant_status_resolver_failed",
                         "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
-                        "error": sanitize_log_error(exc),
+                        "error_type": type(exc).__name__,
                         "tenant_id": str(ctx.tenant_id),
                     },
                 )
