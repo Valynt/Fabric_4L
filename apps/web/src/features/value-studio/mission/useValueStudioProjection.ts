@@ -47,7 +47,11 @@ export function useValueStudioProjection(
     view: query.data,
     isLoading: query.isLoading,
     refetch: () => {
-      void query.refetch();
+      // TanStack Query resolves refetch with an error result rather than
+      // rejecting; the catch satisfies the async-boundary audit contract.
+      void query.refetch().catch(() => {
+        /* failure surfaces through query state */
+      });
     },
   };
 }
