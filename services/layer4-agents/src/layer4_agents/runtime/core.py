@@ -15,6 +15,18 @@ from .errors import (
     ToolForbiddenError,
     WorkflowTypeNotFoundError,
 )
+from .events import (
+    RUN_CANCELLED,
+    RUN_COMPLETED,
+    RUN_FAILED,
+    RUN_PAUSED,
+    RUN_RESUMED,
+    RUN_STARTED,
+    TOOL_CALLED,
+    TOOL_DENIED,
+    EventSink,
+    RuntimeEvent,
+)
 from .models import (
     ResumeRequest,
     RunEnvelope,
@@ -54,12 +66,14 @@ class AgentRuntimeImpl:
         authz: AuthzPort | None = None,
         memory: MemoryPort | None = None,
         checkpoint: CheckpointPort | None = None,
+        event_bus: EventSink | None = None,
     ):
         self._workflow_engine = workflow_engine
         self._tool_registry = tool_registry
         self._authz = authz
         self._memory = memory
         self._checkpoint = checkpoint
+        self._event_bus = event_bus
         self._model_providers: dict[str, ModelProviderPort] = {}
         self._workflow_factories: dict[str, WorkflowFactory] = {}
         self._tools: dict[str, ToolDef] = {}
@@ -110,9 +124,46 @@ class AgentRuntimeImpl:
             created_at=envelope.created_at,
         )
 
-        with with_context(ctx):
-            await self._dispatch_run(envelope, request, ctx)
+        await self._emit(
+            RuntimeEvent(
+                kind=RUN_STARTED,
+                run_id=run_id,
+                tenant_id=ctx.tenant_id,
+                workflow_type=request.workflow_type,
+                status=RunStatus.PENDING.value,
+                payload={"workflow_id": workflow_id},
+            )
+        )
+        try:
+            with with_context(ctx):
+                await self._dispatch_run(envelope, request, ctx)
+        except AgentRuntimeError as exc:
+            # A dispatch failure must leave a terminal (failed) record behind,
+            # not a zombie pending run, and must surface as a failed event.
+            failed = self._runs[run_id].model_copy(
+                update={
+                    "status": RunStatus.FAILED,
+                    "error": {"code": exc.code, "message": str(exc)},
+                    "completed_at": datetime.now(UTC).isoformat(),
+                }
+            )
+            self._runs[run_id] = failed
+            await self._persist_run_memory(failed)
+            await self._emit(
+                RuntimeEvent(
+                    kind=RUN_FAILED,
+                    run_id=run_id,
+                    tenant_id=ctx.tenant_id,
+                    workflow_type=request.workflow_type,
+                    status=RunStatus.FAILED.value,
+                    payload={"error_code": exc.code},
+                )
+            )
+            raise
 
+        stored = self._runs.get(run_id)
+        if stored is not None:
+            await self._emit_status_event(stored)
         return envelope
 
     async def _dispatch_run(
@@ -178,6 +229,38 @@ class AgentRuntimeImpl:
             },
         )
 
+    async def _emit(self, event: RuntimeEvent) -> None:
+        """Publish an event through the configured event bus (no-op if none)."""
+        if self._event_bus is not None:
+            await self._event_bus.publish(event)
+
+    async def _emit_status_event(self, result: RunResult) -> None:
+        """Publish the lifecycle event matching a stored run's current status.
+
+        Maps terminal statuses (completed/failed/cancelled) and the resumable
+        pause/interrupt state onto their event kinds. Unknown kinds are skipped.
+        """
+        kind_by_status = {
+            RunStatus.COMPLETED: RUN_COMPLETED,
+            RunStatus.FAILED: RUN_FAILED,
+            RunStatus.PAUSED: RUN_PAUSED,
+            RunStatus.CANCELLED: RUN_CANCELLED,
+        }
+        kind = kind_by_status.get(result.status)
+        if kind is None:
+            return
+        payload = {"error_code": (result.error or {}).get("code")} if result.error else {}
+        await self._emit(
+            RuntimeEvent(
+                kind=kind,
+                run_id=result.run_id,
+                tenant_id=result.tenant_id,
+                workflow_type=result.workflow_type,
+                status=result.status.value,
+                payload=payload,
+            )
+        )
+
     async def get_run(self, run_id: str, tenant_id: str) -> RunResult | None:
         """Tenant-scoped run lookup; returns None for missing or inaccessible runs."""
         result = self._runs.get(run_id)
@@ -190,7 +273,9 @@ class AgentRuntimeImpl:
         result = await self.get_run(run_id, tenant_id)
         if result is None:
             raise RunNotFoundError(run_id)
-        self._runs[run_id] = result.model_copy(update={"status": RunStatus.CANCELLED})
+        cancelled = result.model_copy(update={"status": RunStatus.CANCELLED})
+        self._runs[run_id] = cancelled
+        await self._emit_status_event(cancelled)
         return self._runs[run_id]
 
     async def list_runs(
@@ -257,6 +342,16 @@ class AgentRuntimeImpl:
         updated = self._finalize_run(existing, result)
         self._runs[run_id] = updated
         await self._persist_run_memory(updated)
+        await self._emit(
+            RuntimeEvent(
+                kind=RUN_RESUMED,
+                run_id=run_id,
+                tenant_id=updated.tenant_id,
+                workflow_type=updated.workflow_type,
+                status=updated.status.value,
+            )
+        )
+        await self._emit_status_event(updated)
         return updated
 
     async def authorize_tool(self, tool_name: str, ctx: RuntimeContext) -> bool:
@@ -270,7 +365,31 @@ class AgentRuntimeImpl:
 
     async def call_tool(self, name: str, arguments: dict[str, Any], ctx: RuntimeContext) -> ToolResult:
         """Execute a tool through the registry, enforcing authz and tenant context."""
-        await self.authorize_tool(name, ctx)
+        try:
+            await self.authorize_tool(name, ctx)
+        except ToolForbiddenError:
+            # A denial is a first-class observability event: emit it before
+            # surfacing the structured error to the caller.
+            await self._emit(
+                RuntimeEvent(
+                    kind=TOOL_DENIED,
+                    run_id=ctx.run_id,
+                    tenant_id=ctx.tenant_id,
+                    workflow_type=ctx.workflow_type,
+                    tool_name=name,
+                )
+            )
+            raise
         if self._tool_registry is None:
             raise ProviderNotFoundError("tool_registry")
-        return await self._tool_registry.execute(name, arguments, ctx)
+        result = await self._tool_registry.execute(name, arguments, ctx)
+        await self._emit(
+            RuntimeEvent(
+                kind=TOOL_CALLED,
+                run_id=ctx.run_id,
+                tenant_id=ctx.tenant_id,
+                workflow_type=ctx.workflow_type,
+                tool_name=name,
+            )
+        )
+        return result
