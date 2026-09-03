@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-02T11:41:58-04:00",
-  "snapshot_sha": "c6e7d65a67b42af5",
+  "generated_at": "2026-09-03T00:46:54-04:00",
+  "snapshot_sha": "687ddc52ee4192cd",
   "action_coverage": {
     "billing:charge:read": [
       "billing.charge.forecast"
