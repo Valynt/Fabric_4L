@@ -390,7 +390,10 @@ def load_manifests(
     # so derive a numeric patch component from the digest.
     hasher = hashlib.sha256()
     for src in valid_sources:
-        hasher.update(src.read_bytes())
+        # Normalize line endings so the digest is identical on Windows
+        # (CRLF working tree) and CI (LF), keeping the snapshot
+        # deterministic across environments.
+        hasher.update(src.read_bytes().replace(b"\r\n", b"\n"))
     patch = str(int(hasher.hexdigest()[:16], 16))[:10]
     registry_version = f"0.1.{patch}"
     snapshot_sha = hasher.hexdigest()[:16]

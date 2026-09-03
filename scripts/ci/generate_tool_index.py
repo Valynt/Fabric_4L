@@ -117,7 +117,10 @@ def _compute_snapshot(manifests: list[Path]) -> tuple[str, str]:
     """
     hasher = hashlib.sha256()
     for p in manifests:
-        hasher.update(p.read_bytes())
+        # Normalize line endings so the digest is identical on Windows
+        # (CRLF working tree) and CI (LF), keeping the generated index
+        # deterministic across environments.
+        hasher.update(p.read_bytes().replace(b"\r\n", b"\n"))
     snapshot_sha = hasher.hexdigest()[:16]
     patch = str(int(hasher.hexdigest()[:16], 16))[:10]
     registry_version = f"0.1.{patch}"
