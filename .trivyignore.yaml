@@ -115,3 +115,27 @@ vulnerabilities:
     statement: >-
       No direct usage of transformers chat template features. Will be updated in next dependency bump cycle.
     expired_at: 2026-11-18
+  - id: CVE-2026-75899
+    paths:
+      - "pnpm-lock.yaml"
+    statement: >-
+      Dependency of a development tool; not included in production builds.
+    expired_at: 2026-11-18
+  - id: CVE-2026-75931
+    paths:
+      - "pnpm-lock.yaml"
+    statement: >-
+      Dependency of a development tool; not included in production builds.
+    expired_at: 2026-11-18
+  - id: CVE-2026-75975
+    paths:
+      - "pnpm-lock.yaml"
+    statement: >-
+      Dependency of a development tool; not included in production builds.
+    expired_at: 2026-11-18
+  - id: CVE-2026-76172
+    paths:
+      - "pnpm-lock.yaml"
+    statement: >-
+      Dependency of a development tool; not included in production builds.
+    expired_at: 2026-11-18
