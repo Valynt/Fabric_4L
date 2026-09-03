@@ -16,6 +16,11 @@
       "iteration": 1,
       "verdict": "BUILD_COMPLETE",
       "summary": "Resume: hard review findings fixed (fail-closed registry, stale inventory counts, check-adr in VERIFY_CHECKS, WORKSPACE count, doc wording); all gates re-run fresh green except pre-existing Windows-CRLF fixture-hash failure reproducing at HEAD"
+    },
+    {
+      "iteration": 1,
+      "verdict": "PASS",
+      "summary": "All ADR registry CI acceptance criteria verified; only the documented pre-existing Windows CRLF fixture-hash test fails"
     }
   ]
 }
