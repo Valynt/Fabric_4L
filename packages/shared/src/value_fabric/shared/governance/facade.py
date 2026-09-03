@@ -104,6 +104,9 @@ class PolicyDecisionFacade:
                 policy_ids=policy_ids,
                 trace_id=trace_id,
             )
+        decision_obligations: list[str] = [Obligation.AUDIT.value]
+        decision_policy_bundle_hash: str | None = None
+
         if tool_name is not None:
             if self.abom is None:
                 return self._deny(
@@ -122,17 +125,20 @@ class PolicyDecisionFacade:
                 input_data or {},
                 tenant_id=tenant_id,
             )
+            decision_obligations = [str(item) for item in legacy_decision.obligations]
+            if not decision_obligations:
+                decision_obligations = [Obligation.AUDIT.value]
+            decision_policy_bundle_hash = (
+                legacy_decision.policy_bundle_hash or self.abom.manifest_hash()
+            )
             if not legacy_decision.allowed:
-                obligations = [str(item) for item in legacy_decision.obligations]
-                if not obligations:
-                    obligations = [Obligation.AUDIT.value]
                 return Decision(
                     effect=DecisionEffect.DENY,
                     reason_code="policy_denied",
                     reason=legacy_decision.reason or "Policy denied.",
-                    obligations=obligations,
+                    obligations=decision_obligations,
                     policy_ids=policy_ids or [],
-                    policy_bundle_hash=legacy_decision.policy_bundle_hash or self.abom.manifest_hash(),
+                    policy_bundle_hash=decision_policy_bundle_hash,
                     decision_id=f"decision-{uuid.uuid4().hex[:12]}",
                     tenant_id=tenant_id,
                     actor_id=actor_id,
@@ -172,9 +178,13 @@ class PolicyDecisionFacade:
             effect=DecisionEffect.ALLOW,
             reason_code="allow",
             reason="Policy evaluation passed.",
-            obligations=[Obligation.AUDIT.value],
+            obligations=decision_obligations,
             policy_ids=policy_ids or [],
-            policy_bundle_hash=getattr(self.abom, "manifest_hash", lambda: None)(),
+            policy_bundle_hash=(
+                decision_policy_bundle_hash
+                if decision_policy_bundle_hash is not None
+                else getattr(self.abom, "manifest_hash", lambda: None)()
+            ),
             decision_id=f"decision-{uuid.uuid4().hex[:12]}",
             tenant_id=tenant_id,
             actor_id=actor_id,
