@@ -36,6 +36,9 @@ from ..interfaces.variable_registry import (
 
 logger = logging.getLogger(__name__)
 
+def _read_json_file(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
 # Default path to packs directory — resolved relative to repo root at runtime
 # Uses anchor search for "Fabric_4L" to avoid fragility from parents[N]
 def _find_repo_root(start_path: Path) -> Path:
@@ -120,8 +123,7 @@ class PackVariableLoader:
         if not manifest_path.exists():
             raise FileNotFoundError(f"pack-manifest.json not found at {manifest_path}")
 
-        with open(manifest_path, encoding="utf-8") as f:
-            manifest = json.load(f)
+        manifest = await asyncio.to_thread(_read_json_file, manifest_path)
 
         results: list[PackLoadResult] = []
         for pack_entry in manifest.get("packs", []):
@@ -151,7 +153,7 @@ class PackVariableLoader:
     def _get_pack_paths(self, pack_id: str) -> tuple[Path, Path]:
         """
         Resolve pack directory and file paths.
-        
+
         Strips version suffix (e.g., "-v1", "-v2") from pack_id to get directory name.
         Returns (pack_dir, variables_path) tuple.
         """
@@ -177,8 +179,7 @@ class PackVariableLoader:
                 f"variables.json not found for pack '{pack_id}' at {variables_path}"
             )
 
-        with open(variables_path, encoding="utf-8") as f:
-            data = json.load(f)
+        data = await asyncio.to_thread(_read_json_file, variables_path)
 
         raw_variables: list[dict[str, Any]] = data.get("variables", [])
         loaded = skipped = failed = 0
@@ -245,10 +246,8 @@ class PackVariableLoader:
         if not formulas_path.exists() or not variables_path.exists():
             return [f"Missing formulas.json or variables.json for pack '{pack_id}'"]
 
-        with open(variables_path, encoding="utf-8") as f:
-            var_data = json.load(f)
-        with open(formulas_path, encoding="utf-8") as f:
-            formula_data = json.load(f)
+        var_data = await asyncio.to_thread(_read_json_file, variables_path)
+        formula_data = await asyncio.to_thread(_read_json_file, formulas_path)
 
         # Build set of valid variable names from the pack file
         valid_names = {v.get("variable_name", "") for v in var_data.get("variables", []) if v.get("variable_name")}
