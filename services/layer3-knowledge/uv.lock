@@ -1023,7 +1023,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.26" },
     { name = "infisicalsdk", specifier = ">=1.0.0" },
     { name = "jsonschema", specifier = ">=4.0" },
-    { name = "msgpack", specifier = ">=1.0" },
+    { name = "msgpack", specifier = ">=1.2.1" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.8" },
     { name = "neo4j", specifier = ">=5.15" },
     { name = "networkx", specifier = ">=3.2" },
