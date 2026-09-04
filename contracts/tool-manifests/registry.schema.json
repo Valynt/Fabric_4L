@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/tool-manifests/registry.schema.json",
+  "title": "Fabric 4L Tool Registry Index",
+  "description": "Schema for the generated registry index consumed by L4 at startup.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "registry_version",
+    "generated_at",
+    "snapshot_sha",
+    "tool_manifests",
+    "policies",
+    "agent_class_bindings"
+     ],
+    "properties": {
+      "registry_version": {
+        "type": "string",
+        "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+        "description": "SemVer of the registry index itself."
+      },
+      "generated_at": {
+        "type": "string",
+        "format": "date-time",
+        "description": "ISO 8601 timestamp when the index was generated."
+      },
+      "snapshot_sha": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Content-addressable snapshot identifier pinning the exact manifest set that produced this index."
+      },
+      "tool_manifests": {
+      "type": "array",
+      "description": "List of validated tool manifest summaries (full manifests or lightweight references).",
+      "items": {
+        "type": "object",
+        "required": [
+          "tool_id",
+          "version",
+          "status",
+          "side_effect",
+          "action_id",
+          "principal_types"
+        ],
+        "properties": {
+          "tool_id": { "type": "string" },
+          "version": { "type": "string" },
+          "status": { "type": "string" },
+          "side_effect": { "type": "string" },
+          "action_id": { "type": "string" },
+          "principal_types": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "human_confirmation_required": { "type": "boolean" },
+          "financial_state_change": { "type": "boolean" },
+          "supported_agent_classes": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "tenant_binding": {
+            "type": "object",
+            "properties": {
+              "client_supplied_tenant_authoritative": { "type": "boolean" },
+              "resolve_server_side": { "type": "boolean" }
+            }
+          },
+          "source_path": {
+            "type": "string",
+            "description": "Relative path to the source YAML manifest in the repo."
+          }
+        }
+      }
+    },
+    "policies": {
+      "type": "object",
+      "description": "Agent-type filter policies keyed by agent class name.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["allowed_side_effects", "allowed_tools"],
+        "properties": {
+          "allowed_side_effects": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Permitted side-effect classifications for this agent class."
+          },
+          "allowed_tools": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Explicit tool IDs permitted. If present, overrides the side-effect filter."
+          },
+          "denied_tools": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Tool IDs explicitly denied even if side-effect matches."
+          },
+          "denied_side_effects": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Side-effect classes explicitly denied."
+          },
+                    "require_human_confirmation_for_financial_tools": {
+                      "type": "boolean",
+                      "description": "When true, any exposed financial tool must require human confirmation."
+                    },
+                    "description": { "type": "string" }
+        }
+      }
+    },
+    "agent_class_bindings": {
+      "type": "object",
+      "description": "Mappings from runtime agent identifiers to canonical agent classes for policy lookup.",
+      "additionalProperties": { "type": "string" }
+    },
+    "validation_report": {
+      "type": "object",
+      "description": "Summary of the validation run that produced this index.",
+      "properties": {
+        "passed": { "type": "boolean" },
+        "violations": { "type": "integer" },
+        "manifests_loaded": { "type": "integer" },
+        "manifests_valid": { "type": "integer" }
+      }
+    }
+  }
+}

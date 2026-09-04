@@ -1,0 +1,33 @@
+# Billing Agent Policy — Side-effect restrictions for the billing-copilot agent class
+# Policy: The billing-copilot is a read-only financial assistant that may only
+# inspect, calculate, or draft. It must never perform unapproved mutations.
+#
+# Rationale: Billing agents operate on financial data; any mutation must have
+# human confirmation or a separate approval workflow. The policy enforces this
+# by restricting the side_effect enum to safe values.
+
+agent_class: "billing-copilot"
+description: >
+  Billing copilot may only use tools that are READ_ONLY, CALCULATION_ONLY,
+  or DRAFT_ONLY. It must never use REVERSIBLE_MUTATION, PROTECTED_MUTATION,
+  or IRREVERSIBLE tools.
+allowed_side_effects:
+  - READ_ONLY
+  - CALCULATION_ONLY
+  - DRAFT_ONLY
+
+denied_side_effects:
+  - REVERSIBLE_MUTATION
+  - PROTECTED_MUTATION
+  - IRREVERSIBLE
+
+# Explicit denylist overrides any side_effect match
+denied_tools: []
+
+# Explicit allowlist: if present, only these tools are permitted regardless of side_effect
+# (not used here; side_effect filter is primary)
+allowed_tools: []
+
+# Additional runtime filter: require human_confirmation for any tool that would
+# otherwise be permitted but has financial_state_change = true
+require_human_confirmation_for_financial_tools: true

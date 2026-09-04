@@ -196,6 +196,46 @@ class TestTenantIsolationWithValidAuth:
             patcher_svc.stop()
             overrides.clear()
 
+    def test_cross_tenant_invoice_access_blocked(self):
+        """Hostile: an authenticated tenant must not read another tenant's invoice.
+
+        InvoiceService is constructed with the authenticated tenant only, and a
+        tenant-scoped lookup returns no invoice for a foreign-owned invoice id,
+        so the route responds 404 and never leaks tenant B data.
+        """
+        tenant_a = "11111111-1111-1111-1111-111111111111"
+        tenant_b = "22222222-2222-4222-8222-222222222222"
+        client, patcher, overrides = _client_with_auth(_auth_ctx(tenant_a))
+        captured: list[str | None] = []
+        # Mirror of the tenant_scope column: invoice ids map to their owning
+        # tenant, so lookups outside the caller's tenant find nothing.
+        invoice_owners = {"in_tenant_b": tenant_b}
+
+        class _TenantScopedInvoiceService:
+            def __init__(self, db, *, tenant_id):
+                self.db = db
+                self.tenant_id = tenant_id
+                captured.append(tenant_id)
+
+            async def get_invoice(self, invoice_id, **kwargs):
+                if invoice_owners.get(invoice_id) == self.tenant_id:
+                    return object()
+                return None
+
+        patcher_svc = patch.object(
+            billing_route, "InvoiceService", _TenantScopedInvoiceService
+        )
+        patcher_svc.start()
+        try:
+            resp = client.get("/v1/billing/invoices/in_tenant_b")
+            assert resp.status_code == 404
+            assert captured == [tenant_a]
+            assert tenant_b not in captured
+        finally:
+            patcher.stop()
+            patcher_svc.stop()
+            overrides.clear()
+
     def test_different_authenticated_tenants_are_kept_distinct(self):
         capturing, captured = _usage_service_capture()
         patcher_usage = patch.object(billing_route, "UsageService", capturing)

@@ -142,6 +142,8 @@ generated/
 !packages/platform-contract/src/typescript/generated/*.ts
 !contracts/event-catalog/generated/
 !contracts/event-catalog/generated/*.json
+!contracts/tool-manifests/generated/
+!contracts/tool-manifests/generated/*.json
 
 # Committed Python SDK OpenAPI clients (generated, but part of the published interface)
 !sdk/python/src/valuefabric/generated/
