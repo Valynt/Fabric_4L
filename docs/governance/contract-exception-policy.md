@@ -14,6 +14,24 @@ This policy defines when and how exceptions to the Fabric 4L canonical contracts
 - **Pragmatism**: Legitimate technical constraints may require temporary exceptions
 - **Transparency**: All exceptions are tracked and subject to expiration
 
+## Contract-Breaking API Changes
+
+The committed OpenAPI document is the source of truth for public Layer 4
+contracts. Any removal, incompatible type/required-field change, or semantic
+change to an existing operation must be submitted through the repository's
+OpenAPI breaking-change gate (`pnpm contract:breaking`) before merge. The gate
+must run against the regenerated contract and its generated types; a green
+result is required even when the implementation tests pass.
+
+Breaking changes are not approved by changing the contract artifact directly.
+If compatibility is required, ship an additive versioned route or an additive
+field with an explicit migration/deprecation window. A temporary exception
+uses the process below: record the exception in `deprecations.json`, link the
+tracking ticket, document mitigation and expiry, and obtain the approvers
+defined by the exception type. Exceptions never permit weakened authentication,
+tenant isolation, or validation. The contract gate, CI reviewer, and
+Architecture Review Board remain the approval model for contract changes.
+
 ---
 
 ## Exception Types

@@ -9605,6 +9605,344 @@
         }
       }
     },
+    "/v1/runtime/health": {
+      "get": {
+        "tags": [
+          "runtime"
+        ],
+        "summary": "Runtime Health",
+        "description": "Report runtime readiness without exposing cross-tenant labels.",
+        "operationId": "runtime_health_v1_runtime_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runtime/metrics": {
+      "get": {
+        "tags": [
+          "runtime"
+        ],
+        "summary": "Runtime Metrics",
+        "description": "Return aggregate counters only to a privileged operator.",
+        "operationId": "runtime_metrics_v1_runtime_metrics_get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeMetricsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runtime/types": {
+      "get": {
+        "tags": [
+          "runtime"
+        ],
+        "summary": "Runtime Types",
+        "description": "Discover workflows, tenant-visible tools, and registered providers.",
+        "operationId": "runtime_types_v1_runtime_types_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeTypesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runtime/runs": {
+      "post": {
+        "tags": [
+          "runtime"
+        ],
+        "summary": "Submit Runtime Run",
+        "description": "Submit a tenant-scoped runtime run.",
+        "operationId": "submit_runtime_run_v1_runtime_runs_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "runtime"
+        ],
+        "summary": "List Runtime Runs",
+        "description": "List only runs owned by the authenticated tenant.",
+        "operationId": "list_runtime_runs_v1_runtime_runs_get",
+        "parameters": [
+          {
+            "name": "workflow_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Workflow Type"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeRunListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runtime/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "runtime"
+        ],
+        "summary": "Get Runtime Run",
+        "description": "Get a run or return a tenant-safe not-found response.",
+        "operationId": "get_runtime_run_v1_runtime_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runtime/runs/{run_id}/cancel": {
+      "post": {
+        "tags": [
+          "runtime"
+        ],
+        "summary": "Cancel Runtime Run",
+        "description": "Cancel a run only when it belongs to the authenticated tenant.",
+        "operationId": "cancel_runtime_run_v1_runtime_runs__run_id__cancel_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runtime/runs/{run_id}/resume": {
+      "post": {
+        "tags": [
+          "runtime"
+        ],
+        "summary": "Resume Runtime Run",
+        "description": "Resume a tenant-owned run with an explicit checkpoint contract.",
+        "operationId": "resume_runtime_run_v1_runtime_runs__run_id__resume_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResumeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/ground-truth/truths": {
       "get": {
         "tags": [
@@ -23256,6 +23594,41 @@
         "title": "ResumeFromCheckpointResponse",
         "description": "Response from checkpoint-based resume."
       },
+      "ResumeRequest": {
+        "properties": {
+          "resume_data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Resume Data"
+          },
+          "checkpoint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Id"
+          },
+          "checkpoint_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Hash"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ResumeRequest",
+        "description": "Request to resume a paused/interrupted run."
+      },
       "RetryProvisioningResponse": {
         "properties": {
           "message": {
@@ -23359,6 +23732,71 @@
         "title": "Role",
         "description": "Business roles used across all layers.\n\nHierarchy (highest \u2192 lowest):\n    super_admin > tenant_admin > content_admin > analyst > read_only\n\nThe ``system`` role is reserved for internal service-to-service calls."
       },
+      "RunEnvelope": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "workflow_id": {
+            "type": "string",
+            "title": "Workflow Id"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "workflow_type": {
+            "type": "string",
+            "title": "Workflow Type"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus",
+            "default": "pending"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "workflow_id",
+          "trace_id",
+          "tenant_id",
+          "workflow_type"
+        ],
+        "title": "RunEnvelope",
+        "description": "Stable identity envelope for a run."
+      },
       "RunListResponse": {
         "properties": {
           "items": {
@@ -23396,6 +23834,62 @@
         ],
         "title": "RunListResponse",
         "description": "Paginated list of runs."
+      },
+      "RunRequest": {
+        "properties": {
+          "workflow_type": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Workflow Type"
+          },
+          "input_data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input Data"
+          },
+          "workflow_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflow Id"
+          },
+          "priority": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Priority",
+            "default": 3
+          },
+          "timeout_seconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout Seconds"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "workflow_type"
+        ],
+        "title": "RunRequest",
+        "description": "Request to submit a new workflow run."
       },
       "RunResponse": {
         "properties": {
@@ -23473,6 +23967,294 @@
         ],
         "title": "RunResponse",
         "description": "Single run in API responses."
+      },
+      "RunResult": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "workflow_id": {
+            "type": "string",
+            "title": "Workflow Id"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "workflow_type": {
+            "type": "string",
+            "title": "Workflow Type"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "workflow_id",
+          "trace_id",
+          "tenant_id",
+          "workflow_type",
+          "status",
+          "created_at"
+        ],
+        "title": "RunResult",
+        "description": "Result/status of a workflow run."
+      },
+      "RunStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "running",
+          "paused",
+          "completed",
+          "failed",
+          "cancelled",
+          "retrying"
+        ],
+        "title": "RunStatus",
+        "description": "Canonical runtime run statuses."
+      },
+      "RunSummary": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "workflow_id": {
+            "type": "string",
+            "title": "Workflow Id"
+          },
+          "workflow_type": {
+            "type": "string",
+            "title": "Workflow Type"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "workflow_id",
+          "workflow_type",
+          "status",
+          "created_at"
+        ],
+        "title": "RunSummary",
+        "description": "Lightweight run listing entry."
+      },
+      "RuntimeHealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "degraded",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "runtime_ready": {
+            "type": "boolean",
+            "title": "Runtime Ready"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "service",
+          "runtime_ready",
+          "timestamp"
+        ],
+        "title": "RuntimeHealthResponse",
+        "description": "Safe health state for an authenticated runtime consumer."
+      },
+      "RuntimeMetricsResponse": {
+        "properties": {
+          "runs_started_total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Runs Started Total"
+          },
+          "runs_terminal_total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Runs Terminal Total"
+          },
+          "runs_paused_total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Runs Paused Total"
+          },
+          "runs_resumed_total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Runs Resumed Total"
+          },
+          "tool_calls_total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Tool Calls Total"
+          },
+          "tool_calls_allowed_total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Tool Calls Allowed Total"
+          },
+          "tool_calls_denied_total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Tool Calls Denied Total"
+          },
+          "checkpoints_saved_total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Checkpoints Saved Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "runs_started_total",
+          "runs_terminal_total",
+          "runs_paused_total",
+          "runs_resumed_total",
+          "tool_calls_total",
+          "tool_calls_allowed_total",
+          "tool_calls_denied_total",
+          "checkpoints_saved_total"
+        ],
+        "title": "RuntimeMetricsResponse",
+        "description": "Vendor-neutral aggregate runtime counters."
+      },
+      "RuntimeRunListResponse": {
+        "properties": {
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/RunSummary"
+            },
+            "type": "array",
+            "title": "Runs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "runs"
+        ],
+        "title": "RuntimeRunListResponse",
+        "description": "Explicit list envelope for stable SDK and OpenAPI generation."
+      },
+      "RuntimeTypesResponse": {
+        "properties": {
+          "workflow_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Workflow Types"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/ToolSchema"
+            },
+            "type": "array",
+            "title": "Tools"
+          },
+          "providers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Providers"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "workflow_types",
+          "tools",
+          "providers"
+        ],
+        "title": "RuntimeTypesResponse",
+        "description": "Tenant-safe runtime discovery payload."
       },
       "SalesforceOAuthAuthorizeRequest": {
         "properties": {
@@ -25488,6 +26270,53 @@
         ],
         "title": "ToolListResponse",
         "description": "Tool list response."
+      },
+      "ToolSchema": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "tenant_scoped": {
+            "type": "boolean",
+            "title": "Tenant Scoped",
+            "default": true
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Parameters"
+          },
+          "required": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "default": "1.0.0"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "category"
+        ],
+        "title": "ToolSchema",
+        "description": "Public schema for a registered tool."
       },
       "ToolSchemaExample": {
         "properties": {
