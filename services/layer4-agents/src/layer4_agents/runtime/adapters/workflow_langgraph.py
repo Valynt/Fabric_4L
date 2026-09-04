@@ -481,7 +481,7 @@ class LangGraphWorkflowEngineAdapter:
         token: Token | None = None
         try:
             if ctx.tenant_id and get_request_context() is None:
-                metadata: dict[str, Any] = ctx.metadata or {}
+                metadata = ctx.metadata or {}
                 scopes = [
                     str(scope)
                     for scope in metadata.get("service_account_scopes") or []

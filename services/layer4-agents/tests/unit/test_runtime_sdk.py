@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import MutableMapping
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from pydantic import ValidationError
@@ -395,14 +396,17 @@ def test_sdk_public_surface_exports() -> None:
 
 
 def test_agent_spec_metadata_is_read_only_copy() -> None:
-    source: dict[str, Any] = {"k": "v"}
+    source = {"k": "v"}
     spec = AgentSpec(name="s", workflow_type="echo", metadata=source)
     # Construction copies: caller-side mutation never leaks in.
     source["k"] = "mutated"
     assert spec.metadata["k"] == "v"
     # The stored mapping is read-only: frozen=True genuinely holds.
+    # Cast only relabels the proxy for the static checker; at runtime this
+    # still calls MappingProxyType.__setitem__.
+    mutable = cast("MutableMapping[str, object]", spec.metadata)
     with pytest.raises(TypeError):
-        spec.metadata["k"] = "x"  # type: ignore[index]
+        mutable["k"] = "x"
 
 
 def test_agent_spec_metadata_defaults_and_equality() -> None:
