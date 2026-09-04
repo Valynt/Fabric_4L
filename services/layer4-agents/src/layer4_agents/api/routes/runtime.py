@@ -147,7 +147,7 @@ def _runtime_error(exc: AgentRuntimeError) -> HTTPException:
         code, http_status = exc.code, status.HTTP_400_BAD_REQUEST
     return HTTPException(
         status_code=http_status,
-        detail={"code": code, "message": str(exc), "details": exc.details},
+        detail={"code": code, "message": exc.message, "details": exc.details},
     )
 
 
