@@ -26,6 +26,11 @@
       "iteration": 4,
       "verdict": "FAIL",
       "summary": "Global metrics remain exposed through health, and contract freshness fails after the authz change."
+    },
+    {
+      "iteration": 5,
+      "verdict": "PASS",
+      "summary": "Global metrics are hidden from tenant health, contracts are fresh, and all runnable gates pass."
     }
   ]
 }
