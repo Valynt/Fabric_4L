@@ -24,6 +24,7 @@ from ..errors import TenantRequiredError
 from ..models import Checkpoint
 from ..orm import RuntimeCheckpointRow
 from ..ports import CheckpointPort
+from ._upsert import upsert_row
 
 
 def _row_to_checkpoint(row: RuntimeCheckpointRow) -> Checkpoint:
@@ -62,43 +63,42 @@ class PostgresCheckpointAdapter(CheckpointPort):
             await self._tenant_context_setter(session, tenant_id)
 
     async def save(self, checkpoint: Checkpoint, state: dict[str, Any]) -> None:
+        """Persist one checkpoint row via an atomic converging upsert."""
         if not checkpoint.tenant_id:
             raise TenantRequiredError(details={"checkpoint_id": checkpoint.checkpoint_id})
+        # The legacy SELECT-then-INSERT raced under concurrent saves; a single
+        # upsert removes the race. Note the Core insert()/update() values are
+        # keyed by the DB column name "metadata" (the ORM attribute is
+        # metadata_json because "metadata" is reserved on Declarative models).
+        state_payload = copy.deepcopy(state)
+        metadata_payload = (
+            copy.deepcopy(checkpoint.metadata) if checkpoint.metadata is not None else None
+        )
+        values = {
+            "checkpoint_id": checkpoint.checkpoint_id,
+            "run_id": checkpoint.run_id,
+            "thread_id": checkpoint.thread_id,
+            "tenant_id": checkpoint.tenant_id,
+            "state_hash": checkpoint.state_hash,
+            "state": state_payload,
+            "metadata": metadata_payload,
+            "created_at": checkpoint.created_at,
+        }
+        update_values = {
+            "state_hash": checkpoint.state_hash,
+            "state": state_payload,
+            "metadata": metadata_payload,
+            "created_at": checkpoint.created_at,
+        }
         async with self._session_factory() as session:
-            async with session.begin():
-                await self._enter_tenant_context(session, checkpoint.tenant_id)
-                existing = await session.scalar(
-                    select(RuntimeCheckpointRow).where(
-                        RuntimeCheckpointRow.tenant_id == checkpoint.tenant_id,
-                        RuntimeCheckpointRow.run_id == checkpoint.run_id,
-                        RuntimeCheckpointRow.thread_id == checkpoint.thread_id,
-                        RuntimeCheckpointRow.checkpoint_id == checkpoint.checkpoint_id,
-                    )
-                )
-                if existing is None:
-                    session.add(
-                        RuntimeCheckpointRow(
-                            checkpoint_id=checkpoint.checkpoint_id,
-                            run_id=checkpoint.run_id,
-                            thread_id=checkpoint.thread_id,
-                            tenant_id=checkpoint.tenant_id,
-                            state_hash=checkpoint.state_hash,
-                            state=copy.deepcopy(state),
-                            metadata_json=copy.deepcopy(checkpoint.metadata)
-                            if checkpoint.metadata is not None
-                            else None,
-                            created_at=checkpoint.created_at,
-                        )
-                    )
-                else:
-                    existing.state_hash = checkpoint.state_hash
-                    existing.state = copy.deepcopy(state)
-                    existing.metadata_json = (
-                        copy.deepcopy(checkpoint.metadata)
-                        if checkpoint.metadata is not None
-                        else None
-                    )
-                    existing.created_at = checkpoint.created_at
+            await upsert_row(
+                session,
+                table=RuntimeCheckpointRow.__table__,
+                values=values,
+                conflict_columns=("tenant_id", "run_id", "thread_id", "checkpoint_id"),
+                update_values=update_values,
+                enter_tenant_context=lambda s: self._enter_tenant_context(s, checkpoint.tenant_id),
+            )
 
     async def load(
         self,

@@ -16,6 +16,7 @@ from __future__ import annotations
 import copy
 import json
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -24,6 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from ..errors import TenantRequiredError
 from ..orm import RuntimeLongTermMemoryRow, RuntimeThreadStateRow
 from ..ports import MemoryPort
+from ._upsert import upsert_row
 
 
 def _fold_record(record: dict[str, Any]) -> str:
@@ -74,25 +76,25 @@ class PostgresMemoryAdapter(MemoryPort):
     async def save_thread_state(self, thread_id: str, tenant_id: str, state: dict[str, Any]) -> None:
         if not tenant_id:
             raise TenantRequiredError(details={"thread_id": thread_id})
+        # Single atomic converging upsert: the legacy SELECT-then-INSERT raced
+        # under concurrent saves. updated_at is passed explicitly because the
+        # ORM onupdate hook does not fire for raw ON CONFLICT DO UPDATE SQL.
+        payload = copy.deepcopy(state)
+        now = datetime.now(UTC)
         async with self._session_factory() as session:
-            async with session.begin():
-                await self._enter_tenant_context(session, tenant_id)
-                existing = await session.scalar(
-                    select(RuntimeThreadStateRow).where(
-                        RuntimeThreadStateRow.tenant_id == tenant_id,
-                        RuntimeThreadStateRow.thread_id == thread_id,
-                    )
-                )
-                if existing is None:
-                    session.add(
-                        RuntimeThreadStateRow(
-                            tenant_id=tenant_id,
-                            thread_id=thread_id,
-                            state=copy.deepcopy(state),
-                        )
-                    )
-                else:
-                    existing.state = copy.deepcopy(state)  # updated_at refreshed via onupdate
+            await upsert_row(
+                session,
+                table=RuntimeThreadStateRow.__table__,
+                values={
+                    "tenant_id": tenant_id,
+                    "thread_id": thread_id,
+                    "state": payload,
+                    "updated_at": now,
+                },
+                conflict_columns=("tenant_id", "thread_id"),
+                update_values={"state": payload, "updated_at": now},
+                enter_tenant_context=lambda s: self._enter_tenant_context(s, tenant_id),
+            )
 
     async def search_long_term(
         self, query: str, tenant_id: str, *, limit: int = 10
