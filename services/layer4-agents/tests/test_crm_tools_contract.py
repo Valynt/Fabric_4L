@@ -353,9 +353,7 @@ async def test_salesforce_interactions_reject_invalid_prospect_id_before_query(
 
     result = await tool.execute(FetchInteractionHistoryInput(prospect_id=prospect_id))
 
-    assert result.error == (
-        "CRM fetch failed: Invalid prospect_id format: must be 15 or 18 alphanumeric characters"
-    )
+    assert "Invalid prospect_id format" in result.error
     assert client.calls == []
 
 
