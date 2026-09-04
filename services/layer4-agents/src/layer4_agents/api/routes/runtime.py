@@ -28,6 +28,7 @@ from value_fabric.shared.identity.dependencies import (
     require_authenticated,
     require_privileged_access,
 )
+from value_fabric.shared.identity.permissions import Permission
 
 from ...runtime import (
     AgentRuntimeError,
@@ -234,6 +235,17 @@ async def submit_runtime_run(
     """Submit a tenant-scoped runtime run."""
     tenant = _tenant(ctx, operation="submit_run")
     run_id = str(uuid4())
+    # Authorization grants flow only from the authenticated request context —
+    # never from the untrusted request body. Body-provided grant keys are
+    # stripped, then the caller's real grants are re-injected so downstream
+    # PolicyAuthzPort authorization reflects the caller's actual access.
+    metadata = {
+        key: value for key, value in body.metadata.items() if key not in _AUTHZ_METADATA_KEYS
+    }
+    metadata["permissions"] = [
+        value.value if isinstance(value, Permission) else str(value) for value in ctx.permissions
+    ]
+    metadata["service_account_scopes"] = list(ctx.service_account_scopes)
     runtime_context = RuntimeContext(
         tenant_id=tenant,
         user_id=str(ctx.user_id) if ctx.user_id is not None else None,
@@ -242,9 +254,7 @@ async def submit_runtime_run(
         workflow_id=body.workflow_id or run_id,
         workflow_type=body.workflow_type,
         priority=body.priority,
-        metadata={
-            key: value for key, value in body.metadata.items() if key not in _AUTHZ_METADATA_KEYS
-        },
+        metadata=metadata,
     )
     try:
         return await _runtime(request).submit_run(body, runtime_context)

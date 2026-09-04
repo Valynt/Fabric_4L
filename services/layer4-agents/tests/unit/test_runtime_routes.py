@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import httpx
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import (
     RequestContext,
@@ -13,6 +13,8 @@ from value_fabric.shared.identity.context import (
     set_request_context,
 )
 from value_fabric.shared.identity.dependencies import require_authenticated
+from value_fabric.shared.identity.permissions import Permission, Role
+from value_fabric.shared.identity.policy_registry import authorize_action
 
 from layer4_agents.api.routes.runtime import (
     _require_runtime_metrics_privileged,
@@ -26,6 +28,7 @@ from layer4_agents.runtime import (
     RuntimeContext,
     WorkflowResult,
 )
+from layer4_agents.runtime.adapters.workflow_langgraph import LangGraphWorkflowEngineAdapter
 
 pytestmark = pytest.mark.unit
 
@@ -148,44 +151,82 @@ async def test_regular_tenant_cannot_read_global_metrics() -> None:
     assert response.status_code == 403
 
 
+class _CapturingRuntime(AgentRuntimeImpl):
+    """Runtime double that records the RuntimeContext of each submission."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.captured: list[RuntimeContext] = []
+
+        async def echo(
+            workflow_type: str, input_data: dict[str, object], ctx: RuntimeContext
+        ) -> WorkflowResult:
+            return WorkflowResult(
+                status=RunStatus.COMPLETED,
+                output={"input": input_data, "tenant_id": ctx.tenant_id},
+            )
+
+        self.register_workflow_type("echo", echo)
+
+    async def submit_run(self, body: RunRequest, ctx: RuntimeContext) -> RunEnvelope:
+        self.captured.append(ctx)
+        return await super().submit_run(body, ctx)
+
+
 async def test_run_metadata_cannot_self_grant_authorization() -> None:
+    # Forged body grants are stripped; the runtime context carries only the
+    # authenticated caller's (empty) grants, so a submission cannot widen its
+    # own authorization.
     app = _app(RequestContext(tenant_id="tenant-a"))
-    class CapturingRuntime(AgentRuntimeImpl):
-        captured: list[RuntimeContext]
-
-        def __init__(self) -> None:
-            super().__init__()
-            self.captured = []
-            async def echo(
-                workflow_type: str, input_data: dict[str, object], ctx: RuntimeContext
-            ) -> WorkflowResult:
-                return WorkflowResult(
-                    status=RunStatus.COMPLETED,
-                    output={"input": input_data, "tenant_id": ctx.tenant_id},
-                )
-            self.register_workflow_type("echo", echo)
-
-        async def submit_run(self, body: RunRequest, ctx: RuntimeContext) -> RunEnvelope:
-            self.captured.append(ctx)
-            return await super().submit_run(body, ctx)
-
-    runtime = CapturingRuntime()
+    runtime = _CapturingRuntime()
     app.state.agent_runtime = runtime
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/v1/runtime/runs",
-            json={"workflow_type": "echo", "metadata": {"permissions": ["admin"], "service_account_scopes": ["*"]}},
+            json={
+                "workflow_type": "echo",
+                "metadata": {"permissions": ["admin"], "service_account_scopes": ["*"]},
+            },
         )
     assert response.status_code == 202
     assert runtime.captured
-    assert "permissions" not in runtime.captured[0].metadata
-    assert "service_account_scopes" not in runtime.captured[0].metadata
+    assert runtime.captured[0].metadata["permissions"] == []
+    assert runtime.captured[0].metadata["service_account_scopes"] == []
 
 
-def test_background_execution_context_uses_system_role_without_ambient_context() -> None:
-    from layer4_agents.runtime.adapters.workflow_langgraph import LangGraphWorkflowEngineAdapter
+async def test_submit_propagates_authenticated_grants_into_runtime_metadata() -> None:
+    # Real grants from the authenticated request context survive into runtime
+    # metadata while forged body values are discarded.
+    ctx = RequestContext(
+        tenant_id="tenant-a",
+        permissions=frozenset({Permission.READ_SEARCH}),
+        service_account_scopes=["read:search"],
+    )
+    app = _app(ctx)
+    runtime = _CapturingRuntime()
+    app.state.agent_runtime = runtime
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/v1/runtime/runs",
+            json={
+                "workflow_type": "echo",
+                "metadata": {
+                    "permissions": ["admin:system"],
+                    "service_account_scopes": ["admin:tenants"],
+                    "kept": "value",
+                },
+            },
+        )
+    assert response.status_code == 202
+    metadata = runtime.captured[0].metadata
+    assert metadata["permissions"] == ["read:search"]
+    assert metadata["service_account_scopes"] == ["read:search"]
+    assert metadata["kept"] == "value"
 
+
+def test_background_execution_context_uses_non_bypass_service_role() -> None:
     ctx = RuntimeContext(
         tenant_id="tenant-a",
         trace_id="trace",
@@ -198,8 +239,52 @@ def test_background_execution_context_uses_system_role_without_ambient_context()
     try:
         ambient = get_request_context()
         assert ambient is not None
-        assert ambient.roles == ["system"]
-        assert "tenant_admin" not in ambient.roles
+        assert ambient.roles == ["service"]
+        assert not ambient.has_any_role(Role.SYSTEM, Role.SUPER_ADMIN)
+    finally:
+        if token is not None:
+            clear_current_context()
+
+
+def test_background_execution_context_gated_action_denied_without_grants() -> None:
+    ctx = RuntimeContext(
+        tenant_id="tenant-a",
+        trace_id="trace",
+        run_id="run",
+        workflow_id="workflow",
+        workflow_type="echo",
+    )
+    assert get_request_context() is None
+    token = LangGraphWorkflowEngineAdapter._enter_execution_context(ctx)
+    try:
+        with pytest.raises(HTTPException) as exc_info:
+            authorize_action("layer4.tool.knowledge.read_entity")
+        assert exc_info.value.status_code == 403
+        assert exc_info.value.detail["code"] == "INSUFFICIENT_SCOPE"
+    finally:
+        if token is not None:
+            clear_current_context()
+
+
+def test_background_execution_context_gated_action_allowed_with_metadata_grants() -> None:
+    ctx = RuntimeContext(
+        tenant_id="tenant-a",
+        trace_id="trace",
+        run_id="run",
+        workflow_id="workflow",
+        workflow_type="echo",
+        metadata={"permissions": ["read:agents"], "service_account_scopes": ["read:search"]},
+    )
+    assert get_request_context() is None
+    token = LangGraphWorkflowEngineAdapter._enter_execution_context(ctx)
+    try:
+        ambient = get_request_context()
+        assert ambient is not None
+        assert ambient.has_permission(Permission.READ_AGENTS)
+        assert ambient.service_account_scopes == ["read:search"]
+        # Must not raise: the ambient service-role context evaluates the
+        # propagated scope grant instead of bypassing the policy check.
+        authorize_action("layer4.tool.knowledge.read_entity")
     finally:
         if token is not None:
             clear_current_context()

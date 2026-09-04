@@ -30,6 +30,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel
 from value_fabric.shared.identity.context import (
+    AUTH_SOURCE_SERVICE_ACCOUNT,
     RequestContext,
     _current_context,
     get_request_context,
@@ -469,18 +470,40 @@ class LangGraphWorkflowEngineAdapter:
         Mirrors the legacy OrchestrationController: tools executed inside
         workflow nodes resolve their execution tenant from the ambient
         ``RequestContext`` when one exists. Returns the reset token or None.
+
+        The synthesized context carries a non-bypass ``service`` role:
+        ``authorize_action`` short-circuits for ``system``/``super_admin``,
+        so elevating the ambient executor to ``system`` would bypass every
+        gated tool action. Grants flow only from trusted runtime metadata
+        (populated by the HTTP layer from the authenticated request), so
+        missing grants still fail closed.
         """
         token: Token | None = None
         try:
             if ctx.tenant_id and get_request_context() is None:
+                metadata: dict[str, Any] = ctx.metadata or {}
+                scopes = [
+                    str(scope)
+                    for scope in metadata.get("service_account_scopes") or []
+                    if isinstance(scope, str)
+                ]
+                permissions = [
+                    str(permission)
+                    for permission in metadata.get("permissions") or []
+                    if isinstance(permission, str)
+                ]
                 token = set_request_context(
                     RequestContext(
                         tenant_id=ctx.tenant_id,
                         user_id=ctx.user_id or "workflow_executor",
-                        roles=["system"],
-                        auth_source="workflow_execution",
+                        roles=["service"],
+                        source=AUTH_SOURCE_SERVICE_ACCOUNT,
+                        auth_source=AUTH_SOURCE_SERVICE_ACCOUNT,
                         request_id=ctx.workflow_id or ctx.run_id,
                         trace_id=ctx.trace_id or ctx.run_id,
+                        permissions=permissions,
+                        service_account_id="layer4-workflow-executor",
+                        service_account_scopes=scopes,
                     )
                 )
         except Exception:  # noqa: BLE001 - ambient context is best-effort
