@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Layer 7 Billing API (Deprecated Compatibility)",
+    "title": "Layer 4 Billing API (Deprecated Layer 7 Compatibility)",
     "description": "Deprecated compatibility projection of the legacy Layer 7 billing API surface. The Layer 7 standalone billing service runtime has been retired; Layer 4 is the canonical billing runtime. New consumers must use the canonical Layer 4 Billing contract (layer4-billing.json). This contract is retained only to allow existing Layer 7 API consumers to migrate without an uncontrolled breaking change.",
     "version": "0.2.0"
   },

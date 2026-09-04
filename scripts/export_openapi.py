@@ -603,7 +603,7 @@ def _filter_openapi_to_billing_subset(openapi: dict[str, Any], *, compatibility:
     document["info"] = dict(document.get("info", {}))
     document["info"]["version"] = document["info"].get("version", "0.2.0")
     if compatibility:
-        document["info"]["title"] = "Layer 7 Billing API (Deprecated Compatibility)"
+        document["info"]["title"] = "Layer 4 Billing API (Deprecated Layer 7 Compatibility)"
         document["info"]["description"] = (
             "Deprecated compatibility projection of the legacy Layer 7 billing "
             "API surface. The Layer 7 standalone billing service runtime has been "
