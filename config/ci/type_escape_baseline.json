@@ -21692,12 +21692,6 @@
     },
     {
       "kind": "python-any",
-      "line": 302,
-      "path": "services/layer3-knowledge/src/services/roi_math_kernel.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
       "line": 13,
       "path": "services/layer3-knowledge/src/services/signal_persistence.py",
       "text": "from typing import Any"

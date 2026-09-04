@@ -8,9 +8,12 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from value_fabric.shared.models.typed_dict import TypedDictModel
+if TYPE_CHECKING:
+    from pydantic import BaseModel as TypedDictModel
+else:
+    from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 @dataclass
@@ -299,7 +302,7 @@ class FinancialMathKernel:
         scenarios: list[str] | None = None,
         time_horizon_months: int = 36,
         discount_rate: float = 0.10,
-    ) -> dict[str, Any]:
+    ) -> ScenarioComparisonResult:
         """Run the same inputs through multiple scenarios for comparison."""
         if scenarios is None:
             scenarios = ["conservative", "moderate", "aggressive"]
