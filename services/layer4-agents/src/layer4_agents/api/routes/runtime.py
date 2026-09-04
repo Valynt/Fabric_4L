@@ -8,7 +8,6 @@ cannot widen visibility.
 
 from __future__ import annotations
 
-import importlib
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import uuid4
@@ -18,26 +17,24 @@ from pydantic import BaseModel, ConfigDict, Field
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
+from ...runtime import (
+    AgentRuntimeError,
+    CheckpointConflictError,
+    ResumeRequest,
+    RunEnvelope,
+    RunNotFoundError,
+    RunRequest,
+    RunResult,
+    RunSummary,
+    RuntimeContext,
+    RuntimeMetrics,
+    TenantRequiredError,
+    ToolForbiddenError,
+    ToolSchema,
+    WorkflowTypeNotFoundError,
+)
 from ...runtime.ports import AgentRuntime
 from ..runtime_state import runtime_state
-
-_runtime_errors = importlib.import_module("layer4_agents.runtime.errors")
-_runtime_models = importlib.import_module("layer4_agents.runtime.models")
-_runtime_observability = importlib.import_module("layer4_agents.runtime.observability")
-AgentRuntimeError = _runtime_errors.AgentRuntimeError
-CheckpointConflictError = _runtime_errors.CheckpointConflictError
-RunNotFoundError = _runtime_errors.RunNotFoundError
-ResumeRequest = _runtime_models.ResumeRequest
-RunEnvelope = _runtime_models.RunEnvelope
-RunRequest = _runtime_models.RunRequest
-RunResult = _runtime_models.RunResult
-RunSummary = _runtime_models.RunSummary
-RuntimeContext = _runtime_models.RuntimeContext
-RuntimeMetrics = _runtime_observability.RuntimeMetrics
-TenantRequiredError = _runtime_errors.TenantRequiredError
-ToolForbiddenError = _runtime_errors.ToolForbiddenError
-ToolSchema = _runtime_models.ToolSchema
-WorkflowTypeNotFoundError = _runtime_errors.WorkflowTypeNotFoundError
 
 router = APIRouter(prefix="/runtime", tags=["runtime"])
 
@@ -88,7 +85,9 @@ class RuntimeRunListResponse(BaseModel):
 
 
 def _runtime(request: Request) -> AgentRuntime:
-    runtime = getattr(request.app.state, "agent_runtime", None) or runtime_state.agent_runtime
+    runtime: AgentRuntime | None = (
+        getattr(request.app.state, "agent_runtime", None) or runtime_state.agent_runtime
+    )
     if runtime is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -112,7 +111,7 @@ def _tenant(ctx: RequestContext, *, operation: str) -> str:
 
 
 def _metrics_snapshot(metrics: RuntimeMetrics | None) -> RuntimeMetricsResponse:
-    snapshot: dict[str, object] = metrics.snapshot() if metrics is not None else {}
+    snapshot = metrics.snapshot() if metrics is not None else {}
     return RuntimeMetricsResponse(
         runs_started_total=int(snapshot.get("runs_started_total", 0)),
         runs_terminal_total=int(snapshot.get("runs_terminal_total", 0)),

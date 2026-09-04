@@ -87,6 +87,11 @@
       "id": "services/layer4-agents/src/layer4_agents/tenant/middleware.py:21:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
+    },
+    {
+      "id": "services/layer4-agents/src/engine/__init__.py:10:py_deprecated_message",
+      "rationale": "Approved temporary deprecation compatibility surface; engine shim warns importers to migrate to layer4_agents.runtime; tracked for staged removal.",
+      "target_removal_date": "2026-12-31"
     }
   ]
 }

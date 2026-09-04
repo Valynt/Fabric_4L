@@ -9,6 +9,11 @@
       "title": "AgentResponseEnvelope"
     },
     {
+      "path": "contracts/jsonschema/agent-runtime/common.json",
+      "id": "https://valuefabric.dev/contracts/jsonschema/agent-runtime/common.json",
+      "title": "Agent Runtime Common Contracts"
+    },
+    {
       "path": "contracts/jsonschema/claim-types.v1.json",
       "id": "https://valuefabric.ai/contracts/jsonschema/claim-types.v1.json",
       "title": "Canonical Claim Type Taxonomy v1"
