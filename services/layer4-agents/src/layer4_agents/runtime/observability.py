@@ -57,9 +57,10 @@ class RuntimeMetrics:
     """Thread-safe counters derived from the runtime event stream.
 
     Implements ``EventSink`` so it can be registered directly on a
-    ``RuntimeEventBus``. Counters never carry per-tenant *values* beyond
-    aggregate counts; tool counters are not tenant-labeled to bound
-    cardinality.
+    ``RuntimeEventBus``. Runs are broken down by tenant and workflow
+    type as internal-only label maps (aggregate counts keyed by label;
+    no per-tenant content values). Tool counters are not tenant-labeled
+    to bound cardinality.
     """
 
     def __init__(self) -> None:

@@ -392,3 +392,23 @@ def test_sdk_public_surface_exports() -> None:
         "create_agent",
     ):
         assert hasattr(sdk, name), name
+
+
+def test_agent_spec_metadata_is_read_only_copy() -> None:
+    source: dict[str, Any] = {"k": "v"}
+    spec = AgentSpec(name="s", workflow_type="echo", metadata=source)
+    # Construction copies: caller-side mutation never leaks in.
+    source["k"] = "mutated"
+    assert spec.metadata["k"] == "v"
+    # The stored mapping is read-only: frozen=True genuinely holds.
+    with pytest.raises(TypeError):
+        spec.metadata["k"] = "x"  # type: ignore[index]
+
+
+def test_agent_spec_metadata_defaults_and_equality() -> None:
+    spec = AgentSpec(name="s", workflow_type="echo")
+    assert dict(spec.metadata) == {}
+    # Equality against dict-shaped specs still works (proxy == dict).
+    assert AgentSpec(name="s", workflow_type="echo", metadata={"a": 1}) == (
+        AgentSpec(name="s", workflow_type="echo", metadata={"a": 1})
+    )
