@@ -24,7 +24,7 @@ devcontainer up --workspace-folder .
 devcontainer exec --workspace-folder . bash
 ```
 
-`post-create.sh` activates pnpm 10.18.1, runs
+`post-create.sh` activates pnpm 10.34.5, runs
 `pnpm install --frozen-lockfile`, and runs `make setup`. Re-running it is safe.
 It does not create environment files, start services, or run migrations.
 `post-start.sh` is informational and does not mutate the workspace or databases.

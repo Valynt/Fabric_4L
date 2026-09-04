@@ -12,7 +12,7 @@
 ### Prerequisites
 
 - Python 3.11+ (any patch release; the repo does not require Python 3.11.10 specifically)
-- Node.js ≥ 22.12.0 and pnpm 10.18.1
+- Node.js ≥ 22.12.0 and pnpm 10.34.5
 - Docker + Docker Compose
 - `make`
 
@@ -36,7 +36,7 @@ pyenv local 3.11
 
 # 3. Enable pnpm via corepack (do not use npm/yarn)
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 
 # 4. Install frontend dependencies
 pnpm install --frozen-lockfile
@@ -569,7 +569,7 @@ Use:
 
 ```bash
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
 ```
 

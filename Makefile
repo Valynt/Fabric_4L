@@ -579,7 +579,7 @@ bootstrap: ## One-command first-time setup: Infisical → corepack → pnpm → 
 	@infisical login || (echo "ERROR: Infisical CLI not installed. See https://infisical.com/docs/cli/overview" && exit 1)
 	@echo "=== Step 2: Enable corepack and activate pnpm ==="
 	corepack enable
-	corepack prepare pnpm@10.18.1 --activate
+	corepack prepare pnpm@10.34.5 --activate
 	@echo "=== Step 3: Install frontend dependencies ==="
 	$(PNPM) install --frozen-lockfile
 	@echo "=== Step 4: Install Python service dependencies ==="

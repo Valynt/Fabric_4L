@@ -26,7 +26,7 @@ ENV VITE_L7_PREFIX=${VITE_L7_PREFIX}
 
 # Install the exact pnpm version in the image per repo policy (docs/development/BUILD_SYSTEM.md).
 # Version is pinned explicitly to match root package.json "packageManager".
-RUN npm install --global pnpm@10.18.1
+RUN npm install --global pnpm@10.34.5
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -54,7 +54,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 
 # Install the exact pnpm version in the image per repo policy (version pinned to match root package.json).
-RUN npm install --global pnpm@10.18.1
+RUN npm install --global pnpm@10.34.5
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./

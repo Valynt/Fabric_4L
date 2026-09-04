@@ -4,9 +4,9 @@
 Write-Host "→ Setting up Value Fabric environment..."
 
 # Enable corepack and activate the repo-pinned pnpm version
-Write-Host "→ Enabling corepack and activating pnpm@10.18.1..."
+Write-Host "→ Enabling corepack and activating pnpm@10.34.5..."
 corepack enable
-corepack use pnpm@10.18.1
+corepack use pnpm@10.34.5
 
 # Install JavaScript/TypeScript dependencies
 Write-Host "→ Installing dependencies with pnpm..."

@@ -114,7 +114,7 @@ none are imported directly in `apps/web/src`.
 
 ### 2.1. `pnpm` — ACCEPTED-RISK, version-locked by packageManager policy
 
-The repo pins `pnpm@10.18.1` via the `packageManager` field in
+The repo pins `pnpm@10.34.5` via the `packageManager` field in
 `package.json` (enforced by `scripts/enforce-package-manager.cjs` and the
 CI `check-package-manager-policy` check). Multiple RCE CVEs affect pnpm
 versions prior to 10.x.y-latest; upgrading requires a coordinated bump of

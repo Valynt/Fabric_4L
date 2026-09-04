@@ -11,7 +11,7 @@ Use `apps/web/` as the only valid frontend source/config root.
 
 ```bash
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
 pnpm --dir apps/web install --frozen-lockfile
 ```

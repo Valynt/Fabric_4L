@@ -139,8 +139,8 @@ def validate_static(root: Path) -> list[str]:
         '"version": "22.22.2"' in feature_text, "Node.js 22.22.2 must be pinned", errors
     )
     require(
-        '"pnpmVersion": "10.18.1"' in feature_text,
-        "pnpm 10.18.1 must be pinned",
+        '"pnpmVersion": "10.34.5"' in feature_text,
+        "pnpm 10.34.5 must be pinned",
         errors,
     )
 

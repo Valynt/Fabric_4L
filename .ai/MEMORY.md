@@ -13,7 +13,7 @@ it against the current tree.
 - Maintained shared identity imports use `value_fabric.shared.identity.*`.
 - Canonical architecture decisions live in
   [`docs/explanations/adr/`](../docs/explanations/adr/).
-- The monorepo uses pnpm `10.18.1`; npm and yarn are not supported for canonical workspaces.
+- The monorepo uses pnpm `10.34.5`; npm and yarn are not supported for canonical workspaces.
 - The root [`AGENTS.md`](../AGENTS.md) is the authoritative agent and contributor instruction file.
 
 ## Canonical Live Status

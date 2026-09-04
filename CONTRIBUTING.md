@@ -34,7 +34,7 @@ pyenv local 3.11
 
 # 4. Enable the repo-pinned pnpm version
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 
 # 5. Install JavaScript/TypeScript workspace dependencies
 pnpm install --frozen-lockfile
