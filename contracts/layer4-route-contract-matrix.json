@@ -512,6 +512,38 @@
       ]
     },
     {
+      "route_id": "GET /v1/accounts/{account_id}/journey-timeline",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/accounts.py"
+      ],
+      "openapi_path": "/v1/accounts/{account_id}/journey-timeline",
+      "method": "GET",
+      "operation_id": "get_account_journey_timeline_v1_accounts__account_id__journey_timeline_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/AccountJourneyTimelineResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/components/journey/JourneyTimelineRightRail.tsx"
+      ]
+    },
+    {
       "route_id": "POST /v1/accounts/{account_id}/refresh",
       "backend_route_files": [],
       "openapi_path": "/v1/accounts/{account_id}/refresh",
@@ -576,38 +608,6 @@
         "apps/web/src/pages/realization/RealizationPage.tsx",
         "apps/web/src/pages/ValueNarrativeHome.test.tsx",
         "apps/web/src/pages/ValueNarrativeHome.tsx"
-      ]
-    },
-    {
-      "route_id": "GET /v1/accounts/{account_id}/journey-timeline",
-      "backend_route_files": [
-        "services/layer4-agents/src/layer4_agents/api/routes/accounts.py"
-      ],
-      "openapi_path": "/v1/accounts/{account_id}/journey-timeline",
-      "method": "GET",
-      "operation_id": "get_account_journey_timeline_v1_accounts__account_id__journey_timeline_get",
-      "request_schema": null,
-      "success_response_schemas": [
-        {
-          "status_code": "200",
-          "description": "Successful Response",
-          "schema": {
-            "$ref": "#/components/schemas/AccountJourneyTimelineResponse"
-          }
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/components/journey/JourneyTimelineRightRail.tsx"
       ]
     },
     {
@@ -5201,13 +5201,15 @@
       "frontend_consumers": []
     },
     {
-      "route_id": "PATCH /v1/narratives/{narrative_id}/status",
-      "backend_route_files": [],
-      "openapi_path": "/v1/narratives/{narrative_id}/status",
-      "method": "PATCH",
-      "operation_id": "update_narrative_status_v1_narratives__narrative_id__status_patch",
+      "route_id": "POST /v1/narratives/{narrative_id}/accept",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/narratives.py"
+      ],
+      "openapi_path": "/v1/narratives/{narrative_id}/accept",
+      "method": "POST",
+      "operation_id": "accept_narrative_v1_narratives__narrative_id__accept_post",
       "request_schema": {
-        "$ref": "#/components/schemas/StatusUpdateRequest"
+        "$ref": "#/components/schemas/NarrativeAcceptanceRequest"
       },
       "success_response_schemas": [
         {
@@ -5226,9 +5228,7 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/pages/FormulaList.tsx"
-      ]
+      "frontend_consumers": []
     },
     {
       "route_id": "POST /v1/narratives/{narrative_id}/export",
@@ -5261,15 +5261,13 @@
       "frontend_consumers": []
     },
     {
-      "route_id": "POST /v1/narratives/{narrative_id}/accept",
-      "backend_route_files": [
-        "services/layer4-agents/src/layer4_agents/api/routes/narratives.py"
-      ],
-      "openapi_path": "/v1/narratives/{narrative_id}/accept",
-      "method": "POST",
-      "operation_id": "accept_narrative_v1_narratives__narrative_id__accept_post",
+      "route_id": "PATCH /v1/narratives/{narrative_id}/status",
+      "backend_route_files": [],
+      "openapi_path": "/v1/narratives/{narrative_id}/status",
+      "method": "PATCH",
+      "operation_id": "update_narrative_status_v1_narratives__narrative_id__status_patch",
       "request_schema": {
-        "$ref": "#/components/schemas/NarrativeAcceptanceRequest"
+        "$ref": "#/components/schemas/StatusUpdateRequest"
       },
       "success_response_schemas": [
         {
@@ -5288,7 +5286,9 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": []
+      "frontend_consumers": [
+        "apps/web/src/pages/FormulaList.tsx"
+      ]
     },
     {
       "route_id": "GET /v1/notifications",
@@ -5800,6 +5800,210 @@
           }
         }
       ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/runtime/health",
+      "backend_route_files": [],
+      "openapi_path": "/v1/runtime/health",
+      "method": "GET",
+      "operation_id": "runtime_health_v1_runtime_health_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/RuntimeHealthResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/runtime/metrics",
+      "backend_route_files": [],
+      "openapi_path": "/v1/runtime/metrics",
+      "method": "GET",
+      "operation_id": "runtime_metrics_v1_runtime_metrics_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/RuntimeMetricsResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/runtime/runs",
+      "backend_route_files": [],
+      "openapi_path": "/v1/runtime/runs",
+      "method": "GET",
+      "operation_id": "list_runtime_runs_v1_runtime_runs_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/RuntimeRunListResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/runtime/runs",
+      "backend_route_files": [],
+      "openapi_path": "/v1/runtime/runs",
+      "method": "POST",
+      "operation_id": "submit_runtime_run_v1_runtime_runs_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/RunRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "202",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/RunEnvelope"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/runtime/runs/{run_id}",
+      "backend_route_files": [],
+      "openapi_path": "/v1/runtime/runs/{run_id}",
+      "method": "GET",
+      "operation_id": "get_runtime_run_v1_runtime_runs__run_id__get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/RunResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/runtime/runs/{run_id}/cancel",
+      "backend_route_files": [],
+      "openapi_path": "/v1/runtime/runs/{run_id}/cancel",
+      "method": "POST",
+      "operation_id": "cancel_runtime_run_v1_runtime_runs__run_id__cancel_post",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/RunResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/runtime/runs/{run_id}/resume",
+      "backend_route_files": [],
+      "openapi_path": "/v1/runtime/runs/{run_id}/resume",
+      "method": "POST",
+      "operation_id": "resume_runtime_run_v1_runtime_runs__run_id__resume_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/ResumeRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/RunResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/runtime/types",
+      "backend_route_files": [],
+      "openapi_path": "/v1/runtime/types",
+      "method": "GET",
+      "operation_id": "runtime_types_v1_runtime_types_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/RuntimeTypesResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [],
       "sse_event_channels": [],
       "frontend_consumers": []
     },

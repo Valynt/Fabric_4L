@@ -110,6 +110,7 @@ class NotFoundError(ValueFabricException):
         resource_id: Optional[str] = None,
         message: Optional[str] = None,
         details: Optional[dict[str, Any]] = None,
+        error_code: ErrorCode = ErrorCode.NOT_FOUND,
     ):
         error_msg = message or (
             f"{resource_type} not found"
@@ -122,7 +123,7 @@ class NotFoundError(ValueFabricException):
 
         super().__init__(
             message=error_msg,
-            error_code=ErrorCode.NOT_FOUND,
+            error_code=error_code,
             status_code=404,
             details=error_details,
         )
