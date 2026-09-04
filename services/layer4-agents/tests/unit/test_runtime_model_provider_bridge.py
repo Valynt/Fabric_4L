@@ -154,11 +154,14 @@ async def test_complete_defaults_temperature_when_unset() -> None:
 @pytest.mark.asyncio
 async def test_complete_fails_closed_on_missing_tenant() -> None:
     bridge = ModelProviderBridge("openai", _FakeProvider())
+    # Unvalidated empty-tenant context (model_construct) — the guard is
+    # defense in depth beneath the model's min_length contract.
+    ctx = RuntimeContext.model_construct(
+        tenant_id="", trace_id="trace-1", run_id="run-1", workflow_id="wf-1", workflow_type="demo"
+    )
 
     with pytest.raises(TenantRequiredError):
-        await bridge.complete(
-            [Message(role="user", content="hi")], _config(), _ctx(tenant_id="")
-        )
+        await bridge.complete([Message(role="user", content="hi")], _config(), ctx)
 
 
 @pytest.mark.unit
@@ -179,9 +182,14 @@ async def test_embed_loops_texts_and_concatenates_vectors_in_order() -> None:
 @pytest.mark.asyncio
 async def test_embed_fails_closed_on_missing_tenant() -> None:
     bridge = ModelProviderBridge("together", _FakeProvider())
+    # Unvalidated empty-tenant context (model_construct) — the guard is
+    # defense in depth beneath the model's min_length contract.
+    ctx = RuntimeContext.model_construct(
+        tenant_id="", trace_id="trace-1", run_id="run-1", workflow_id="wf-1", workflow_type="demo"
+    )
 
     with pytest.raises(TenantRequiredError):
-        await bridge.embed(["a"], _config(), _ctx(tenant_id=""))
+        await bridge.embed(["a"], _config(), ctx)
 
 
 @pytest.mark.unit

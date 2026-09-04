@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -13,6 +14,7 @@ from .errors import (
     RunNotFoundError,
     TenantRequiredError,
     ToolForbiddenError,
+    ToolRegistryUnavailableError,
     WorkflowTypeNotFoundError,
 )
 from .events import (
@@ -48,6 +50,12 @@ from .ports import (
     ToolRegistryPort,
     WorkflowEnginePort,
     WorkflowFactory,
+)
+
+# Statuses in which a run may still be cancelled. Terminal runs are immutable:
+# cancelling a completed/failed/cancelled run would rewrite its history.
+_CANCELLABLE_STATUSES = frozenset(
+    {RunStatus.PENDING, RunStatus.RUNNING, RunStatus.RETRYING, RunStatus.PAUSED}
 )
 
 
@@ -179,29 +187,30 @@ class AgentRuntimeImpl:
             )
         )
         try:
-            with with_context(ctx):
-                await self._dispatch_run(envelope, request, ctx)
+            # The envelope's run/workflow ids are authoritative for execution:
+            # the engine must observe the same run identity the runtime records
+            # and persists, never a caller-supplied context's.
+            dispatch_ctx = ctx.model_copy(update={"run_id": run_id, "workflow_id": workflow_id})
+            with with_context(dispatch_ctx):
+                if request.timeout_seconds is None:
+                    await self._dispatch_run(envelope, request, dispatch_ctx)
+                else:
+                    # Enforce the run's timeout budget: a dispatch exceeding it
+                    # is cancelled and folded into a terminal failed record.
+                    await asyncio.wait_for(
+                        self._dispatch_run(envelope, request, dispatch_ctx),
+                        timeout=request.timeout_seconds,
+                    )
         except AgentRuntimeError as exc:
-            # A dispatch failure must leave a terminal (failed) record behind,
-            # not a zombie pending run, and must surface as a failed event.
-            failed = self._runs[run_id].model_copy(
-                update={
-                    "status": RunStatus.FAILED,
-                    "error": {"code": exc.code, "message": str(exc)},
-                    "completed_at": datetime.now(UTC).isoformat(),
-                }
-            )
-            self._runs[run_id] = failed
-            await self._persist_run_memory(failed)
-            await self._emit(
-                RuntimeEvent(
-                    kind=RUN_FAILED,
-                    run_id=run_id,
-                    tenant_id=ctx.tenant_id,
-                    workflow_type=request.workflow_type,
-                    status=RunStatus.FAILED.value,
-                    payload={"error_code": exc.code},
-                )
+            await self._fail_run(run_id, ctx, request, code=exc.code, message=str(exc))
+            raise
+        except TimeoutError:
+            await self._fail_run(
+                run_id,
+                ctx,
+                request,
+                code="RUN_TIMEOUT",
+                message=f"Run exceeded its timeout budget of {request.timeout_seconds}s",
             )
             raise
 
@@ -209,6 +218,34 @@ class AgentRuntimeImpl:
         if stored is not None:
             await self._emit_status_event(stored)
         return envelope
+
+    async def _fail_run(
+        self, run_id: str, ctx: RuntimeContext, request: RunRequest, *, code: str, message: str
+    ) -> None:
+        """Fold a dispatch failure into a terminal failed record and emit RUN_FAILED.
+
+        A dispatch failure must leave a terminal (failed) record behind, not a
+        zombie pending run, and must surface as a failed event.
+        """
+        failed = self._runs[run_id].model_copy(
+            update={
+                "status": RunStatus.FAILED,
+                "error": {"code": code, "message": message},
+                "completed_at": datetime.now(UTC).isoformat(),
+            }
+        )
+        self._runs[run_id] = failed
+        await self._persist_run_memory(failed)
+        await self._emit(
+            RuntimeEvent(
+                kind=RUN_FAILED,
+                run_id=run_id,
+                tenant_id=ctx.tenant_id,
+                workflow_type=request.workflow_type,
+                status=RunStatus.FAILED.value,
+                payload={"error_code": code},
+            )
+        )
 
     async def _dispatch_run(
         self,
@@ -321,6 +358,14 @@ class AgentRuntimeImpl:
         result = await self.get_run(run_id, tenant_id)
         if result is None:
             raise RunNotFoundError(run_id)
+        if result.status not in _CANCELLABLE_STATUSES:
+            # Terminal runs are immutable: cancelling a completed/failed/
+            # cancelled run would rewrite its historical outcome.
+            raise AgentRuntimeError(
+                f"Run {run_id} is already terminal ({result.status.value}); cannot cancel",
+                code="RUN_NOT_CANCELLABLE",
+                details={"run_id": run_id, "status": result.status.value},
+            )
         cancelled = result.model_copy(update={"status": RunStatus.CANCELLED})
         self._runs[run_id] = cancelled
         await self._emit_status_event(cancelled)
@@ -433,7 +478,7 @@ class AgentRuntimeImpl:
             )
             raise
         if self._tool_registry is None:
-            raise ProviderNotFoundError("tool_registry")
+            raise ToolRegistryUnavailableError(name)
         result = await self._tool_registry.execute(name, arguments, ctx)
         await self._emit(
             RuntimeEvent(

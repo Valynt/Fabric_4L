@@ -54,6 +54,17 @@ class ToolForbiddenError(AgentRuntimeError):
         )
 
 
+class ToolRegistryUnavailableError(AgentRuntimeError):
+    """Raised when a tool is invoked without a configured tool registry."""
+
+    def __init__(self, tool_name: str):
+        super().__init__(
+            "Tool registry is not configured",
+            code="TOOL_REGISTRY_UNAVAILABLE",
+            details={"tool_name": tool_name},
+        )
+
+
 class CheckpointConflictError(AgentRuntimeError):
     """Raised when a resume request references a stale checkpoint hash."""
 

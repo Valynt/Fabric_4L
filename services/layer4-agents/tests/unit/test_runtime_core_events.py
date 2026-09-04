@@ -9,6 +9,7 @@ execution.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import pytest
@@ -61,12 +62,14 @@ class _EngineDouble:
         execute_result: WorkflowResult | None = None,
         resume_result: WorkflowResult | None = None,
         execute_error: AgentRuntimeError | None = None,
+        execute_delay: float = 0.0,
     ) -> None:
         self._execute_result = execute_result or WorkflowResult(status=RunStatus.PAUSED)
         self._resume_result = resume_result or WorkflowResult(
             status=RunStatus.COMPLETED, output={"done": True}
         )
         self._execute_error = execute_error
+        self._execute_delay = execute_delay
         self.execute_calls = 0
         self.resume_calls = 0
 
@@ -81,6 +84,8 @@ class _EngineDouble:
         checkpoint: Any | None = None,
     ) -> WorkflowResult:
         self.execute_calls += 1
+        if self._execute_delay > 0:
+            await asyncio.sleep(self._execute_delay)
         if self._execute_error is not None:
             raise self._execute_error
         return self._execute_result
@@ -131,6 +136,26 @@ async def test_submit_run_that_pauses_emits_run_paused_after_started() -> None:
 
     assert _kinds(sink.events) == ["run.started", "run.paused"]
     assert sink.events[1].status == RunStatus.PAUSED.value
+
+
+@pytest.mark.asyncio
+async def test_submit_run_exceeding_timeout_budget_fails_closed() -> None:
+    engine = _EngineDouble(execute_delay=5.0)
+    sink = _RecordingSink()
+    runtime = AgentRuntimeImpl(workflow_engine=engine, event_bus=sink)
+
+    with pytest.raises(TimeoutError):
+        await runtime.submit_run(
+            RunRequest(workflow_type="demo", timeout_seconds=1), _ctx()
+        )
+
+    assert _kinds(sink.events) == ["run.started", "run.failed"]
+    assert sink.events[1].payload == {"error_code": "RUN_TIMEOUT"}
+    # The cancelled dispatch leaves a terminal failed record, not a zombie.
+    stored = await runtime.get_run(sink.events[0].run_id, "tenant-a")
+    assert stored is not None
+    assert stored.status == RunStatus.FAILED
+    assert (stored.error or {}).get("code") == "RUN_TIMEOUT"
 
 
 async def test_submit_run_dispatch_failure_emits_failed_and_leaves_failed_record() -> None:

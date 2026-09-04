@@ -21,6 +21,7 @@ from .errors import (
     RunNotFoundError,
     TenantRequiredError,
     ToolForbiddenError,
+    ToolRegistryUnavailableError,
     WorkflowTypeNotFoundError,
 )
 from .events import (
@@ -118,6 +119,7 @@ __all__ = [
     "ToolDef",
     "ToolForbiddenError",
     "ToolRegistryPort",
+    "ToolRegistryUnavailableError",
     "ToolResult",
     "ToolSchema",
     "WorkflowFactory",

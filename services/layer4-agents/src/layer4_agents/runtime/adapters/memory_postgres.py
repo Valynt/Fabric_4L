@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import copy
 import json
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from sqlalchemy import select
@@ -33,8 +34,25 @@ def _fold_record(record: dict[str, Any]) -> str:
 class PostgresMemoryAdapter(MemoryPort):
     """Durable memory backed by ``runtime_thread_states`` / ``runtime_long_term_memory``."""
 
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+        *,
+        tenant_context_setter: Callable[[AsyncSession, str], Awaitable[None]] | None = None,
+    ) -> None:
         self._session_factory = session_factory
+        self._tenant_context_setter = tenant_context_setter
+
+    async def _enter_tenant_context(self, session: AsyncSession, tenant_id: str) -> None:
+        """Establish tenant context on the session when a production hook is configured.
+
+        The shared service session factory yields tenant-enforced sessions that
+        fail closed on any statement executed without tenant context (marks the
+        session and sets the RLS ``app.tenant_id`` variable). Standalone SQLite
+        tests inject no hook and keep plain sessions.
+        """
+        if self._tenant_context_setter is not None:
+            await self._tenant_context_setter(session, tenant_id)
 
     async def get_thread_state(self, thread_id: str, tenant_id: str) -> dict[str, Any] | None:
         if not tenant_id:
@@ -49,6 +67,7 @@ class PostgresMemoryAdapter(MemoryPort):
             .limit(1)
         )
         async with self._session_factory() as session:
+            await self._enter_tenant_context(session, tenant_id)
             row = (await session.execute(stmt)).scalar_one_or_none()
         return None if row is None else copy.deepcopy(row.state)
 
@@ -57,6 +76,7 @@ class PostgresMemoryAdapter(MemoryPort):
             raise TenantRequiredError(details={"thread_id": thread_id})
         async with self._session_factory() as session:
             async with session.begin():
+                await self._enter_tenant_context(session, tenant_id)
                 existing = await session.scalar(
                     select(RuntimeThreadStateRow).where(
                         RuntimeThreadStateRow.tenant_id == tenant_id,
@@ -92,6 +112,7 @@ class PostgresMemoryAdapter(MemoryPort):
             .limit(limit)
         )
         async with self._session_factory() as session:
+            await self._enter_tenant_context(session, tenant_id)
             rows = (await session.execute(stmt)).scalars().all()
         return [copy.deepcopy(row.record) for row in rows]
 
@@ -101,6 +122,7 @@ class PostgresMemoryAdapter(MemoryPort):
             raise TenantRequiredError()
         async with self._session_factory() as session:
             async with session.begin():
+                await self._enter_tenant_context(session, tenant_id)
                 session.add(
                     RuntimeLongTermMemoryRow(
                         tenant_id=tenant_id,

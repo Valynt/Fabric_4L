@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import JSON, Integer, String, Text
+from sqlalchemy import JSON, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 # Base is resolved at import time. In the full service context we use the
@@ -52,7 +52,10 @@ class RuntimeThreadStateRow(Base):
     """One row per ``(tenant_id, thread_id)`` thread-state snapshot."""
 
     __tablename__ = "runtime_thread_states"
-    __table_args__ = {"extend_existing": True}
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "thread_id", name="uq_runtime_thread_states_tenant_thread"),
+        {"extend_existing": True},
+    )
 
     seq: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     tenant_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
@@ -79,7 +82,13 @@ class RuntimeCheckpointRow(Base):
     """One row per runtime checkpoint, keyed by ``(tenant_id, run_id, thread_id, checkpoint_id)``."""
 
     __tablename__ = "runtime_checkpoints"
-    __table_args__ = {"extend_existing": True}
+    __table_args__ = (
+        UniqueConstraint(
+            "tenant_id", "run_id", "thread_id", "checkpoint_id",
+            name="uq_runtime_checkpoints_composite_key",
+        ),
+        {"extend_existing": True},
+    )
 
     seq: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     checkpoint_id: Mapped[str] = mapped_column(String(255), nullable=False)

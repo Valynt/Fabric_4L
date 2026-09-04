@@ -26,12 +26,14 @@ class RuntimeContext(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    tenant_id: str
+    # min_length mirrors the canonical JSON Schema contract
+    # (contracts/jsonschema/agent-runtime/common.json RuntimeContext $def).
+    tenant_id: str = Field(min_length=1)
     user_id: str | None = None
-    trace_id: str
-    run_id: str
-    workflow_id: str
-    workflow_type: str
+    trace_id: str = Field(min_length=1)
+    run_id: str = Field(min_length=1)
+    workflow_id: str = Field(min_length=1)
+    workflow_type: str = Field(min_length=1)
     priority: int = Field(default=3, ge=1, le=5)
     metadata: dict[str, Any] = Field(default_factory=dict)
 

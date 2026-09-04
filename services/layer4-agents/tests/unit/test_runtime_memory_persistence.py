@@ -73,6 +73,7 @@ class _EngineDouble:
                 "op": "execute",
                 "workflow_type": workflow_type,
                 "run_id": ctx.run_id,
+                "workflow_id": ctx.workflow_id,
                 "ctx_tenant": get_tenant_id(),
             }
         )
@@ -231,6 +232,20 @@ async def test_context_propagates_into_engine_during_submit() -> None:
     execute_call = [c for c in engine.calls if c["op"] == "execute"][0]
     assert execute_call["ctx_tenant"] == "tenant-a"
     assert execute_call["ctx_tenant"] == ctx.tenant_id
+
+
+@pytest.mark.asyncio
+async def test_submit_run_dispatches_under_authoritative_run_id() -> None:
+    engine = _EngineDouble()
+    runtime, run_id = await _submit_paused(engine, _ctx())
+
+    # The engine must observe the runtime's authoritative run/workflow ids,
+    # never the caller-supplied context's (run-1/wf-1 here).
+    execute_call = [c for c in engine.calls if c["op"] == "execute"][0]
+    assert execute_call["run_id"] == run_id
+    assert execute_call["workflow_id"] == run_id
+    assert execute_call["run_id"] != "run-1"
+    assert execute_call["workflow_id"] != "wf-1"
 
 
 @pytest.mark.asyncio

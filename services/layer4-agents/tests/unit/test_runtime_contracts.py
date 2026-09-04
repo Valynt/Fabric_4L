@@ -18,6 +18,7 @@ from layer4_agents.runtime import (
     RuntimeContext,
     TenantRequiredError,
     ToolDef,
+    ToolRegistryUnavailableError,
     ToolResult,
     ToolSchema,
     WorkflowResult,
@@ -58,6 +59,26 @@ def test_runtime_context_round_trips_against_json_schema() -> None:
 
     errors = list(_def_validator("RuntimeContext").iter_errors(instance))
     assert not errors, [e.message for e in errors]
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "field", ["tenant_id", "trace_id", "run_id", "workflow_id", "workflow_type"]
+)
+def test_runtime_context_rejects_empty_required_fields(field: str) -> None:
+    """The Pydantic model enforces the JSON Schema's minLength: 1 contract."""
+    from pydantic import ValidationError
+
+    valid = {
+        "tenant_id": "tenant-a",
+        "trace_id": "trace-1",
+        "run_id": "run-1",
+        "workflow_id": "wf-1",
+        "workflow_type": "demo",
+    }
+
+    with pytest.raises(ValidationError):
+        RuntimeContext(**{**valid, field: ""})
 
 
 @pytest.mark.unit
@@ -138,7 +159,11 @@ def test_agent_runtime_impl_satisfies_agent_runtime_port() -> None:
 async def test_submit_run_fails_closed_without_tenant_id() -> None:
     runtime = AgentRuntimeImpl()
     request = RunRequest(workflow_type="demo")
-    ctx = _ctx(tenant_id="")
+    # Validation rejects empty tenant_id; the runtime guard must still fail
+    # closed for an unvalidated context (model_construct) — defense in depth.
+    ctx = RuntimeContext.model_construct(
+        tenant_id="", trace_id="trace-1", run_id="run-1", workflow_id="wf-1", workflow_type="demo"
+    )
 
     with pytest.raises(TenantRequiredError):
         await runtime.submit_run(request, ctx)
@@ -219,6 +244,19 @@ async def test_call_tool_executes_allowed_tool() -> None:
 
     assert result.status == "success"
     assert result.data == {"echo": {"x": 1}}
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_call_tool_without_registry_raises_tool_registry_unavailable() -> None:
+    runtime = AgentRuntimeImpl()
+    ctx = _ctx()
+
+    with pytest.raises(ToolRegistryUnavailableError) as exc_info:
+        await runtime.call_tool("echo", {}, ctx)
+
+    assert exc_info.value.code == "TOOL_REGISTRY_UNAVAILABLE"
+    assert exc_info.value.details["tool_name"] == "echo"
 
 
 @pytest.mark.unit

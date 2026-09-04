@@ -149,7 +149,11 @@ async def test_authorize_gated_tool_allows_with_scope_grant() -> None:
 @pytest.mark.asyncio
 async def test_authorize_denies_when_tenant_context_is_missing() -> None:
     authz = PolicyAuthzPort()
-    ctx = _ctx(tenant_id="")
+    # RuntimeContext rejects empty tenant_id at validation; the guard must
+    # still deny an unvalidated context (model_construct) — defense in depth.
+    ctx = RuntimeContext.model_construct(
+        tenant_id="", trace_id="trace-1", run_id="run-1", workflow_id="wf-1", workflow_type="demo"
+    )
 
     decision: AuthzDecision = await authz.authorize_tool("calculate_roi", ctx)
 

@@ -53,6 +53,7 @@ def upgrade() -> None:
         sa.Column("thread_id", sa.String(255), nullable=False),
         sa.Column("state", postgresql.JSONB(), nullable=False, server_default="{}"),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.UniqueConstraint("tenant_id", "thread_id", name="uq_runtime_thread_states_tenant_thread"),
     )
     op.create_index("ix_runtime_thread_states_tenant_id", "runtime_thread_states", ["tenant_id"])
     op.create_index("ix_runtime_thread_states_thread_id", "runtime_thread_states", ["thread_id"])
@@ -85,6 +86,10 @@ def upgrade() -> None:
         sa.Column("state", postgresql.JSONB(), nullable=False, server_default="{}"),
         sa.Column("metadata", postgresql.JSONB(), nullable=True),
         sa.Column("created_at", sa.String(64), nullable=False),
+        sa.UniqueConstraint(
+            "tenant_id", "run_id", "thread_id", "checkpoint_id",
+            name="uq_runtime_checkpoints_composite_key",
+        ),
     )
     op.create_index("ix_runtime_checkpoints_tenant_id", "runtime_checkpoints", ["tenant_id"])
     op.create_index("ix_runtime_checkpoints_run_id", "runtime_checkpoints", ["run_id"])

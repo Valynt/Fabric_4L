@@ -189,7 +189,11 @@ async def test_execute_unknown_workflow_type_fails_closed() -> None:
 async def test_execute_missing_tenant_fails_closed() -> None:
     factory, calls = _double_factory()
     engine = _engine(create_workflow_fn=factory)
-    ctx = _ctx(tenant_id="")
+    # Unvalidated empty-tenant context (model_construct) — the adapter's
+    # guard is defense in depth beneath the model's min_length contract.
+    ctx = RuntimeContext.model_construct(
+        tenant_id="", trace_id="trace-1", run_id="run-1", workflow_id="wf-1", workflow_type="demo"
+    )
 
     with pytest.raises(TenantRequiredError) as exc_info:
         await engine.execute("demo", {}, ctx)

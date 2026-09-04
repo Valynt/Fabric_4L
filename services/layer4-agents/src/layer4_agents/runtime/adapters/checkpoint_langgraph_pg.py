@@ -14,6 +14,7 @@ opens a session per operation.
 from __future__ import annotations
 
 import copy
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from sqlalchemy import select
@@ -40,14 +41,32 @@ def _row_to_checkpoint(row: RuntimeCheckpointRow) -> Checkpoint:
 class PostgresCheckpointAdapter(CheckpointPort):
     """Durable checkpoints backed by ``runtime_checkpoints``."""
 
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+        *,
+        tenant_context_setter: Callable[[AsyncSession, str], Awaitable[None]] | None = None,
+    ) -> None:
         self._session_factory = session_factory
+        self._tenant_context_setter = tenant_context_setter
+
+    async def _enter_tenant_context(self, session: AsyncSession, tenant_id: str) -> None:
+        """Establish tenant context on the session when a production hook is configured.
+
+        The shared service session factory yields tenant-enforced sessions that
+        fail closed on any statement executed without tenant context (marks the
+        session and sets the RLS ``app.tenant_id`` variable). Standalone SQLite
+        tests inject no hook and keep plain sessions.
+        """
+        if self._tenant_context_setter is not None:
+            await self._tenant_context_setter(session, tenant_id)
 
     async def save(self, checkpoint: Checkpoint, state: dict[str, Any]) -> None:
         if not checkpoint.tenant_id:
             raise TenantRequiredError(details={"checkpoint_id": checkpoint.checkpoint_id})
         async with self._session_factory() as session:
             async with session.begin():
+                await self._enter_tenant_context(session, checkpoint.tenant_id)
                 existing = await session.scalar(
                     select(RuntimeCheckpointRow).where(
                         RuntimeCheckpointRow.tenant_id == checkpoint.tenant_id,
@@ -100,6 +119,7 @@ class PostgresCheckpointAdapter(CheckpointPort):
             stmt = stmt.where(RuntimeCheckpointRow.checkpoint_id == checkpoint_id)
         stmt = stmt.order_by(RuntimeCheckpointRow.seq.desc()).limit(1)
         async with self._session_factory() as session:
+            await self._enter_tenant_context(session, tenant_id)
             row = (await session.execute(stmt)).scalar_one_or_none()
         if row is None:
             return None
@@ -117,5 +137,6 @@ class PostgresCheckpointAdapter(CheckpointPort):
             .order_by(RuntimeCheckpointRow.seq.asc())
         )
         async with self._session_factory() as session:
+            await self._enter_tenant_context(session, tenant_id)
             rows = (await session.execute(stmt)).scalars().all()
         return [_row_to_checkpoint(row) for row in rows]

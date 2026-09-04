@@ -20,6 +20,7 @@ from typing import Any
 import pytest
 
 from layer4_agents.runtime import (
+    AgentRuntimeError,
     AgentRuntimeImpl,
     AuthzDecision,
     ResumeRequest,
@@ -55,8 +56,16 @@ async def _completed_factory(
     return WorkflowResult(status=RunStatus.COMPLETED, output={"ok": True})
 
 
+async def _paused_factory(
+    workflow_type: str, input_data: dict[str, Any], ctx: RuntimeContext
+) -> WorkflowResult:
+    return WorkflowResult(status=RunStatus.PAUSED)
+
+
 async def _submit(runtime: AgentRuntimeImpl, tenant_id: str) -> str:
-    runtime.register_workflow_type("demo", _completed_factory)
+    # Cancel tests need a live (paused, still-cancellable) run; terminal runs
+    # are immutable and reject cancellation.
+    runtime.register_workflow_type("demo", _paused_factory)
     envelope = await runtime.submit_run(
         RunRequest(workflow_type="demo"), _ctx(tenant_id=tenant_id)
     )
@@ -133,7 +142,7 @@ async def test_cancel_run_denies_cross_tenant_mutation() -> None:
     assert exc_info.value.code == "RUN_NOT_FOUND"
     # The owner still sees the run unchanged — the hostile cancel had no effect.
     owned = await runtime.get_run(run_id, "tenant-a")
-    assert owned is not None and owned.status == RunStatus.COMPLETED
+    assert owned is not None and owned.status == RunStatus.PAUSED
 
 
 @pytest.mark.asyncio
@@ -156,6 +165,22 @@ async def test_cancel_run_cancels_owned_run_only() -> None:
 
     assert cancelled.status == RunStatus.CANCELLED
     assert cancelled.tenant_id == "tenant-a"
+
+
+@pytest.mark.asyncio
+async def test_cancel_run_rejects_terminal_run_and_preserves_history() -> None:
+    runtime = AgentRuntimeImpl()
+    runtime.register_workflow_type("demo", _completed_factory)
+    envelope = await runtime.submit_run(RunRequest(workflow_type="demo"), _ctx(tenant_id="tenant-a"))
+    run_id = envelope.run_id  # type: ignore[no-any-return]
+
+    with pytest.raises(AgentRuntimeError) as exc_info:
+        await runtime.cancel_run(run_id, "tenant-a")
+
+    assert exc_info.value.code == "RUN_NOT_CANCELLABLE"
+    # Cancel never rewrites a terminal run's historical outcome.
+    stored = await runtime.get_run(run_id, "tenant-a")
+    assert stored is not None and stored.status == RunStatus.COMPLETED
 
 
 @pytest.mark.asyncio
@@ -239,8 +264,20 @@ async def test_call_tool_requires_tenant_and_fails_closed() -> None:
 
     # Without the tenant guard this would silently execute the tool; the guard
     # must fire before either the authz gate or the registry execute path.
+    # Validation rejects empty tenant_id, so this uses an unvalidated
+    # (model_construct) context — the guard is defense in depth.
     with pytest.raises(TenantRequiredError) as exc_info:
-        await runtime.call_tool("echo", {"x": 1}, _ctx(tenant_id=""))
+        await runtime.call_tool(
+            "echo",
+            {"x": 1},
+            RuntimeContext.model_construct(
+                tenant_id="",
+                trace_id="trace-1",
+                run_id="run-1",
+                workflow_id="wf-1",
+                workflow_type="demo",
+            ),
+        )
 
     assert exc_info.value.code == "TENANT_REQUIRED"
 
