@@ -400,22 +400,25 @@ def load_manifests(
 
     summaries: list[ToolManifestSummary] = []
     for m, src in zip(valid_manifests, valid_sources):
-        data: dict[str, Any] = {
-            "tool_id": m.tool_id,
-            "version": m.version,
-            "status": m.status.value,
-            "side_effect": m.side_effect.value,
-            "action_id": m.action_id,
-            "principal_types": [p.value for p in m.principal_types],
-            "supported_agent_classes": m.supported_agent_classes,
-            "tenant_binding": m.tenant_binding,
-            "source_path": _source_path(src, root),
-        }
+        optional_fields: dict[str, bool] = {}
         if m.human_confirmation_required is not None:
-            data["human_confirmation_required"] = m.human_confirmation_required
+            optional_fields["human_confirmation_required"] = m.human_confirmation_required
         if m.financial_state_change is not None:
-            data["financial_state_change"] = m.financial_state_change
-        summaries.append(ToolManifestSummary(**data))
+            optional_fields["financial_state_change"] = m.financial_state_change
+        summaries.append(
+            ToolManifestSummary(
+                tool_id=m.tool_id,
+                version=m.version,
+                status=m.status.value,
+                side_effect=m.side_effect.value,
+                action_id=m.action_id,
+                principal_types=[p.value for p in m.principal_types],
+                supported_agent_classes=m.supported_agent_classes,
+                tenant_binding=m.tenant_binding,
+                source_path=_source_path(src, root),
+                **optional_fields,
+            )
+        )
 
     policies, bindings = _load_policies(root)
 
