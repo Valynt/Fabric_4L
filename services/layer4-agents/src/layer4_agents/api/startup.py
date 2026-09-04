@@ -188,7 +188,7 @@ def build_lifespan(
         # wired with the set_tenant_context hook (marks the session + sets the
         # RLS app.tenant_id variable). Without this checkpoint port, every
         # production resume would fail RESUME_UNAVAILABLE.
-        runtime_sessions = cast("async_sessionmaker[AsyncSession]", get_session_factory())
+        runtime_sessions = cast(async_sessionmaker[AsyncSession], get_session_factory())
         runtime_state.runtime_metrics = runtime_module.RuntimeMetrics()
         runtime_events = runtime_module.RuntimeEventBus()
         runtime_events.register(runtime_state.runtime_metrics)
