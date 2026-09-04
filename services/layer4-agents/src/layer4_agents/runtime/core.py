@@ -58,6 +58,13 @@ _CANCELLABLE_STATUSES = frozenset(
     {RunStatus.PENDING, RunStatus.RUNNING, RunStatus.RETRYING, RunStatus.PAUSED}
 )
 
+# Terminal statuses: only these stamp completed_at. A paused (resumable) run
+# must keep completed_at null so stale-run detection and timelines treat it
+# as in-flight.
+_TERMINAL_RUN_STATUSES = frozenset(
+    {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}
+)
+
 
 class AgentRuntimeImpl:
     """Provider-agnostic agent runtime implementation.
@@ -275,14 +282,14 @@ class AgentRuntimeImpl:
 
     def _finalize_run(self, existing: RunResult, result: WorkflowResult) -> RunResult:
         """Fold a dispatch/resume ``WorkflowResult`` into the stored run record."""
-        return existing.model_copy(
-            update={
-                "status": result.status,
-                "output": result.output,
-                "error": result.error,
-                "completed_at": datetime.now(UTC).isoformat(),
-            }
-        )
+        update: dict[str, object] = {
+            "status": result.status,
+            "output": result.output,
+            "error": result.error,
+        }
+        if result.status in _TERMINAL_RUN_STATUSES:
+            update["completed_at"] = datetime.now(UTC).isoformat()
+        return existing.model_copy(update=update)
 
     async def _persist_run_memory(self, result: RunResult) -> None:
         """Persist a run-envelope snapshot through the configured ``MemoryPort``.
@@ -366,7 +373,12 @@ class AgentRuntimeImpl:
                 code="RUN_NOT_CANCELLABLE",
                 details={"run_id": run_id, "status": result.status.value},
             )
-        cancelled = result.model_copy(update={"status": RunStatus.CANCELLED})
+        cancelled = result.model_copy(
+            update={
+                "status": RunStatus.CANCELLED,
+                "completed_at": datetime.now(UTC).isoformat(),
+            }
+        )
         self._runs[run_id] = cancelled
         await self._emit_status_event(cancelled)
         return self._runs[run_id]

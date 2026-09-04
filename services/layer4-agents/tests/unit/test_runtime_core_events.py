@@ -138,6 +138,44 @@ async def test_submit_run_that_pauses_emits_run_paused_after_started() -> None:
     assert sink.events[1].status == RunStatus.PAUSED.value
 
 
+async def test_paused_run_keeps_completed_at_null_until_terminal() -> None:
+    engine = _EngineDouble()  # default execute result is PAUSED
+    runtime = AgentRuntimeImpl(workflow_engine=engine)
+    envelope = await runtime.submit_run(RunRequest(workflow_type="demo"), _ctx())
+
+    stored = await runtime.get_run(envelope.run_id, "tenant-a")
+    assert stored is not None
+    assert stored.status == RunStatus.PAUSED
+    # A paused (resumable) run is in-flight: completed_at stays null so
+    # stale-run detection and timelines do not treat it as finished.
+    assert stored.completed_at is None
+
+
+async def test_completed_run_stamps_completed_at() -> None:
+    engine = _EngineDouble(
+        execute_result=WorkflowResult(status=RunStatus.COMPLETED, output={"ok": True})
+    )
+    runtime = AgentRuntimeImpl(workflow_engine=engine)
+    envelope = await runtime.submit_run(RunRequest(workflow_type="demo"), _ctx())
+
+    stored = await runtime.get_run(envelope.run_id, "tenant-a")
+    assert stored is not None
+    assert stored.status == RunStatus.COMPLETED
+    assert stored.completed_at is not None
+
+
+async def test_cancelled_run_stamps_completed_at() -> None:
+    engine = _EngineDouble()  # execute pauses so the run is cancellable
+    runtime = AgentRuntimeImpl(workflow_engine=engine)
+    envelope = await runtime.submit_run(RunRequest(workflow_type="demo"), _ctx())
+
+    cancelled = await runtime.cancel_run(envelope.run_id, "tenant-a")
+
+    # Cancellation is terminal: it must stamp the completion timestamp.
+    assert cancelled.status == RunStatus.CANCELLED
+    assert cancelled.completed_at is not None
+
+
 @pytest.mark.asyncio
 async def test_submit_run_exceeding_timeout_budget_fails_closed() -> None:
     engine = _EngineDouble(execute_delay=5.0)
