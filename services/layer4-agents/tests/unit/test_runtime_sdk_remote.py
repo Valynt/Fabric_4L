@@ -136,3 +136,40 @@ async def test_remote_client_maps_timeout() -> None:
         client = RemoteAgentRuntimeClient("http://runtime", default_tenant_id="tenant-a", http_client=http_client)
         with pytest.raises(SDKTimeoutError):
             await client.get_run("run-1")
+
+
+@pytest.mark.parametrize(
+    ("base_url", "expected"),
+    [
+        ("http://host:8004", "http://host:8004/v1/runtime/runs"),
+        ("http://host:8004/v1", "http://host:8004/v1/runtime/runs"),
+        ("http://host:8004/v1/runtime", "http://host:8004/v1/runtime/runs"),
+        ("http://host:8004/", "http://host:8004/v1/runtime/runs"),
+        ("http://host:8004/v1/", "http://host:8004/v1/runtime/runs"),
+    ],
+)
+def test_http_url_normalizes_base_url_variants(base_url: str, expected: str) -> None:
+    """Bare hosts, /v1 roots, and full runtime mounts all resolve to the mounted path."""
+    client = RemoteAgentRuntimeClient(base_url, default_tenant_id="tenant-a")
+    assert client._http_url("runs") == expected
+
+
+@pytest.mark.parametrize(
+    ("path", "expected_suffix"),
+    [
+        ("runs", "/v1/runtime/runs"),
+        ("/runs", "/v1/runtime/runs"),
+        ("runs/run-1/cancel", "/v1/runtime/runs/run-1/cancel"),
+        ("/runs/run-1/cancel", "/v1/runtime/runs/run-1/cancel"),
+    ],
+)
+def test_http_url_normalizes_leading_slashes(path: str, expected_suffix: str) -> None:
+    client = RemoteAgentRuntimeClient("http://host:8004", default_tenant_id="tenant-a")
+    assert client._http_url(path) == f"http://host:8004{expected_suffix}"
+
+
+def test_http_url_requires_base_url() -> None:
+    client = RemoteAgentRuntimeClient.__new__(RemoteAgentRuntimeClient)
+    client._base_url = None
+    with pytest.raises(ValueError, match="base_url is required"):
+        client._http_url("runs")

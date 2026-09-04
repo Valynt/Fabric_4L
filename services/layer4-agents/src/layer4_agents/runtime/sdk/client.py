@@ -1,11 +1,10 @@
 """High-level async Python SDK client for the Agent Runtime.
 
-Phases 0-3 shipped the in-process ``AgentRuntimeImpl`` spine but no HTTP
-surface (``/v1/runtime`` introspection routes are Phase 5 work), so
-``AgentRuntimeClient`` binds to any object satisfying the ``AgentRuntime``
-port and treats that binding as the injectable transport seam. When the HTTP
-routes exist, a remote binding can be supplied behind the same client surface
-without changing callers.
+``AgentRuntimeClient`` supports two transports behind one surface: bind an
+in-process object satisfying the ``AgentRuntime`` port (``AgentRuntimeImpl`` in
+practice), or configure ``base_url``/``http_client`` to talk to the mounted
+``/v1/runtime`` HTTP surface. ``RemoteAgentRuntimeClient`` is the thin
+constructor preset for the HTTP transport.
 """
 
 from __future__ import annotations
@@ -194,12 +193,21 @@ class AgentRuntimeClient:
         await self.__aexit__(None, None, None)
 
     def _http_url(self, path: str) -> str:
+        """Resolve a runtime route URL against the configured base URL.
+
+        Accepts a bare host (``http://host:8004``), a versioned API root
+        (``http://host:8004/v1``), or a fully qualified runtime mount
+        (``http://host:8004/v1/runtime``) and always yields the mounted path.
+        """
         base = self._base_url
         if not base:
             raise ValueError("base_url is required for the HTTP transport")
+        route = path.lstrip("/")
         if base.endswith("/v1/runtime"):
-            return f"{base}/{path.lstrip('/')}"
-        return f"{base}/v1/runtime/{path.lstrip('/')}"
+            return f"{base}/{route}"
+        if base.endswith("/v1"):
+            return f"{base}/runtime/{route}"
+        return f"{base}/v1/runtime/{route}"
 
     async def _get_http_client(self) -> httpx.AsyncClient:
         if self._http_client is None:

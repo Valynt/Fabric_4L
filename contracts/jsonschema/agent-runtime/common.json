@@ -37,7 +37,7 @@
     },
     "RunEnvelope": {
       "type": "object",
-      "required": ["run_id", "workflow_id", "trace_id", "tenant_id", "workflow_type", "status", "created_at"],
+      "required": ["run_id", "workflow_id", "trace_id", "tenant_id", "workflow_type"],
       "properties": {
         "run_id": {"type": "string"},
         "workflow_id": {"type": "string"},
@@ -129,7 +129,7 @@
     },
     "Checkpoint": {
       "type": "object",
-      "required": ["checkpoint_id", "run_id", "thread_id", "tenant_id", "state_hash", "created_at"],
+      "required": ["checkpoint_id", "run_id", "thread_id", "tenant_id", "state_hash"],
       "properties": {
         "checkpoint_id": {"type": "string"},
         "run_id": {"type": "string"},

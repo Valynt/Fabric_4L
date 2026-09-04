@@ -287,3 +287,37 @@ def test_resume_request_round_trips_against_json_schema() -> None:
 
     errors = list(_def_validator("ResumeRequest").iter_errors(instance))
     assert not errors, [e.message for e in errors]
+
+
+@pytest.mark.unit
+def test_json_schema_required_arrays_match_pydantic_models() -> None:
+    """Every object def in common.json must require exactly the fields its Pydantic model does.
+
+    Guards against `required`-array drift: a def that over-requires a field with
+    a Pydantic default (or under-requires one without) breaks round-trip parity.
+    """
+    from pydantic import BaseModel
+
+    from layer4_agents.runtime import models as runtime_models
+
+    with SCHEMA_PATH.open("r", encoding="utf-8") as f:
+        schema = json.load(f)
+
+    defs = schema["$defs"]
+    checked: list[str] = []
+
+    for name, definition in defs.items():
+        if definition.get("type") != "object":
+            continue  # enums and non-object defs have no required-array contract
+        model = getattr(runtime_models, name, None)
+        if not isinstance(model, type) or not issubclass(model, BaseModel):
+            continue  # defs without a same-named Pydantic model are out of scope here
+        schema_required = set(definition.get("required", []))
+        model_required = {n for n, f in model.model_fields.items() if f.is_required()}
+        assert schema_required == model_required, (
+            f"$defs.{name} required drift: schema={sorted(schema_required)} "
+            f"model={sorted(model_required)}"
+        )
+        checked.append(name)
+
+    assert len(checked) >= 10, f"parity check collapsed to {len(checked)} defs: {checked}"
