@@ -243,7 +243,10 @@ class AgentRuntimeClient:
                 payload = response.json()
             except ValueError:
                 payload = {}
-            detail = payload.get("detail", payload) if isinstance(payload, dict) else {}
+            if isinstance(payload, dict):
+                detail = payload.get("error") or payload.get("detail") or payload
+            else:
+                detail = {}
             if not isinstance(detail, dict):
                 detail = {"message": str(detail)}
             code = str(detail.get("code") or f"HTTP_{response.status_code}")

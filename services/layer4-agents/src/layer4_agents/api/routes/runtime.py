@@ -12,8 +12,17 @@ from datetime import UTC, datetime
 from typing import Literal
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from pydantic import BaseModel, ConfigDict, Field
+from value_fabric.shared.error_handling import ErrorCode
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    BadRequestError,
+    ConflictError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValueFabricException,
+)
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import (
     require_authenticated,
@@ -97,9 +106,9 @@ def _runtime(request: Request) -> AgentRuntime:
         getattr(request.app.state, "agent_runtime", None) or runtime_state.agent_runtime
     )
     if runtime is None:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"code": "RUNTIME_UNAVAILABLE", "message": "Agent Runtime is not initialized"},
+        raise ServiceUnavailableError(
+            message="Agent Runtime is not initialized",
+            service="layer4-agents",
         )
     return runtime
 
@@ -107,13 +116,10 @@ def _runtime(request: Request) -> AgentRuntime:
 def _tenant(ctx: RequestContext, *, operation: str) -> str:
     tenant_id = str(ctx.tenant_id or "").strip()
     if not tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "code": "TENANT_REQUIRED",
-                "message": "Tenant context is required",
-                "details": {"operation": operation},
-            },
+        raise BadRequestError(
+            message="Tenant context is required",
+            error_code=ErrorCode.TENANT_REQUIRED,
+            details={"operation": operation},
         )
     return tenant_id
 
@@ -132,22 +138,44 @@ def _metrics_snapshot(metrics: RuntimeMetrics | None) -> RuntimeMetricsResponse:
     )
 
 
-def _runtime_error(exc: AgentRuntimeError) -> HTTPException:
+def _runtime_error(exc: AgentRuntimeError) -> ValueFabricException:
+    """Translate a structured runtime error into a canonical API exception."""
     if isinstance(exc, TenantRequiredError):
-        code, http_status = "TENANT_REQUIRED", status.HTTP_400_BAD_REQUEST
-    elif isinstance(exc, RunNotFoundError):
-        code, http_status = "RUN_NOT_FOUND", status.HTTP_404_NOT_FOUND
-    elif isinstance(exc, WorkflowTypeNotFoundError):
-        code, http_status = "WORKFLOW_TYPE_NOT_FOUND", status.HTTP_404_NOT_FOUND
-    elif isinstance(exc, ToolForbiddenError):
-        code, http_status = "TOOL_FORBIDDEN", status.HTTP_403_FORBIDDEN
-    elif isinstance(exc, CheckpointConflictError):
-        code, http_status = "CHECKPOINT_CONFLICT", status.HTTP_409_CONFLICT
-    else:
-        code, http_status = exc.code, status.HTTP_400_BAD_REQUEST
-    return HTTPException(
-        status_code=http_status,
-        detail={"code": code, "message": exc.message, "details": exc.details},
+        return BadRequestError(
+            message=exc.message,
+            error_code=ErrorCode.TENANT_REQUIRED,
+            details=exc.details,
+        )
+    if isinstance(exc, RunNotFoundError):
+        return NotFoundError(
+            resource_type="Run",
+            message=exc.message,
+            details=exc.details,
+            error_code=ErrorCode.RUN_NOT_FOUND,
+        )
+    if isinstance(exc, WorkflowTypeNotFoundError):
+        return NotFoundError(
+            resource_type="Workflow type",
+            message=exc.message,
+            details=exc.details,
+            error_code=ErrorCode.WORKFLOW_TYPE_NOT_FOUND,
+        )
+    if isinstance(exc, ToolForbiddenError):
+        return AuthorizationError(
+            message=exc.message,
+            error_code=ErrorCode.TOOL_FORBIDDEN,
+            details=exc.details,
+        )
+    if isinstance(exc, CheckpointConflictError):
+        return ConflictError(
+            message=exc.message,
+            error_code=ErrorCode.CHECKPOINT_CONFLICT,
+            details=exc.details,
+        )
+    return BadRequestError(
+        message=exc.message,
+        error_code=ErrorCode.AGENT_EXECUTION_ERROR,
+        details={**exc.details, "runtime_code": exc.code},
     )
 
 

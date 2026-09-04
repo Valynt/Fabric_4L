@@ -55,7 +55,7 @@ async def test_remote_client_preserves_tenant_header_and_surface() -> None:
                     ]
                 },
             )
-        return httpx.Response(404, json={"detail": {"code": "RUN_NOT_FOUND"}})
+        return httpx.Response(404, json={"error": {"code": "RUN_NOT_FOUND"}})
 
     transport = httpx.MockTransport(handler)
     async with httpx.AsyncClient(transport=transport) as http_client:
@@ -79,12 +79,12 @@ async def test_remote_client_maps_errors_and_fails_closed() -> None:
         if request.url.path.endswith("/runs/missing"):
             return httpx.Response(
                 404,
-                json={"detail": {"code": "RUN_NOT_FOUND", "message": "missing"}},
+                json={"error": {"code": "RUN_NOT_FOUND", "message": "missing"}},
             )
         return httpx.Response(
             400,
             json={
-                "detail": {
+                "error": {
                     "code": "TENANT_REQUIRED",
                     "message": "tenant required",
                 }
@@ -99,6 +99,22 @@ async def test_remote_client_maps_errors_and_fails_closed() -> None:
             "http://runtime", default_tenant_id="tenant-a", http_client=http_client
         )
         assert await client_with_tenant.get_run("missing") is None
+
+
+async def test_remote_client_parses_legacy_detail_envelope() -> None:
+    """Backward compatibility: default FastAPI {"detail": ...} payloads still map."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            404,
+            json={"detail": {"code": "RUN_NOT_FOUND", "message": "missing"}},
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
+        client = RemoteAgentRuntimeClient(
+            "http://runtime", default_tenant_id="tenant-a", http_client=http_client
+        )
+        assert await client.get_run("missing") is None
 
 
 @pytest.mark.parametrize("error", [httpx.ConnectError("offline"), httpx.ReadError("broken")])

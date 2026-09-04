@@ -5,6 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 from fastapi import FastAPI
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import (
     RequestContext,
     clear_current_context,
@@ -33,6 +34,9 @@ def _app(ctx: RequestContext) -> FastAPI:
     app = FastAPI()
     app.include_router(router, prefix="/v1")
     app.dependency_overrides[require_authenticated] = lambda: ctx
+    # Production wires the canonical exception handlers via configure_middleware;
+    # register them here so route tests assert the real error envelope.
+    register_exception_handlers(app)
     return app
 
 
@@ -67,7 +71,7 @@ async def test_runtime_routes_require_tenant_context() -> None:
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/v1/runtime/health")
     assert response.status_code == 400
-    assert response.json()["detail"]["code"] == "TENANT_REQUIRED"
+    assert response.json()["error"]["code"] == "TENANT_REQUIRED"
 
 
 async def test_runtime_routes_return_explicit_shapes_and_scope_runs() -> None:
@@ -98,7 +102,7 @@ async def test_runtime_routes_return_explicit_shapes_and_scope_runs() -> None:
     async with httpx.AsyncClient(transport=other_transport, base_url="http://test") as client:
         hidden = await client.get(f"/v1/runtime/runs/{run_id}")
     assert hidden.status_code == 404
-    assert hidden.json()["detail"]["code"] == "RUN_NOT_FOUND"
+    assert hidden.json()["error"]["code"] == "RUN_NOT_FOUND"
 
 
 async def test_runtime_health_and_metrics_have_stable_shapes() -> None:
