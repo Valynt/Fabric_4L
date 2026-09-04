@@ -72,7 +72,6 @@ class RuntimeHealthResponse(BaseModel):
     service: str
     runtime_ready: bool
     timestamp: str
-    metrics: RuntimeMetricsResponse
 
 
 class RuntimeTypesResponse(BaseModel):
@@ -160,14 +159,12 @@ async def runtime_health(
     """Report runtime readiness without exposing cross-tenant labels."""
     _tenant(ctx, operation="runtime_health")
     runtime = getattr(request.app.state, "agent_runtime", None) or runtime_state.agent_runtime
-    metrics = getattr(request.app.state, "runtime_metrics", None) or runtime_state.runtime_metrics
     ready = runtime is not None
     return RuntimeHealthResponse(
         status="healthy" if ready else "unavailable",
         service="layer4-agents",
         runtime_ready=ready,
         timestamp=datetime.now(UTC).isoformat(),
-        metrics=_metrics_snapshot(metrics),
     )
 
 

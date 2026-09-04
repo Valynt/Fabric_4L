@@ -5019,7 +5019,6 @@ export interface components {
             runtime_ready: boolean;
             /** Timestamp */
             timestamp: string;
-            metrics: components["schemas"]["RuntimeMetricsResponse"];
         };
         /**
          * RuntimeMetricsResponse

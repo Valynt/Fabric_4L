@@ -5,7 +5,11 @@ from __future__ import annotations
 import httpx
 import pytest
 from fastapi import FastAPI
-from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.context import (
+    RequestContext,
+    clear_current_context,
+    get_request_context,
+)
 from value_fabric.shared.identity.dependencies import require_authenticated
 
 from layer4_agents.api.routes.runtime import (
@@ -104,13 +108,23 @@ async def test_runtime_health_and_metrics_have_stable_shapes() -> None:
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         health = await client.get("/v1/runtime/health")
         metrics = await client.get("/v1/runtime/metrics")
-    assert set(health.json()) == {"status", "service", "runtime_ready", "timestamp", "metrics"}
-    assert set(health.json()["metrics"]) == {
+    assert set(health.json()) == {"status", "service", "runtime_ready", "timestamp"}
+    assert set(metrics.json()) == {
         "runs_started_total", "runs_terminal_total", "runs_paused_total",
         "runs_resumed_total", "tool_calls_total", "tool_calls_allowed_total",
         "tool_calls_denied_total", "checkpoints_saved_total",
     }
-    assert set(metrics.json()) == set(health.json()["metrics"])
+
+
+async def test_regular_tenant_cannot_read_global_metrics_via_health() -> None:
+    app = _app(RequestContext(tenant_id="tenant-a"))
+    app.state.agent_runtime = _runtime()
+    app.state.runtime_metrics = object()
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/v1/runtime/health")
+    assert response.status_code == 200
+    assert "metrics" not in response.json()
 
 
 async def test_regular_tenant_cannot_read_global_metrics() -> None:
@@ -156,3 +170,25 @@ async def test_run_metadata_cannot_self_grant_authorization() -> None:
     assert runtime.captured
     assert "permissions" not in runtime.captured[0].metadata
     assert "service_account_scopes" not in runtime.captured[0].metadata
+
+
+def test_background_execution_context_uses_system_role_without_ambient_context() -> None:
+    from layer4_agents.runtime.adapters.workflow_langgraph import LangGraphWorkflowEngineAdapter
+
+    ctx = RuntimeContext(
+        tenant_id="tenant-a",
+        trace_id="trace",
+        run_id="run",
+        workflow_id="workflow",
+        workflow_type="echo",
+    )
+    assert get_request_context() is None
+    token = LangGraphWorkflowEngineAdapter._enter_execution_context(ctx)
+    try:
+        ambient = get_request_context()
+        assert ambient is not None
+        assert ambient.roles == ["system"]
+        assert "tenant_admin" not in ambient.roles
+    finally:
+        if token is not None:
+            clear_current_context()

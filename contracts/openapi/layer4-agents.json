@@ -9603,8 +9603,25 @@
           "runtime"
         ],
         "summary": "Runtime Metrics",
-        "description": "Return aggregate runtime counters to an authenticated tenant principal.",
+        "description": "Return aggregate counters only to a privileged operator.",
         "operationId": "runtime_metrics_v1_runtime_metrics_get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -9612,6 +9629,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RuntimeMetricsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -24076,9 +24103,6 @@
           "timestamp": {
             "type": "string",
             "title": "Timestamp"
-          },
-          "metrics": {
-            "$ref": "#/components/schemas/RuntimeMetricsResponse"
           }
         },
         "additionalProperties": false,
@@ -24087,8 +24111,7 @@
           "status",
           "service",
           "runtime_ready",
-          "timestamp",
-          "metrics"
+          "timestamp"
         ],
         "title": "RuntimeHealthResponse",
         "description": "Safe health state for an authenticated runtime consumer."

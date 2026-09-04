@@ -11868,9 +11868,6 @@
           "timestamp": {
             "type": "string",
             "title": "Timestamp"
-          },
-          "metrics": {
-            "$ref": "#/components/schemas/RuntimeMetricsResponse"
           }
         },
         "additionalProperties": false,
@@ -11879,8 +11876,7 @@
           "status",
           "service",
           "runtime_ready",
-          "timestamp",
-          "metrics"
+          "timestamp"
         ],
         "title": "RuntimeHealthResponse",
         "description": "Safe health state for an authenticated runtime consumer."

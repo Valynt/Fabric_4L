@@ -3861,7 +3861,7 @@ export interface paths {
         };
         /**
          * Runtime Metrics
-         * @description Return aggregate runtime counters to an authenticated tenant principal.
+         * @description Return aggregate counters only to a privileged operator.
          */
         get: operations["runtime_metrics_v1_runtime_metrics_get"];
         put?: never;
@@ -9831,7 +9831,6 @@ export interface components {
             runtime_ready: boolean;
             /** Timestamp */
             timestamp: string;
-            metrics: components["schemas"]["RuntimeMetricsResponse"];
         };
         /**
          * RuntimeMetricsResponse
@@ -18912,7 +18911,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RequestContext"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -18921,6 +18924,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RuntimeMetricsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
