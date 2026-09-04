@@ -202,6 +202,12 @@ def build_lifespan(
                 ),
             ),
             tool_registry=runtime_module.LegacyToolRegistryAdapter(tool_registry),
+            # Persist run snapshots so get_run/cancel/resume read through
+            # Postgres across workers and process restarts.
+            memory=runtime_module.PostgresMemoryAdapter(
+                runtime_sessions,
+                tenant_context_setter=set_tenant_context,
+            ),
             event_bus=runtime_events,
         )
         await runtime_state.agent_runtime.start()
