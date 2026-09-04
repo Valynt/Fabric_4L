@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from value_fabric.shared.audit import AuditAction, AuditEmitter, AuditOutcome, emit_audit_event
 from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_authenticated
+from value_fabric.shared.identity.dependencies import require_authenticated, require_tenant_context
 from value_fabric.shared.identity.policy_registry import authorize_action
 
 from ...config.settings import get_settings
@@ -104,6 +104,13 @@ def get_executor() -> WorkflowExecutor:
     if workflow_executor is None:
         raise ServiceUnavailableError(message = "Workflow executor not initialized")
     return workflow_executor
+
+
+async def _require_export_tenant_context(
+    context: RequestContext = Depends(require_authenticated),
+) -> RequestContext:
+    """Require validated tenant context without changing the endpoint body shape."""
+    return await require_tenant_context(context)
 
 
 def require_tool_gateway_available() -> None:
@@ -286,12 +293,35 @@ class ExportAuditRecord(BaseModel):
     details: dict[str, Any]
 
 
-@router.post("/tools/export-document", response_model=DocumentExportResponse)
+@router.post(
+    "/tools/export-document",
+    response_model=DocumentExportResponse,
+    responses={
+        400: {
+            "description": "Tenant context is missing or invalid",
+            "content": {
+                "application/json": {"schema": {"$ref": "#/components/schemas/ErrorEnvelope"}}
+            },
+        },
+        404: {
+            "description": "Business case not found",
+            "content": {
+                "application/json": {"schema": {"$ref": "#/components/schemas/ErrorEnvelope"}}
+            },
+        },
+        503: {
+            "description": "Export service unavailable",
+            "content": {
+                "application/json": {"schema": {"$ref": "#/components/schemas/ErrorEnvelope"}}
+            },
+        },
+    },
+)
 async def export_document_tool(
     request: DocumentExportRequest,
     registry: ToolRegistry = Depends(get_tool_registry),
     workflow_executor: WorkflowExecutor = Depends(get_executor),
-    context: RequestContext = Depends(require_authenticated),
+    context: RequestContext = Depends(_require_export_tenant_context),
 ) -> DocumentExportResponse:
     """Export a business case to PDF using DocumentExportTool.
 

@@ -685,11 +685,17 @@ class OrchestrationController:
         """Load persisted state for result retrieval, failing closed on malformed ownership metadata."""
         try:
             return await self.state_manager.load_state(workflow_id)
-        except (ValidationError, ValueError):
-            logger.warning("Failed to load persisted workflow result state", extra={"workflow_id": workflow_id})
+        except (ValidationError, ValueError) as exc:
+            logger.warning(
+                "Failed to load persisted workflow result state",
+                extra={"workflow_id": workflow_id, "error_type": type(exc).__name__},
+                exc_info=True,
+            )
             return None
 
-    async def get_result(self, workflow_id: str) -> dict[str, Any] | None:
+    async def get_result(
+        self, workflow_id: str
+    ) -> OrchestrationController_get_resultResult | None:
         """Get a durable workflow result by workflow ID.
 
         Reads persisted workflow state via ``StateManager`` and returns a

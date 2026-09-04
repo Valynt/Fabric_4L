@@ -1,3 +1,5 @@
+"""Adversarial tenant-isolation regressions for POST /v1/tools/export-document."""
+
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
@@ -142,6 +144,20 @@ def _export_result(workflow_id: str) -> dict[str, object]:
     }
 
 
+def test_export_document_openapi_documents_tenant_failure_envelopes() -> None:
+    app = FastAPI()
+    register_exception_handlers(app)
+    app.include_router(tools.router, prefix="/v1")
+
+    operation = app.openapi()["paths"]["/v1/tools/export-document"]["post"]
+    request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+    assert request_schema == {"$ref": "#/components/schemas/DocumentExportRequest"}
+
+    for status_code in ("400", "404", "503"):
+        error_schema = operation["responses"][status_code]["content"]["application/json"]["schema"]
+        assert error_schema == {"$ref": "#/components/schemas/ErrorEnvelope"}
+
+
 @pytest.mark.asyncio
 async def test_export_document_returns_404_for_cross_tenant_workflow_without_side_effects(
     monkeypatch: pytest.MonkeyPatch,
@@ -252,6 +268,42 @@ async def test_export_document_denies_missing_tenant_metadata_without_side_effec
 
     assert response.status_code == 404, response.text
     assert executor.get_result_for_tenant_calls == [(workflow_id, tenant_id)]
+    assert executor.get_result_calls == []
+    assert side_effects.gateway_calls == []
+    assert side_effects.provenance_calls == []
+    assert side_effects.upload_calls == []
+    assert side_effects.signed_url_calls == []
+    assert side_effects.audit_events == []
+
+
+@pytest.mark.asyncio
+async def test_export_document_rejects_authenticated_context_without_tenant(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workflow_id = "wf-tenantless-export"
+    executor = FakeExecutor(
+        tenant_owners={workflow_id: "None"},
+        results_by_id={workflow_id: _export_result(workflow_id)},
+    )
+    context = RequestContext(
+        tenant_id=None,
+        user_id="user-without-tenant",
+        roles=["tenant_admin"],
+        permissions=frozenset({Permission.WRITE_AGENTS.value}),
+        auth_source="jwt_claim",
+    )
+    app = _build_app(executor=executor, context=context)
+    side_effects = ExportSideEffects()
+    _install_export_stubs(monkeypatch, side_effects)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/v1/tools/export-document",
+            json={"business_case_id": workflow_id, "format": "pdf"},
+        )
+
+    assert response.status_code == 400, response.text
+    assert executor.get_result_for_tenant_calls == []
     assert executor.get_result_calls == []
     assert side_effects.gateway_calls == []
     assert side_effects.provenance_calls == []
