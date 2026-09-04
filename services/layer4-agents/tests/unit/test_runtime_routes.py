@@ -131,13 +131,14 @@ async def test_run_metadata_cannot_self_grant_authorization() -> None:
         def __init__(self) -> None:
             super().__init__()
             self.captured = []
-            self.register_workflow_type(
-                "echo",
-                lambda workflow_type, input_data, ctx: WorkflowResult(
+            async def echo(
+                workflow_type: str, input_data: dict[str, object], ctx: RuntimeContext
+            ) -> WorkflowResult:
+                return WorkflowResult(
                     status=RunStatus.COMPLETED,
                     output={"input": input_data, "tenant_id": ctx.tenant_id},
-                ),
-            )
+                )
+            self.register_workflow_type("echo", echo)
 
         async def submit_run(self, body: RunRequest, ctx: RuntimeContext) -> RunEnvelope:
             self.captured.append(ctx)
