@@ -264,3 +264,138 @@ async def test_resume_run_propagates_context_and_engine_failure_keeps_run_paused
     # The stored record is untouched by a failed resume.
     stored = await runtime.get_run(run_id, "tenant-a")
     assert stored is not None and stored.status == RunStatus.PAUSED
+
+
+# --- get_run read-through from MemoryPort (multi-worker / restart safety) ---
+
+
+@pytest.mark.asyncio
+async def test_paused_run_persisted_by_worker_a_is_visible_to_worker_b() -> None:
+    memory = InMemoryMemoryAdapter()
+    runtime_a = AgentRuntimeImpl(workflow_engine=_EngineDouble(), memory=memory)
+    envelope = await runtime_a.submit_run(RunRequest(workflow_type="demo"), _ctx())
+
+    # A second runtime instance (fresh process) sharing the memory adapter.
+    runtime_b = AgentRuntimeImpl(memory=memory)
+    restored = await runtime_b.get_run(envelope.run_id, "tenant-a")
+
+    assert restored is not None
+    assert restored.run_id == envelope.run_id
+    assert restored.tenant_id == "tenant-a"
+    assert restored.workflow_type == "demo"
+    assert restored.status == RunStatus.PAUSED
+    assert restored.trace_id == "trace-1"
+    # The persisted snapshot is a reduced envelope: no output body survives.
+    assert restored.output is None
+
+
+@pytest.mark.asyncio
+async def test_failed_run_restores_with_structured_error_code_only() -> None:
+    engine = _EngineDouble(
+        execute_result=WorkflowResult(
+            status=RunStatus.FAILED, error={"code": "BOOM", "message": "kaput"}
+        )
+    )
+    memory = InMemoryMemoryAdapter()
+    runtime_a = AgentRuntimeImpl(workflow_engine=engine, memory=memory)
+    envelope = await runtime_a.submit_run(RunRequest(workflow_type="demo"), _ctx())
+
+    runtime_b = AgentRuntimeImpl(memory=memory)
+    restored = await runtime_b.get_run(envelope.run_id, "tenant-a")
+
+    assert restored is not None
+    assert restored.status == RunStatus.FAILED
+    assert restored.output is None
+    # Only the structured error code survives the reduced snapshot.
+    assert restored.error == {"code": "BOOM"}
+
+
+@pytest.mark.asyncio
+async def test_run_restored_from_memory_resumes_on_second_worker() -> None:
+    memory = InMemoryMemoryAdapter()
+    runtime_a = AgentRuntimeImpl(workflow_engine=_EngineDouble(), memory=memory)
+    envelope = await runtime_a.submit_run(RunRequest(workflow_type="demo"), _ctx())
+
+    engine_b = _EngineDouble()
+    runtime_b = AgentRuntimeImpl(workflow_engine=engine_b, memory=memory)
+    result = await runtime_b.resume_run(envelope.run_id, "tenant-a", ResumeRequest())
+
+    assert result.status == RunStatus.COMPLETED
+    assert result.output == {"done": True}
+    # The resume actually dispatched through worker B's engine.
+    assert [c for c in engine_b.calls if c["op"] == "resume"]
+    # The resumed terminal state is mirrored back to memory.
+    snapshot = await memory.get_thread_state(envelope.run_id, "tenant-a")
+    assert snapshot is not None and snapshot["status"] == "completed"
+
+
+@pytest.mark.asyncio
+async def test_get_run_restore_is_tenant_scoped() -> None:
+    memory = InMemoryMemoryAdapter()
+    runtime_a = AgentRuntimeImpl(workflow_engine=_EngineDouble(), memory=memory)
+    envelope = await runtime_a.submit_run(
+        RunRequest(workflow_type="demo"), _ctx(tenant_id="tenant-a")
+    )
+
+    runtime_b = AgentRuntimeImpl(memory=memory)
+    # Worker B under another tenant must not see tenant A's run.
+    assert await runtime_b.get_run(envelope.run_id, "tenant-b") is None
+
+
+@pytest.mark.asyncio
+async def test_get_run_without_memory_returns_none_for_unknown_run() -> None:
+    runtime = AgentRuntimeImpl()
+    assert await runtime.get_run("no-such-run", "tenant-a") is None
+
+
+@pytest.mark.asyncio
+async def test_malformed_snapshot_fails_closed_on_restore() -> None:
+    memory = InMemoryMemoryAdapter()
+    await memory.save_thread_state("run-bad", "tenant-a", {"run_id": "run-bad"})
+
+    runtime = AgentRuntimeImpl(memory=memory)
+    assert await runtime.get_run("run-bad", "tenant-a") is None
+
+
+@pytest.mark.asyncio
+async def test_snapshot_with_unknown_status_fails_closed_on_restore() -> None:
+    memory = InMemoryMemoryAdapter()
+    await memory.save_thread_state(
+        "run-x",
+        "tenant-a",
+        {
+            "run_id": "run-x",
+            "workflow_id": "wf-1",
+            "trace_id": "trace-1",
+            "tenant_id": "tenant-a",
+            "workflow_type": "demo",
+            "status": "bogus-status",
+            "created_at": "2024-01-01T00:00:00+00:00",
+        },
+    )
+
+    runtime = AgentRuntimeImpl(memory=memory)
+    assert await runtime.get_run("run-x", "tenant-a") is None
+
+
+# --- cancel persistence (cross-worker terminal-state consistency) ---
+
+
+@pytest.mark.asyncio
+async def test_cancel_run_persists_cancellation_visible_across_workers() -> None:
+    memory = InMemoryMemoryAdapter()
+    runtime_a = AgentRuntimeImpl(workflow_engine=_EngineDouble(), memory=memory)
+    envelope = await runtime_a.submit_run(RunRequest(workflow_type="demo"), _ctx())
+
+    cancelled = await runtime_a.cancel_run(envelope.run_id, "tenant-a")
+    assert cancelled.status == RunStatus.CANCELLED
+
+    # The terminal state is mirrored through memory...
+    snapshot = await memory.get_thread_state(envelope.run_id, "tenant-a")
+    assert snapshot is not None and snapshot["status"] == "cancelled"
+
+    # ...so a second worker observes CANCELLED, not a stale in-flight run.
+    runtime_b = AgentRuntimeImpl(memory=memory)
+    restored = await runtime_b.get_run(envelope.run_id, "tenant-a")
+    assert restored is not None and restored.status == RunStatus.CANCELLED
+    assert restored.completed_at is not None

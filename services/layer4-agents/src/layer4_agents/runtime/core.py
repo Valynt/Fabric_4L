@@ -317,6 +317,57 @@ class AgentRuntimeImpl:
             },
         )
 
+    async def _restore_run_from_memory(
+        self, run_id: str, tenant_id: str
+    ) -> RunResult | None:
+        """Rebuild a run record from its persisted snapshot on a local miss.
+
+        Read-through for multi-worker deployments and process restarts: a run
+        submitted, resumed, or cancelled on another worker stays visible here
+        for get/cancel/resume. The snapshot is a reduced envelope (no output
+        or error body), so restored records are degraded: output is None and
+        only the structured error code survives. Malformed or tenant-mismatched
+        snapshots fail closed to None.
+        """
+        if self._memory is None:
+            return None
+        snapshot = await self._memory.get_thread_state(run_id, tenant_id)
+        if not isinstance(snapshot, dict):
+            return None
+        required = (
+            "run_id",
+            "workflow_id",
+            "trace_id",
+            "tenant_id",
+            "workflow_type",
+            "status",
+            "created_at",
+        )
+        if any(key not in snapshot for key in required):
+            return None
+        if snapshot["tenant_id"] != tenant_id or snapshot["run_id"] != run_id:
+            return None
+        try:
+            status = RunStatus(snapshot["status"])
+        except ValueError:
+            return None
+        error_code = snapshot.get("error_code")
+        restored = RunResult(
+            run_id=run_id,
+            workflow_id=str(snapshot["workflow_id"]),
+            trace_id=str(snapshot["trace_id"]),
+            tenant_id=tenant_id,
+            workflow_type=str(snapshot["workflow_type"]),
+            status=status,
+            output=None,
+            error={"code": error_code} if error_code else None,
+            created_at=str(snapshot["created_at"]),
+            started_at=snapshot.get("started_at"),
+            completed_at=snapshot.get("completed_at"),
+        )
+        self._runs[run_id] = restored
+        return restored
+
     async def _emit(self, event: RuntimeEvent) -> None:
         """Publish an event through the configured event bus (no-op if none)."""
         if self._event_bus is not None:
@@ -350,13 +401,19 @@ class AgentRuntimeImpl:
         )
 
     async def get_run(self, run_id: str, tenant_id: str) -> RunResult | None:
-        """Tenant-scoped run lookup; returns None for missing or inaccessible runs."""
+        """Tenant-scoped run lookup; returns None for missing or inaccessible runs.
+
+        On a local miss, reads through to the configured MemoryPort so runs
+        persisted by another worker (or before a process restart) stay
+        visible. The restored record is degraded: the persisted snapshot
+        carries no output or error body, only the structured error code.
+        """
         if not tenant_id:
             raise TenantRequiredError(details={"run_id": run_id})
         result = self._runs.get(run_id)
-        if result is None or result.tenant_id != tenant_id:
-            return None
-        return result
+        if result is not None:
+            return result if result.tenant_id == tenant_id else None
+        return await self._restore_run_from_memory(run_id, tenant_id)
 
     async def cancel_run(self, run_id: str, tenant_id: str) -> RunResult:
         """Cancel a run if it belongs to the tenant."""
@@ -380,6 +437,10 @@ class AgentRuntimeImpl:
             }
         )
         self._runs[run_id] = cancelled
+        # Mirror the cancellation through memory so other workers (and a
+        # restarted process) observe the terminal state instead of a stale
+        # in-flight record.
+        await self._persist_run_memory(cancelled)
         await self._emit_status_event(cancelled)
         return self._runs[run_id]
 
@@ -390,7 +451,13 @@ class AgentRuntimeImpl:
         workflow_type: str | None = None,
         status: str | None = None,
     ) -> list[RunSummary]:
-        """List runs scoped to tenant with optional filters."""
+        """List runs scoped to tenant with optional filters.
+
+        Worker-local: this iterates the in-process run store only. Runs
+        persisted by other workers stay visible via ``get_run``'s memory
+        read-through, but cross-worker listing needs a MemoryPort list
+        operation (deferred to the durable run-store phase).
+        """
         if not tenant_id:
             raise TenantRequiredError()
         summaries: list[RunSummary] = []
