@@ -10,6 +10,7 @@ grant.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping
 from typing import Any
 
 from fastapi import HTTPException
@@ -84,7 +85,7 @@ class PolicyAuthzPort(AuthzPort):
         )
 
 
-def _grant_strings(metadata: dict[str, Any], key: str) -> list[str]:
+def _grant_strings(metadata: Mapping[str, object], key: str) -> list[str]:
     """Collect grant strings from context metadata, failing closed on type drift.
 
     Only list/tuple/set/frozenset containers are honored. A ``str`` value
