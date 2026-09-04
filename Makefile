@@ -54,7 +54,7 @@
 	test-layer1-security-postgres test-layer5 test-layer6 test-shared test-e2e \
 	security-smoke security-test-gating security-test security-test-isolation \
 	security-test-rbac security-test-owasp security-test-injection security-coverage \
-	evals-full perf-test-journeys check-tool-contracts check-prompt-registry check-deprecated-tracer-imports \
+	evals-full perf-test-journeys check-tool-contracts check-tool-registry check-prompt-registry check-deprecated-tracer-imports \
 	check-risk-register debt-baseline-snapshot check-health-ratchets gate-tenant-isolation \
 	promote-staging lint-release clean-root-debris check-value-fabric-public-imports
 
@@ -855,6 +855,13 @@ check-tool-contracts: ## CI gate — validate tool error structure (CONTRACT.md 
 	@echo "→ Checking tool contracts in Layer 4..."
 	$(PYTHON) scripts/ci/check_tool_contracts.py services/layer4-agents/src/layer4_agents/tools/
 	@echo "✅ Tool contract check passed"
+
+check-tool-registry: ## CI gate — validate tool manifest registry and generate L4 index
+	@echo "→ Generating Layer 4 tool index (includes validation)..."
+	$(PYTHON) scripts/ci/generate_tool_index.py
+	@echo "→ Checking generated artifacts are up-to-date (no drift)..."
+	@git diff --exit-code contracts/tool-manifests/generated/
+	@echo "✅ Tool registry check passed"
 
 check-prompt-registry: ## CI gate — validate prompt-version contracts and agent operating contracts
 	@echo "→ Checking prompt registry contracts..."

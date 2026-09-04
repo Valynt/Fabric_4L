@@ -9,9 +9,10 @@ import os
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from fastapi import FastAPI
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from value_fabric.shared.identity.feature_flags import (
     init_feature_flags,
     register_feature_flag_lookup,
@@ -21,7 +22,13 @@ from value_fabric.shared.redis_ha import create_async_redis_client
 
 from ..config import configure_settings
 from ..config.checkpoint import CheckpointConfig, get_checkpoint_saver
-from ..database import close_db, db_session_for_context, init_db
+from ..database import (
+    close_db,
+    db_session_for_context,
+    get_session_factory,
+    init_db,
+    set_tenant_context,
+)
 from ..engine.executor import OrchestrationController
 from ..engine.state_manager import StateManager
 from ..feature_flags.service import FeatureFlagService
@@ -166,6 +173,47 @@ def build_lifespan(
         await runtime_state.workflow_executor.start()
         await runtime_state.workflow_executor.recover_workflows()
 
+        # The canonical runtime is additive: legacy orchestration remains
+        # booted for existing routes while new consumers use the provider-
+        # agnostic runtime ports and tenant-scoped HTTP surface.
+        # Import dynamically because database.py registers runtime ORM models
+        # at module load; a top-level runtime import would create a database
+        # <-> runtime.orm import cycle during application bootstrap.
+        import importlib
+
+        runtime_module = importlib.import_module("layer4_agents.runtime")
+        # The shared session factory yields tenant-enforced sessions (a
+        # TenantEnforcedAsyncSession subclass of AsyncSession) that fail closed
+        # without per-session tenant context, so the Postgres CheckpointPort is
+        # wired with the set_tenant_context hook (marks the session + sets the
+        # RLS app.tenant_id variable). Without this checkpoint port, every
+        # production resume would fail RESUME_UNAVAILABLE.
+        runtime_sessions = cast(async_sessionmaker[AsyncSession], get_session_factory())
+        runtime_state.runtime_metrics = runtime_module.RuntimeMetrics()
+        runtime_events = runtime_module.RuntimeEventBus()
+        runtime_events.register(runtime_state.runtime_metrics)
+        runtime_state.agent_runtime = runtime_module.AgentRuntimeImpl(
+            workflow_engine=runtime_module.LangGraphWorkflowEngineAdapter(
+                tool_registry=tool_registry,
+                checkpoint_saver=runtime_state.checkpoint_saver,
+                checkpoint_port=runtime_module.PostgresCheckpointAdapter(
+                    runtime_sessions,
+                    tenant_context_setter=set_tenant_context,
+                ),
+            ),
+            tool_registry=runtime_module.LegacyToolRegistryAdapter(tool_registry),
+            # Persist run snapshots so get_run/cancel/resume read through
+            # Postgres across workers and process restarts.
+            memory=runtime_module.PostgresMemoryAdapter(
+                runtime_sessions,
+                tenant_context_setter=set_tenant_context,
+            ),
+            event_bus=runtime_events,
+        )
+        await runtime_state.agent_runtime.start()
+        app.state.agent_runtime = runtime_state.agent_runtime
+        app.state.runtime_metrics = runtime_state.runtime_metrics
+
         # Schedule periodic stuck-workflow detection (OBS-L4-006)
         async def _stuck_workflow_detector() -> None:
             while True:
@@ -190,6 +238,8 @@ def build_lifespan(
 
         if runtime_state.workflow_executor:
             await runtime_state.workflow_executor.stop()
+        if runtime_state.agent_runtime:
+            await runtime_state.agent_runtime.stop()
         await ws_manager.stop()
         await health_tracker.stop()
         if runtime_state.crm_sync_scheduler:
