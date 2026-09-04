@@ -9,6 +9,7 @@ from value_fabric.shared.identity.context import (
     RequestContext,
     clear_current_context,
     get_request_context,
+    set_request_context,
 )
 from value_fabric.shared.identity.dependencies import require_authenticated
 
@@ -128,13 +129,19 @@ async def test_regular_tenant_cannot_read_global_metrics_via_health() -> None:
 
 
 async def test_regular_tenant_cannot_read_global_metrics() -> None:
-    app = FastAPI()
-    app.include_router(router, prefix="/v1")
-    app.dependency_overrides[require_authenticated] = lambda: RequestContext(tenant_id="tenant-a")
+    app = _app(RequestContext(tenant_id="tenant-a"))
+    app.state.agent_runtime = _runtime()
     transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/v1/runtime/metrics")
-    assert response.status_code in {401, 403}
+    # The privileged gate resolves the ambient request context, not the
+    # overridden require_authenticated dependency: set a valid regular-tenant
+    # context so the denial is the deterministic 403 (not an auth-less 401).
+    set_request_context(RequestContext(tenant_id="tenant-a"))
+    try:
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/v1/runtime/metrics")
+    finally:
+        clear_current_context()
+    assert response.status_code == 403
 
 
 async def test_run_metadata_cannot_self_grant_authorization() -> None:
