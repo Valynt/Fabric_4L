@@ -102,7 +102,7 @@ def get_executor() -> WorkflowExecutor:
     from .main import workflow_executor
 
     if workflow_executor is None:
-        raise ServiceUnavailableError(message = "Workflow executor not initialized")
+        raise ServiceUnavailableError(message="Workflow executor not initialized")
     return workflow_executor
 
 
@@ -120,7 +120,9 @@ def require_tool_gateway_available() -> None:
             "Tool governance gateway unavailable; refusing ungoverned tool execution",
             exc_info=_GATE_IMPORT_ERROR,
         )
-        raise ServiceUnavailableError(message = "Tool governance gateway unavailable; refusing ungoverned tool execution.")
+        raise ServiceUnavailableError(
+            message="Tool governance gateway unavailable; refusing ungoverned tool execution."
+        )
 
 
 @router.get("/tools", response_model=list[ToolListResponse])
@@ -142,7 +144,7 @@ async def list_tools(
         try:
             cat = ToolCategory(category.lower())
         except ValueError:
-            raise ValidationError(message = str(f"Invalid category: {category}"))
+            raise ValidationError(message=str(f"Invalid category: {category}"))
 
     tools = registry.list_tools(category=cat, search=search)
 
@@ -167,7 +169,7 @@ async def get_tool_schema(
     """Get detailed schema for a specific tool."""
     authorize_action("layer4.tools.read_schema", ctx)
     if not registry.has_tool(tool_name):
-        raise NotFoundError(message = str(f"Tool '{tool_name}' not found"))
+        raise NotFoundError(message=str(f"Tool '{tool_name}' not found"))
 
     tool = registry.get(tool_name)
     schema = tool.get_schema()
@@ -204,7 +206,7 @@ async def invoke_tool(
     """
     authorize_action("layer4.tools.invoke", ctx)
     if not registry.has_tool(request.tool_name):
-        raise NotFoundError(message = str(f"Tool '{request.tool_name}' not found"))
+        raise NotFoundError(message=str(f"Tool '{request.tool_name}' not found"))
 
     try:
         # ── GATE enforcement: route through ToolGateway; never fall back to ungoverned execution ──
@@ -340,7 +342,7 @@ async def export_document_tool(
     authorize_action("layer4.tools.export_document", context)
     try:
         if not get_settings().export_storage_endpoint:
-            raise ServiceUnavailableError(message = "Export storage endpoint is not configured")
+            raise ServiceUnavailableError(message="Export storage endpoint is not configured")
 
         result = await workflow_executor.get_result_for_tenant(
             request.business_case_id,
@@ -348,7 +350,7 @@ async def export_document_tool(
         )
 
         if not result:
-            raise NotFoundError(message = str(f"Business case {request.business_case_id} not found"))
+            raise NotFoundError(message=str(f"Business case {request.business_case_id} not found"))
 
         # Extract business case data
         output = result.get("output", {})
