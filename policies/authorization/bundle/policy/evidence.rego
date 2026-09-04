@@ -5,11 +5,8 @@ import rego.v1
 # Evidence-backed claims: any domain action on a claim that demands evidence
 # must have the required evidence satisfied. This is exercised by the
 # "missing relationship" path: a claim cannot advance to approve/publish
-# without its supporting evidence binding.
-domain_ok if {
-	input.action == input.action
-	evidence_satisfied
-}
+# without its supporting evidence binding. Domain policies call this helper;
+# it is not itself an authorization rule for arbitrary actions.
 
 evidence_satisfied if {
 	required := object.get(input.environment, "required_evidence", [])

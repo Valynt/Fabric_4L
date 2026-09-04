@@ -71,7 +71,14 @@ static_sod_violation if {
 }
 
 # ---------------------------------------------------------------------------
-# Per-domain rules: each domain policy file below sets domain_ok and contributes
-# guarded deny_reasons. Default deny unless a domain explicitly allows.
+# Per-domain rules live in child packages, so this entrypoint explicitly
+# bridges each child package's decision into the global default-deny rule.
 # ---------------------------------------------------------------------------
 default domain_ok := false
+
+domain_ok if data.fabric.authz.administration.domain_ok
+domain_ok if data.fabric.authz.claims.domain_ok
+domain_ok if data.fabric.authz.deliverables.domain_ok
+domain_ok if data.fabric.authz.exceptions.domain_ok
+domain_ok if data.fabric.authz.external_access.domain_ok
+domain_ok if data.fabric.authz.opportunities.domain_ok

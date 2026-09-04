@@ -42,7 +42,15 @@ self_approval if {
 	requester_id == object.get(input.resource, "author_id", "")
 }
 
-validation_complete if object.get(input.environment, "validation_complete", object.get(input.resource, "author_id", "")) != ""
+validation_complete if object.get(input.environment, "validation_complete", object.get(input.resource, "validation_complete", false)) == true
+
+current_model_version if {
+	requested := object.get(input, "requested_resource_revision", "")
+	current := object.get(input.environment, "revision", object.get(input.resource, "revision", ""))
+	requested != ""
+	current != ""
+	requested == current
+}
 
 has_open_dispute if object.get(input.resource, "has_open_dispute", object.get(input.environment, "has_open_dispute", false)) == true
 

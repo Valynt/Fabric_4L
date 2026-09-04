@@ -23,10 +23,8 @@ import hashlib
 import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Iterable
-from uuid import uuid4
+from typing import Any
 
-from . import errors
 from .errors import ReasonCode
 
 
@@ -86,9 +84,7 @@ def load_bundle(data_dir: str, *, policy_version: str) -> PolicyBundle:
         policy_version=policy_version,
         bundle_digest=bundle_digest,
         role_actions=role_actions,
-        static_sod_pairs=frozenset(
-            (a, b) for a, b in sod.get("pairs", [])
-        ),
+        static_sod_pairs=frozenset((a, b) for a, b in sod.get("pairs", [])),
         action_catalog=frozenset(catalog.get("actions", [])),
         agent_forbidden_actions=frozenset(catalog.get("agent_forbidden", [])),
         protected_commands=frozenset(catalog.get("protected_commands", [])),
@@ -148,7 +144,11 @@ class DecisionEngine:
         try:
             return self._evaluate(request)
         except _Deny as exc:
-            return InterimResult(allowed=False, deny_code=exc.codes[0].value, reason_codes=[c.value for c in exc.codes])
+            return InterimResult(
+                allowed=False,
+                deny_code=exc.codes[0].value,
+                reason_codes=[c.value for c in exc.codes],
+            )
         except Exception:
             # Fail closed on any internal anomaly.
             return InterimResult(
@@ -160,7 +160,11 @@ class DecisionEngine:
     # -- internals ----------------------------------------------------------
     def _evaluate(self, request: Any) -> InterimResult:
         action = str(request.action)
-        principal = request.principal.to_dict() if hasattr(request.principal, "to_dict") else dict(request.principal)
+        principal = (
+            request.principal.to_dict()
+            if hasattr(request.principal, "to_dict")
+            else dict(request.principal)
+        )
         resource = dict(request.resource or {})
         env = request.environment
 
@@ -181,7 +185,9 @@ class DecisionEngine:
 
         # 4. tenant containment.
         principal_tenant = principal.get("tenant_id")
-        resource_tenant = resource.get("tenant_id") or env.relationships.get("tenant_id")
+        resource_tenant = resource.get("tenant_id") or env.relationships.get(
+            "tenant_id"
+        )
         if resource_tenant and principal_tenant:
             if str(resource_tenant) != str(principal_tenant):
                 raise _Deny(ReasonCode.TENANT_MISMATCH)
@@ -198,7 +204,16 @@ class DecisionEngine:
         if not permitted:
             raise _Deny(ReasonCode.ROLE_MISSING)
 
-        # 6. verb-specific domain rules.
+        # 6. Static separation of duties: no principal may hold both roles in
+        # any configured conflicting pair.
+        normalized_roles = {str(role) for role in held_roles}
+        if any(
+            first in normalized_roles and second in normalized_roles
+            for first, second in self._bundle.static_sod_pairs
+        ):
+            raise _Deny(ReasonCode.STATIC_SOD_VIOLATION)
+
+        # 7. verb-specific domain rules.
         self._apply_verb_rules(action, principal, resource, env)
 
         return InterimResult(allowed=True)
@@ -206,9 +221,15 @@ class DecisionEngine:
     def _apply_verb_rules(
         self, action: str, principal: dict, resource: dict, env: Any
     ) -> None:
-        attrs = env.resource_attributes if hasattr(env, "resource_attributes") else (env or {})
+        attrs = (
+            env.resource_attributes
+            if hasattr(env, "resource_attributes")
+            else (env or {})
+        )
         rel = env.relationships if hasattr(env, "relationships") else {}
-        principal_id = str(principal.get("principal_id") or principal.get("user_id") or "")
+        principal_id = str(
+            principal.get("principal_id") or principal.get("user_id") or ""
+        )
 
         # -------- claim.approve --------
         if action == "claim.approve":
@@ -221,10 +242,17 @@ class DecisionEngine:
                 raise _Deny(ReasonCode.DISPUTE_OPEN)
             ceiling = attrs.get("approval_ceiling")
             impact = attrs.get("impact_amount")
-            if ceiling is not None and impact is not None and float(impact) > float(ceiling):
+            if (
+                ceiling is not None
+                and impact is not None
+                and float(impact) > float(ceiling)
+            ):
                 raise _Deny(ReasonCode.APPROVAL_CEILING_EXCEEDED)
             # ReBAC: approver must be bound economic reviewer or approved pool.
-            if rel.get("per_claim_binding") is False and rel.get("review_pool_binding") is False:
+            if (
+                rel.get("per_claim_binding") is False
+                and rel.get("review_pool_binding") is False
+            ):
                 raise _Deny(ReasonCode.RELATIONSHIP_MISSING)
             if not rel.get("same_tenant", True):
                 raise _Deny(ReasonCode.TENANT_MISMATCH)
@@ -245,10 +273,6 @@ class DecisionEngine:
 
         # -------- exception transitions (state machine) --------
         if action == "exception.activate":
-            transition_ok = (
-                attrs.get("current_state"),
-                attrs.get("target_state"),
-            )
             current = attrs.get("current_state")
             target = attrs.get("target_state")
             allowed_next = self._bundle.exception_transitions.get(current, frozenset())

@@ -10,9 +10,8 @@ server-side by the attribute resolver before it influences a decision.
 from __future__ import annotations
 
 import enum
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
-from uuid import UUID
 
 from .actions import PRINCIPAL_TYPES, PrincipalType
 
@@ -30,17 +29,19 @@ class PrincipalType_enum(str, enum.Enum):
 # The set of fields the policy engine may act on. Anything else supplied by a
 # client (e.g. a spoofed ``roles`` claim) is ignored by the engine; the
 # attribute resolver is the sole authority for role/tenant/resource facts.
-_PRINCIPAL_FIELDS = frozenset({
-    "principal_type",
-    "principal_id",
-    "tenant_id",
-    "user_id",
-    "roles",
-    "is_active",
-    "is_system",
-    "impersonator_id",
-    "bound_tenant_ids",
-})
+_PRINCIPAL_FIELDS = frozenset(
+    {
+        "principal_type",
+        "principal_id",
+        "tenant_id",
+        "user_id",
+        "roles",
+        "is_active",
+        "is_system",
+        "impersonator_id",
+        "bound_tenant_ids",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -83,7 +84,11 @@ class PrincipalContext:
         impersonator_id: str | None = None,
     ) -> "PrincipalContext":
         """Construct with strict validation; fail closed on unknown types."""
-        raw = principal_type.value if hasattr(principal_type, "value") else str(principal_type)
+        raw = (
+            principal_type.value
+            if hasattr(principal_type, "value")
+            else str(principal_type)
+        )
         if raw not in PRINCIPAL_TYPES:
             raise ValueError(f"unknown principal_type: {raw}")
         return cls(
@@ -104,7 +109,9 @@ def _coerce_uuid(value: Any) -> str | None:
     return str(value)
 
 
-def principal_context_from_request(request_context: Mapping[str, Any] | Any) -> PrincipalContext:
+def principal_context_from_request(
+    request_context: Mapping[str, Any] | Any,
+) -> PrincipalContext:
     """Adapt the existing request identity into a ``PrincipalContext``.
 
     Accepts either:
@@ -127,7 +134,8 @@ def principal_context_from_request(request_context: Mapping[str, Any] | Any) -> 
         raw = {
             "tenant_id": _coerce_uuid(_get("tenant_id")),
             "user_id": _coerce_uuid(_get("user_id")),
-            "principal_id": _coerce_uuid(_get("user_id")) or _coerce_uuid(_get("service_account_id")),
+            "principal_id": _coerce_uuid(_get("user_id"))
+            or _coerce_uuid(_get("service_account_id")),
             "roles": list(_get("roles", [])),
             "auth_source": _get("auth_source") or _get("source"),
             "org_id": _coerce_uuid(_get("org_id")),
@@ -156,11 +164,18 @@ def _infer_principal_type(ctx: "_SimpleNamespace") -> str:
     if explicit:
         return str(explicit)
     source = (getattr(ctx, "auth_source", None) or "").lower()
+    principal_id = str(
+        getattr(ctx, "principal_id", None) or getattr(ctx, "user_id", None) or ""
+    ).lower()
     if "service" in source or getattr(ctx, "service_account_id", None):
+        return PrincipalType.SERVICE.value
+    if principal_id.startswith("service:"):
         return PrincipalType.SERVICE.value
     if "system" in source:
         return PrincipalType.SYSTEM.value
     if getattr(ctx, "is_agent", False) or getattr(ctx, "is_tool", False):
+        return PrincipalType.AGENT.value
+    if principal_id.startswith(("agent:", "tool:")):
         return PrincipalType.AGENT.value
     if "external" in source:
         return PrincipalType.EXTERNAL_VIEWER.value
@@ -178,6 +193,12 @@ class _SimpleNamespace:
     def __getattr__(self, name: str) -> Any:
         value = self._data.get(name)
         # Expose lookup helpers used above.
-        if name in {"principal_type", "auth_source", "service_account_id", "is_agent", "is_tool"}:
+        if name in {
+            "principal_type",
+            "auth_source",
+            "service_account_id",
+            "is_agent",
+            "is_tool",
+        }:
             return value
         return value

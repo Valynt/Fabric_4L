@@ -15,6 +15,7 @@ access.
 Domain command protections are layered on policy in the application; this
 migration provides the tenant-containment backstop only.
 """
+
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -175,8 +176,8 @@ ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;
 ALTER TABLE {table} FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS {table}_tenant_isolation ON {table};
 CREATE POLICY {table}_tenant_isolation ON {table}
-    USING (tenant_id = current_setting('app.tenant_id', true))
-    WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
+    USING (tenant_id::text = current_setting('app.tenant_id', true))
+    WITH CHECK (tenant_id::text = current_setting('app.tenant_id', true));
 """)
     return "\n".join(stmts)
 

@@ -21,8 +21,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Awaitable, Callable
-from uuid import UUID
+from typing import Any
 
 from fastapi import HTTPException, status
 
@@ -103,16 +102,23 @@ async def build_principal(caller: Any, db: Any) -> Any:
 
     roles = await get_workflow_roles(caller, db)
     ctx = principal_context_from_request(caller)
+    caller_tenant = getattr(caller, "tenant_id", None)
+    caller_user = getattr(caller, "user_id", None)
+    tenant_id = ctx.tenant_id or (str(caller_tenant) if caller_tenant else None)
+    user_id = ctx.user_id or (str(caller_user) if caller_user else None)
     # Re-project with authoritative roles.
     return type(ctx).build(
         principal_type=ctx.principal_type,
-        principal_id=ctx.principal_id or str(getattr(caller, "user_id", "") or "anonymous"),
-        tenant_id=ctx.tenant_id or str(getattr(caller, "tenant_id", "") or None),
-        user_id=ctx.user_id or str(getattr(caller, "user_id", "") or None),
+        principal_id=ctx.principal_id
+        or str(getattr(caller, "user_id", "") or "anonymous"),
+        tenant_id=tenant_id,
+        user_id=user_id,
         roles=roles,
-        bound_tenant_ids=(ctx.bound_tenant_ids or [ctx.tenant_id])
-        if ctx.tenant_id
-        else [str(getattr(caller, "tenant_id", "") or "") or None],
+        bound_tenant_ids=(
+            (ctx.bound_tenant_ids or [ctx.tenant_id])
+            if ctx.tenant_id
+            else ([tenant_id] if tenant_id else [])
+        ),
         impersonator_id=ctx.impersonator_id,
     )
 
@@ -152,8 +158,8 @@ async def guard_protected_command(
     Returns the resulting ``AuthzDecision`` when allowed and obligations
     honored.
     """
-    from value_fabric.shared.authz.command_guard import CommandGuard
     from value_fabric.shared.authz.client import get_authorization_client
+    from value_fabric.shared.authz.command_guard import CommandGuard
     from value_fabric.shared.authz.errors import (
         AuthorizationDeniedError,
         PDUnavailableError,
@@ -217,12 +223,19 @@ async def resolve_claim_approval_facts(
     (deny) default.  Optional ``overrides`` are applied after the conservative
     defaults and are intended for test scenarios.
     """
-    # ABAC resource attributes.
+    overrides = overrides or {}
+    bindings = await _resolve_claim_bindings(claim, caller, db)
+    claim_status = str(getattr(claim, "status", "") or "").lower()
+
+    # Reaching MODELED is the authoritative lifecycle indication that the
+    # claim completed the validation stage required before approval.
     attrs: dict[str, Any] = {
         "author_id": str(getattr(claim, "created_by_user_id", "") or ""),
         # No authoritative validation/evidence resolver exists yet on ValueClaim;
         # benign-but-not-part-of-core defaults deny so we never over-authorize.
-        "validation_complete": overrides.get("validation_complete", False),
+        "validation_complete": overrides.get(
+            "validation_complete", claim_status == "modeled"
+        ),
         "has_open_dispute": overrides.get("has_open_dispute", False),
         "impact_amount": _to_float(getattr(claim, "expected_value", None)),
         "approval_ceiling": await _resolve_approval_ceiling(caller, db),
@@ -234,36 +247,68 @@ async def resolve_claim_approval_facts(
     # ReBAC relationships (ReBAC bindings) — default deny.
     rel: dict[str, Any] = {
         # Economic reviewer / reviewer pool binding. Tests may set this.
-        "per_claim_binding": overrides.get("per_claim_binding", False),
-        "review_pool_binding": overrides.get("review_pool_binding", False),
-        "same_tenant": overrides.get("same_tenant", True),
+        "per_claim_binding": overrides.get(
+            "per_claim_binding", bindings["per_claim_binding"]
+        ),
+        "review_pool_binding": overrides.get(
+            "review_pool_binding", bindings["review_pool_binding"]
+        ),
+        "same_tenant": overrides.get(
+            "same_tenant",
+            str(getattr(claim, "tenant_id", ""))
+            == str(getattr(caller, "tenant_id", "")),
+        ),
     }
     return {"attributes": attrs, "relationships": rel}
 
 
+async def _resolve_claim_bindings(claim: Any, caller: Any, db: Any) -> dict[str, bool]:
+    """Resolve active approver bindings from server-owned state."""
+    user_id = str(getattr(caller, "user_id", "") or "")
+    if _is_test_environment():
+        roles = _TEST_WORKFLOW_ROLES.get(user_id, [])
+        return {
+            "per_claim_binding": False,
+            "review_pool_binding": "finance_approver" in roles,
+        }
+
+    try:
+        from sqlalchemy import text
+
+        result = await db.execute(
+            text(
+                "SELECT relation FROM authz_resource_bindings "
+                "WHERE tenant_id = :tenant AND resource_type = 'value_claim' "
+                "AND resource_id = :resource AND principal_id = :principal "
+                "AND relation IN ('economic_reviewer', 'review_pool') "
+                "AND (expires_at IS NULL OR expires_at > now())"
+            ),
+            {
+                "tenant": str(getattr(caller, "tenant_id", "")),
+                "resource": str(getattr(claim, "id", "")),
+                "principal": user_id,
+            },
+        )
+        relations = {row[0] for row in result.all()}
+        return {
+            "per_claim_binding": "economic_reviewer" in relations,
+            "review_pool_binding": "review_pool" in relations,
+        }
+    except Exception:  # pragma: no cover - DB/table availability
+        return {"per_claim_binding": False, "review_pool_binding": False}
+
+
 async def _resolve_approval_ceiling(caller: Any, db: Any) -> float | None:
     # Deterministic ceiling for the finance_approver test principal.
-    if str(getattr(caller, "user_id", "")) in _TEST_WORKFLOW_ROLES and "finance_approver" in _TEST_WORKFLOW_ROLES.get(
-        str(getattr(caller, "user_id", ""))
+    if (
+        _is_test_environment()
+        and str(getattr(caller, "user_id", "")) in _TEST_WORKFLOW_ROLES
+        and "finance_approver"
+        in _TEST_WORKFLOW_ROLES.get(str(getattr(caller, "user_id", "")))
     ):
         return _TEST_APPROVAL_CEILING
     try:
         from sqlalchemy import text
-
-        pid = str(getattr(caller, "user_id", "") or "")
-        rows = await db.execute(
-            text(
-                "SELECT approval_ceiling_usd FROM authz_role_assignments "
-                "WHERE tenant_id = :tenant AND principal_id = :principal "
-                "AND role_id = 'finance_approver' AND approval_ceiling_usd IS NOT NULL "
-                "ORDER BY approval_ceiling_usd DESC LIMIT 1"
-            ),
-            {"tenant": str(getattr(caller, "tenant_id", "")), "principal": pid},
-        )
-        row = rows.first()
-        return _to_float(row[0]) if row else None
-    except Exception:  # pragma: no cover - DB availability
-        return None
 
         pid = str(getattr(caller, "user_id", "") or "")
         rows = await db.execute(
@@ -326,9 +371,17 @@ def register_l5_obligations() -> None:
     async def _audit_handler(request_context: Any, decision: Any) -> bool:
         # Audit correlation: the decision is correlated to the resulting domain
         # event via request_context (request_id / trace_id) and decision_id.
+        action = next(
+            (
+                obligation.detail.get("action")
+                for obligation in getattr(decision, "obligations", [])
+                if obligation.kind == "audit"
+            ),
+            None,
+        )
         logger.info(
             "authz decision: action=%s allowed=%s decision_id=%s reason_codes=%s",
-            getattr(decision, "action", None) or (decision.reason_codes or []),
+            action,
             getattr(decision, "allowed", None),
             getattr(decision, "decision_id", None),
             getattr(decision, "reason_codes", None) or [],
