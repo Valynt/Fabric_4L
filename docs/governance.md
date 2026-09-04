@@ -29,6 +29,24 @@ Pull requests that touch backend, frontend, or API surfaces are expected to decl
 tenant-isolation, and compatibility-shim impact explicitly and to link any required follow-up docs,
 tests, or deprecation tracking.
 
+## Architecture Governance
+
+The canonical architecture-governance entry point is `make check-governance`. It composes the resident
+checks into a single deterministic verdict (`pass` / `fail` / `error`) and writes a machine-readable
+envelope to `artifacts/governance/check-governance.json`.
+
+| Sub-check | Enforces |
+|---|---|
+| `check-import-cycles` | Oversized modules, high-complexity functions, and import cycles (`structural_fitness_ratchet.py`) |
+| `check-architecture-boundaries` | Provider-gateway boundaries (`check_model_provider_boundaries.py`) |
+| `check-ownership-registry` | Shared-import, public-import, canonical-import, and ownership registries |
+| `check-shared-duplication` | Scoped DRY ratchet for `packages/shared` (`check_shared_duplication.py`, baseline `config/ci/shared_duplication_baseline.json`) |
+| `check-governance-baseline` | Type-escape ratchet plus duplication-baseline regenerability |
+
+The import/cycle and DRY checks are ratcheted: a checked-in baseline allowlists the current state, and CI
+blocks only *new or worsened* violations. Regenerate a baseline with the owning script's `--update` flag only
+after an approved dedup or waiver decision.
+
 ## Review States
 
 - `draft` - Initial generation
@@ -93,15 +111,16 @@ There are no non-production runtime exceptions for these patterns outside the al
 
 ## ADR Numbering Policy
 
-Architecture Decision Records use a single canonical filename and header format:
+Architecture Decision Records use a canonical filename and header format per corpus:
 
-- Filename: `ADR-###-slug.md`
-- H1 header: `# ADR-###: Title`
-- Sequence policy: IDs are contiguous across ADR directories (currently `docs/explanations/adr/` and `docs/architecture/`).
+- Canonical architecture corpus: `docs/explanations/adr/` with filename `ADR-###-slug.md` and H1 `# ADR-###: Title`
+- Implementation decisions corpus: `docs/decisions/` with filename `NNNN-slug.md` and H1 `# ADR-NNNN: Title`
+- Sequence policy: IDs are contiguous within each corpus
+- Machine registry: `docs/decisions/adr-registry.yaml` maps every ADR to related code paths and optional content assertions
 
 Legacy ADR IDs are normalized during migration by reindexing to the next available sequential ID and preserving the original title/decision content.
 
-CI enforcement: `python scripts/ci/check_adr_numbering.py` fails if IDs are duplicated, sequence IDs are missing, or filename/header IDs drift.
+CI enforcement: `make check-adr` (`python scripts/ci/check_adr.py`) fails if IDs are duplicated, sequence IDs are missing, filename/header IDs drift, the registry is incomplete, a related path is missing, an index table is stale, or a declared `must_contain` / `must_not_contain` rule fails.
 
 ## Kubernetes Deployment SecurityContext Standard
 

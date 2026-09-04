@@ -28,7 +28,7 @@ implementations.
                               |                      |                     |
         +---------------------+----------------------+---------------------+
         |                     |                      |
-  layer5-ground-truth   layer6-benchmarks      layer7-billing + billing
+  layer5-ground-truth   layer6-benchmarks      billing (inside layer4-agents)
   (human review,        (validated benchmarks, (monetization)
    provenance,           ROI reference data)
    claims governance)

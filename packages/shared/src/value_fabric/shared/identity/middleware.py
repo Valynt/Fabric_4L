@@ -325,7 +325,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 extra={
                     "event": "jwt_context_rejected",
                     "error_code": ERR_AUTH_CONTEXT_INVALID,
-                    "error": str(exc),
+                    "error_type": type(exc).__name__,
                     **_request_log_context(request),
                 },
             )
@@ -353,7 +353,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                     extra={
                         "event": "tenant_status_resolver_failed",
                         "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
-                        "error": str(exc),
+                        "error_type": type(exc).__name__,
                         "tenant_id": str(ctx.tenant_id),
                     },
                 )

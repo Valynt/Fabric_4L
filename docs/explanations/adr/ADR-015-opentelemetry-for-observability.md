@@ -33,7 +33,17 @@ We evaluated:
 
 ## Decision
 
-We chose **OpenTelemetry** with the following architecture:
+We chose **OpenTelemetry** with the following architecture.
+
+**Implementation (2026-09):** the stdlib client lives in
+`packages/shared/src/value_fabric/shared/observability/platform.py`.
+`create_fabric_app` is the reference installer. `configure_platform` installs
+at most one SDK `TracerProvider` per process and fail-closes (returns
+`provider=None`) on missing SDK/endpoint, invalid `OTEL_SAMPLE_RATIO`, or
+exporter errors. Collector, Grafana, and SLO recording rules stay under
+`monitoring/`; the six platform SLOs are contracted in
+`monitoring/slo/slos.contract.json`. Audit events correlate via `request_id`
+and `details.trace_id` without a schema migration.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

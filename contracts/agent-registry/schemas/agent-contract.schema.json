@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/agent-registry/schemas/agent-contract.schema.json",
+  "title": "Fabric 4L Agent Operating Contract",
+  "allOf": [
+    {
+      "$ref": "./base-contract.schema.json"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "kind": {
+      "const": "agent_contract"
+    },
+    "agent_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tools": {
+      "type": "array",
+      "description": "Tool names this agent is allowed to invoke.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "memory_scopes": {
+      "type": "array",
+      "description": "Memory scopes the agent may read or write.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "working",
+          "episodic",
+          "semantic"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "permissions": {
+      "type": "object",
+      "description": "Declarative capability boundary for runtime enforcement.",
+      "properties": {
+        "read_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "write_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "network": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "none",
+              "internal_only",
+              "restricted_external",
+              "external"
+            ]
+          }
+        },
+        "isolation_level": {
+          "type": "string",
+          "enum": [
+            "tenant_strict",
+            "tenant_preferred",
+            "shared_read_only",
+            "shared"
+          ]
+        }
+      },
+      "required": [
+        "network",
+        "isolation_level"
+      ],
+      "additionalProperties": true
+    },
+    "eval_target": {
+      "type": "object",
+      "description": "Minimum eval score required for this agent contract to graduate.",
+      "properties": {
+        "suite_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "min_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "required_capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "suite_id",
+        "min_score"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "id",
+    "version",
+    "kind",
+    "agent_type",
+    "tools",
+    "memory_scopes",
+    "permissions",
+    "eval_target"
+  ]
+}

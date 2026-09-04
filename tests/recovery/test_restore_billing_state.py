@@ -3,11 +3,6 @@ from __future__ import annotations
 from .conftest import assert_contains_all, read_text
 
 EXPECTED_BILLING_TABLES = {
-    "l7_billing_plans",
-    "l7_billing_usage_events",
-    "l7_billing_usage_aggregates",
-    "l7_billing_invoices",
-    "l7_billing_payment_states",
     "billing_customers",
     "billing_subscriptions",
     "billing_webhook_events",
@@ -27,20 +22,8 @@ def test_billing_state_restore_is_part_of_dry_run_evidence(restore_dry_run_evide
 
 
 def test_billing_restore_scope_matches_billing_models_and_runbook() -> None:
-    l7_models = read_text("services/layer7-billing/src/layer7_billing/models.py")
     billing_models = read_text("services/layer4-agents/src/layer4_agents/models/billing.py")
     runbook = read_text("docs/troubleshooting/runbooks/incident/backup-disaster-recovery.md")
-    assert_contains_all(
-        l7_models,
-        [
-            "l7_billing_usage_events",
-            "l7_billing_usage_aggregates",
-            "l7_billing_invoices",
-            "l7_billing_payment_states",
-            "tenant_id",
-        ],
-        label="Layer 7 billing models",
-    )
     assert_contains_all(
         billing_models,
         [

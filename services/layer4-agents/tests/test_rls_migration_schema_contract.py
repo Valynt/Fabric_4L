@@ -71,6 +71,19 @@ def test_revision_018_only_targets_billing_tables_created_by_revision_017() -> N
     }
 
 
+def test_revision_018_public_policy_requires_an_exact_tenant_match() -> None:
+    source = (MIGRATIONS / "018_add_rls_to_billing_tables.py").read_text(encoding="utf-8")
+    public_policy = source.split("CREATE POLICY tenant_isolation_policy", maxsplit=1)[1].split(
+        "CREATE POLICY admin_bypass_policy", maxsplit=1
+    )[0]
+    normalized_policy = " ".join(public_policy.split())
+    strict_tenant_match = "tenant_id::text = current_setting('app.tenant_id', true)"
+
+    assert f"USING ( {strict_tenant_match} )" in normalized_policy
+    assert f"WITH CHECK ( {strict_tenant_match} )" in normalized_policy
+    assert "tenant_id IS NULL" not in public_policy
+
+
 def test_revision_019_does_not_recreate_account_tenant_ownership() -> None:
     source = (MIGRATIONS / "019_add_account_enrichment_columns.py").read_text(encoding="utf-8")
     assert 'op.add_column(\n        "accounts",\n        sa.Column("tenant_id"' not in source

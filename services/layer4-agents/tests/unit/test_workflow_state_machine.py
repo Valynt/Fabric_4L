@@ -387,7 +387,9 @@ class TestBaseWorkflow:
         assert workflow.name == "test_workflow"
         assert workflow.workflow_type == "test"
         assert workflow.config == mock_config
-        assert workflow.tool_registry == mock_tool_registry
+        # The registry is wrapped by the policy-enforced proxy; verify it still
+        # delegates attribute access to the underlying registry.
+        assert workflow.tool_registry.get_tool is mock_tool_registry.get_tool
 
     @pytest.mark.unit
     def test_workflow_error_exception(self):
@@ -409,7 +411,16 @@ class TestBaseWorkflow:
 
     @pytest.mark.unit
     async def test_node_failure_preserves_root_cause(self, mock_config, mock_tool_registry):
-        workflow = ConcreteTestWorkflow(mock_config, mock_tool_registry)
+        # Inject a pass-through gateway so the node path reaches the mocked
+        # registry (workflows fail closed when no gateway is present).
+        gateway = Mock()
+
+        async def _execute(tool_name: str, input_data: dict[str, object]) -> object:
+            return await mock_tool_registry.execute(tool_name, input_data)
+
+        gateway.execute = AsyncMock(side_effect=_execute)
+
+        workflow = ConcreteTestWorkflow(mock_config, mock_tool_registry, tool_gateway=gateway)
         state = BaseAgentState(
             tenant_id="test-tenant",
             workflow_type=WorkflowType.ROI_CALCULATOR,
