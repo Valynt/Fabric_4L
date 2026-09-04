@@ -2,6 +2,10 @@
   "complexity_threshold": 25,
   "dependency_cycles": [
     [
+      "layer4_agents.database",
+      "layer4_agents.runtime.orm"
+    ],
+    [
       "layer6_benchmarks.api.main",
       "layer6_benchmarks.api.routes.benchmarks",
       "layer6_benchmarks.api.routes.system"

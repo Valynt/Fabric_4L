@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.dev/contracts/jsonschema/agent-runtime/common.json",
+  "title": "Agent Runtime Common Contracts",
+  "$defs": {
+    "RunStatus": {
+      "type": "string",
+      "enum": ["pending", "running", "paused", "completed", "failed", "cancelled", "retrying"]
+    },
+    "RuntimeContext": {
+      "type": "object",
+      "required": ["tenant_id", "trace_id", "run_id", "workflow_id", "workflow_type"],
+      "properties": {
+        "tenant_id": {"type": "string", "minLength": 1},
+        "user_id": {"type": ["string", "null"]},
+        "trace_id": {"type": "string", "minLength": 1},
+        "run_id": {"type": "string", "minLength": 1},
+        "workflow_id": {"type": "string", "minLength": 1},
+        "workflow_type": {"type": "string", "minLength": 1},
+        "priority": {"type": "integer", "minimum": 1, "maximum": 5, "default": 3},
+        "metadata": {"type": "object", "default": {}}
+      },
+      "additionalProperties": false
+    },
+    "RunRequest": {
+      "type": "object",
+      "required": ["workflow_type"],
+      "properties": {
+        "workflow_type": {"type": "string", "minLength": 1},
+        "input_data": {"type": "object", "default": {}},
+        "workflow_id": {"type": ["string", "null"]},
+        "priority": {"type": "integer", "minimum": 1, "maximum": 5, "default": 3},
+        "timeout_seconds": {"type": ["integer", "null"], "minimum": 1},
+        "metadata": {"type": "object", "default": {}}
+      },
+      "additionalProperties": false
+    },
+    "RunEnvelope": {
+      "type": "object",
+      "required": ["run_id", "workflow_id", "trace_id", "tenant_id", "workflow_type"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "workflow_id": {"type": "string"},
+        "trace_id": {"type": "string"},
+        "tenant_id": {"type": "string"},
+        "workflow_type": {"type": "string"},
+        "status": {"$ref": "#/$defs/RunStatus"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "started_at": {"type": ["string", "null"], "format": "date-time"},
+        "completed_at": {"type": ["string", "null"], "format": "date-time"}
+      },
+      "additionalProperties": false
+    },
+    "RunResult": {
+      "type": "object",
+      "required": ["run_id", "workflow_id", "trace_id", "tenant_id", "workflow_type", "status", "created_at"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "workflow_id": {"type": "string"},
+        "trace_id": {"type": "string"},
+        "tenant_id": {"type": "string"},
+        "workflow_type": {"type": "string"},
+        "status": {"$ref": "#/$defs/RunStatus"},
+        "output": {"type": ["object", "null"]},
+        "error": {"type": ["object", "null"]},
+        "metadata": {"type": "object", "default": {}},
+        "created_at": {"type": "string", "format": "date-time"},
+        "started_at": {"type": ["string", "null"], "format": "date-time"},
+        "completed_at": {"type": ["string", "null"], "format": "date-time"}
+      },
+      "additionalProperties": false
+    },
+    "RunSummary": {
+      "type": "object",
+      "required": ["run_id", "workflow_id", "workflow_type", "status", "created_at"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "workflow_id": {"type": "string"},
+        "workflow_type": {"type": "string"},
+        "status": {"$ref": "#/$defs/RunStatus"},
+        "created_at": {"type": "string", "format": "date-time"}
+      },
+      "additionalProperties": false
+    },
+    "ResumeRequest": {
+      "type": "object",
+      "properties": {
+        "resume_data": {"type": "object", "default": {}},
+        "checkpoint_id": {"type": ["string", "null"]},
+        "checkpoint_hash": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "ToolSchema": {
+      "type": "object",
+      "required": ["name", "description", "category"],
+      "properties": {
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "category": {"type": "string"},
+        "tenant_scoped": {"type": "boolean", "default": true},
+        "parameters": {"type": "object", "default": {}},
+        "required": {"type": "array", "items": {"type": "string"}, "default": []},
+        "version": {"type": "string", "default": "1.0.0"}
+      },
+      "additionalProperties": false
+    },
+    "ToolCall": {
+      "type": "object",
+      "required": ["tool_name"],
+      "properties": {
+        "tool_name": {"type": "string"},
+        "arguments": {"type": "object", "default": {}},
+        "trace_id": {"type": ["string", "null"]},
+        "run_id": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "ToolResult": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {"type": "string", "enum": ["success", "error"]},
+        "data": {"type": ["object", "null"]},
+        "error": {"type": ["object", "null"]},
+        "metadata": {"type": ["object", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "Checkpoint": {
+      "type": "object",
+      "required": ["checkpoint_id", "run_id", "thread_id", "tenant_id", "state_hash"],
+      "properties": {
+        "checkpoint_id": {"type": "string"},
+        "run_id": {"type": "string"},
+        "thread_id": {"type": "string"},
+        "tenant_id": {"type": "string"},
+        "state_hash": {"type": "string"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "metadata": {"type": ["object", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "WorkflowResult": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {"$ref": "#/$defs/RunStatus"},
+        "output": {"type": ["object", "null"]},
+        "error": {"type": ["object", "null"]},
+        "checkpoint": {"anyOf": [{"$ref": "#/$defs/Checkpoint"}, {"type": "null"}]}
+      },
+      "additionalProperties": false
+    },
+    "ModelConfig": {
+      "type": "object",
+      "required": ["provider", "model"],
+      "properties": {
+        "provider": {"type": "string"},
+        "model": {"type": "string"},
+        "temperature": {"type": ["number", "null"], "minimum": 0.0, "maximum": 2.0},
+        "max_tokens": {"type": ["integer", "null"], "minimum": 1},
+        "top_p": {"type": ["number", "null"], "minimum": 0.0, "maximum": 1.0},
+        "extra": {"type": ["object", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "Message": {
+      "type": "object",
+      "required": ["role", "content"],
+      "properties": {
+        "role": {"type": "string", "enum": ["system", "user", "assistant", "tool"]},
+        "content": {"type": "string"},
+        "name": {"type": ["string", "null"]},
+        "tool_call_id": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "ModelResponse": {
+      "type": "object",
+      "properties": {
+        "content": {"type": ["string", "null"]},
+        "finish_reason": {"type": ["string", "null"]},
+        "usage": {"type": ["object", "null"]},
+        "raw_response": {"type": ["object", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "AuthzDecision": {
+      "type": "object",
+      "required": ["allowed"],
+      "properties": {
+        "allowed": {"type": "boolean"},
+        "reason": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    }
+  }
+}

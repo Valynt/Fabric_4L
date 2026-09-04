@@ -32,6 +32,7 @@ The command hierarchy remains defined by [BUILD_SYSTEM.md](./BUILD_SYSTEM.md). T
 | Compliance/audit evidence | `docs/governance/COMPLIANCE.md`, `docs/governance/audit-remediation-sprint-register.md`, compliance workflows, `tests/audit/` | Control owner, evidence retention, audit workflow artifact, export control policy | `pnpm test:audit`, `make gate-compliance-readiness` | `make verify` |
 | Operational runbook or incident workflow | `docs/operations/`, `docs/troubleshooting/`, `ops/incident/`, `scripts/ci/check_incident_runbooks.py` | Alert/runbook link, escalation path, evidence artifact, postmortem path | `pnpm ops:runbooks:lint`, `pnpm ops:incident:check` | `make verify` |
 | Architecture or governance decision | `docs/explanations/adr/`, `docs/decisions/`, `docs/decisions/adr-registry.yaml`, `docs/governance.md`, `docs/governance/` | Decision status, registry related-code links, affected contracts, tenant isolation, compatibility debt, implementation evidence | `make check-adr` | `make verify` |
+| Architecture governance enforcement | `scripts/ci/check_governance.py`, `scripts/ci/check_shared_duplication.py`, `config/ci/shared_duplication_baseline.json`, `docs/governance.md` | Import/cycle drift, provider-boundary drift, ownership/canonical-import drift, shared-package duplication drift, baseline regenerability | `make check-governance` (or leaf targets `make check-import-cycles`, `make check-architecture-boundaries`, `make check-ownership-registry`, `make check-shared-duplication`, `make check-governance-baseline`) | `make check-health-ratchets`, `make verify` |
 | Pack or ontology change | `packs/`, `docs/value-packs.md`, `contracts/`, affected layer tests | Pack-local configuration vs core hardcoding, ontology compatibility, formula/benchmark lineage | Pack tests plus affected layer contract tests | `make verify` |
 
 ## Audited Domain Coverage
@@ -59,6 +60,7 @@ The completion audit in [repository-discoverability-audit.md](../governance/repo
 | Observability and SLOs | Observability/SLO change |
 | Operational runbooks | Operational runbook or incident workflow |
 | Decisions and ADRs | Architecture or governance decision |
+| Architecture governance | Architecture governance enforcement |
 | Compliance and audit evidence | Compliance/audit evidence |
 
 ## Issue To Validation Loop
@@ -83,5 +85,6 @@ The completion audit in [repository-discoverability-audit.md](../governance/repo
 | Supply chain and dependency posture | `docs/supply-chain/`, `docs/security/secure-software-supply-chain.md`, `license-reports/`, `artifacts/supply-chain/` |
 | Operational runbooks and incident response | `docs/operations/`, `docs/troubleshooting/`, `ops/incident/` |
 | Architecture decisions | `docs/decisions/`, `docs/explanations/adr/`, `docs/governance.md` |
+| Architecture governance | `scripts/ci/check_governance.py`, `artifacts/governance/`, `config/ci/*_baseline.json`, `docs/governance.md` |
 
 If a needed source of truth is missing, add the smallest durable reference in the canonical area and wire it into this map or [COMMANDS.md](./COMMANDS.md). Do not create isolated status reports that cannot be reached from root docs, command docs, or the relevant domain README.

@@ -93,7 +93,7 @@
       "brace-expansion@^2.0.1": "5.0.9",
       "brace-expansion@^5.0.0": "5.0.9",
       "mermaid": ">=11.15.0 <12.0.0",
-      "fast-uri@<=3.1.4": "3.1.5",
+      "fast-uri@<=3.1.5": "3.1.6",
       "tailwindcss>nanoid": "3.3.18",
       "systeminformation@<=5.31.6": "5.31.7",
       "body-parser@<1.20.6": "1.20.6",

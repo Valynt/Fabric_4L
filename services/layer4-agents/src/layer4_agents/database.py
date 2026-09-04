@@ -1090,6 +1090,7 @@ async def init_db() -> None:
     from . import models  # noqa: F401
     from .harness import db_models  # noqa: F401
     from .registry import models as _registry_models  # noqa: F401
+    from .runtime import orm as _runtime_orm  # noqa: F401
     from .tenants import models as _tenant_models  # noqa: F401
 
     engine = get_engine()

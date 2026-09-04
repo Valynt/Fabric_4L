@@ -24,7 +24,11 @@ def load_manifest(name: str) -> dict:
 
 
 def manifest_names() -> list[str]:
-    return sorted(p.stem for p in MANIFESTS_DIR.glob("*.json"))
+    # JSON Schemas ({{name}}.schema.json) are definition files, not manifests;
+    # they carry $id/title/type rather than name/version/parameters.
+    return sorted(
+        p.stem for p in MANIFESTS_DIR.glob("*.json") if not p.name.endswith(".schema.json")
+    )
 
 
 @pytest.fixture(scope="module")
