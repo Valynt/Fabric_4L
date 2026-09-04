@@ -147,6 +147,60 @@ async def test_authorize_gated_tool_allows_with_scope_grant() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_authorize_ignores_dict_scope_metadata_fail_closed() -> None:
+    authz = PolicyAuthzPort()
+    # A dict would iterate its keys; "read:search" must NOT become a grant.
+    ctx = _ctx(metadata={"service_account_scopes": {"read:search": True}})
+
+    decision: AuthzDecision = await authz.authorize_tool("get_entity", ctx)
+
+    assert decision.allowed is False
+    assert decision.reason == "INSUFFICIENT_SCOPE"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_authorize_ignores_string_scope_metadata_fail_closed() -> None:
+    authz = PolicyAuthzPort()
+    # A str would iterate its characters; the raw string must NOT become a grant.
+    ctx = _ctx(metadata={"service_account_scopes": "read:search"})
+
+    decision: AuthzDecision = await authz.authorize_tool("get_entity", ctx)
+
+    assert decision.allowed is False
+    assert decision.reason == "INSUFFICIENT_SCOPE"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_authorize_accepts_tuple_grants_of_strings() -> None:
+    authz = PolicyAuthzPort()
+    ctx = _ctx(metadata={"service_account_scopes": ("read:search",)})
+
+    decision: AuthzDecision = await authz.authorize_tool("get_entity", ctx)
+
+    assert decision.allowed is True
+    assert decision.reason is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_authorize_grant_lists_skip_non_string_entries() -> None:
+    authz = PolicyAuthzPort()
+    # Mixed-type sequences keep only string entries; non-strings cannot
+    # fabricate grants.
+    ctx = _ctx(
+        metadata={"service_account_scopes": ["read:search", 123, None, b"write"]}
+    )
+
+    decision: AuthzDecision = await authz.authorize_tool("get_entity", ctx)
+
+    assert decision.allowed is True
+    assert decision.reason is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
 async def test_authorize_denies_when_tenant_context_is_missing() -> None:
     authz = PolicyAuthzPort()
     # RuntimeContext rejects empty tenant_id at validation; the guard must

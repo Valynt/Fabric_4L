@@ -67,16 +67,8 @@ class PolicyAuthzPort(AuthzPort):
         scopes — so missing grants fail closed inside ``authorize_action``.
         """
         metadata: dict[str, Any] = ctx.metadata or {}
-        scopes = [
-            str(scope)
-            for scope in metadata.get("service_account_scopes") or []
-            if isinstance(scope, str)
-        ]
-        permissions = [
-            str(permission)
-            for permission in metadata.get("permissions") or []
-            if isinstance(permission, str)
-        ]
+        scopes = _grant_strings(metadata, "service_account_scopes")
+        permissions = _grant_strings(metadata, "permissions")
         return RequestContext(
             tenant_id=ctx.tenant_id,
             user_id=ctx.user_id or "workflow-executor",
@@ -90,6 +82,21 @@ class PolicyAuthzPort(AuthzPort):
             service_account_scopes=scopes,
             raw={"tool_name": tool_name, "workflow_id": ctx.workflow_id, "run_id": ctx.run_id},
         )
+
+
+def _grant_strings(metadata: dict[str, Any], key: str) -> list[str]:
+    """Collect grant strings from context metadata, failing closed on type drift.
+
+    Only list/tuple/set/frozenset containers are honored. A ``str`` value
+    would iterate characters and a ``dict`` would iterate keys — either
+    could fabricate unintended grant strings that may match real grants —
+    so any other container type is ignored entirely and authorization
+    proceeds without those grants.
+    """
+    value = metadata.get(key)
+    if not isinstance(value, (list, tuple, set, frozenset)):
+        return []
+    return [item for item in value if isinstance(item, str)]
 
 
 def _reason_from_http_error(exc: HTTPException) -> str:
