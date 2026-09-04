@@ -1,6 +1,6 @@
 {
   "goal_id": "phase6-runtime-hardening",
-  "status": "building",
+  "status": "inspecting",
   "iteration": 3,
   "builder_model": "GPT:5.6-Luna",
   "inspector_model": "GPT:5.6-Sol",
@@ -16,6 +16,11 @@
       "iteration": 2,
       "verdict": "FAIL",
       "summary": "Runtime tests pass, but make verify and contract freshness fail; Layer 7 contains unrelated drift."
+    },
+    {
+      "iteration": 3,
+      "verdict": "FAIL",
+      "summary": "All gates pass and Layer 7 is resolved, but tenant/authz hardening gaps remain in runtime metadata, metrics, and checkpoints."
     }
   ]
 }
