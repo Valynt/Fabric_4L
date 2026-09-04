@@ -12,18 +12,20 @@ survives, and a conflict loser re-reads the winner's row and updates it.
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Sequence
-from typing import Any
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 
 from sqlalchemy import Table, insert, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.base import Executable
 
 __all__ = ["NATIVE_UPSERT_DIALECTS", "upsert_row"]
 
 NATIVE_UPSERT_DIALECTS = frozenset({"postgresql", "sqlite"})
 
 TenantContextSetter = Callable[[AsyncSession], Awaitable[None]]
+
+RowValues = Mapping[str, object]
 
 
 def _dialect_name(session: AsyncSession) -> str:
@@ -36,21 +38,23 @@ def _native_upsert_stmt(
     *,
     dialect_name: str,
     table: Table,
-    values: dict[str, Any],
+    values: RowValues,
     conflict_columns: Sequence[str],
-    update_values: dict[str, Any],
-) -> Any:
-    stmt: Any
+    update_values: RowValues,
+) -> Executable:
+    # The sqlite and postgresql insert builders return sibling Insert
+    # subclasses (no shared on_conflict_do_update base), so each dialect
+    # branch returns its own fully built statement.
     if dialect_name == "sqlite":
         from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-        stmt = sqlite_insert(table).values(**values)
-    else:
-        from sqlalchemy.dialects.postgresql import insert as pg_insert
+        return sqlite_insert(table).values(**values).on_conflict_do_update(
+            index_elements=list(conflict_columns), set_=dict(update_values)
+        )
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-        stmt = pg_insert(table).values(**values)
-    return stmt.on_conflict_do_update(
-        index_elements=list(conflict_columns), set_=update_values
+    return pg_insert(table).values(**values).on_conflict_do_update(
+        index_elements=list(conflict_columns), set_=dict(update_values)
     )
 
 
@@ -58,9 +62,9 @@ async def upsert_row(
     session: AsyncSession,
     *,
     table: Table,
-    values: dict[str, Any],
+    values: RowValues,
     conflict_columns: Sequence[str],
-    update_values: dict[str, Any],
+    update_values: RowValues,
     enter_tenant_context: TenantContextSetter,
     max_attempts: int = 3,
 ) -> None:
