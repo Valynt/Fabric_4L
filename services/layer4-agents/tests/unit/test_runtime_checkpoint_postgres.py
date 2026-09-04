@@ -163,6 +163,13 @@ class TestPostgresCheckpointAdapter:
         with pytest.raises(TenantRequiredError):
             await adapter.save(_checkpoint(tenant_id=""), {"v": 1})
 
+    async def test_missing_tenant_load_and_list_fail_closed(self, session_factory):
+        adapter = _adapter(session_factory)
+        with pytest.raises(TenantRequiredError):
+            await adapter.load("run-1", "thread-1", "")
+        with pytest.raises(TenantRequiredError):
+            await adapter.list("run-1", "")
+
     async def test_metadata_and_created_at_round_trip(self, session_factory):
         adapter = _adapter(session_factory)
         checkpoint = _checkpoint(

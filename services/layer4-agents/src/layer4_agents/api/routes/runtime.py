@@ -15,7 +15,10 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, ConfigDict, Field
 from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_authenticated
+from value_fabric.shared.identity.dependencies import (
+    require_authenticated,
+    require_privileged_access,
+)
 
 from ...runtime import (
     AgentRuntimeError,
@@ -37,6 +40,12 @@ from ...runtime.ports import AgentRuntime
 from ..runtime_state import runtime_state
 
 router = APIRouter(prefix="/runtime", tags=["runtime"])
+# These fields are interpreted as authorization input by PolicyAuthzPort and
+# must never be accepted from an untrusted run submission.
+_AUTHZ_METADATA_KEYS = frozenset({"service_account_scopes", "permissions"})
+_require_runtime_metrics_privileged = require_privileged_access(
+    require_audit_log=False, require_audit_emission=False
+)
 
 
 class RuntimeMetricsResponse(BaseModel):
@@ -165,9 +174,9 @@ async def runtime_health(
 @router.get("/metrics", response_model=RuntimeMetricsResponse)
 async def runtime_metrics(
     request: Request,
-    ctx: RequestContext = Depends(require_authenticated),
+    ctx: RequestContext = Depends(_require_runtime_metrics_privileged),
 ) -> RuntimeMetricsResponse:
-    """Return aggregate runtime counters to an authenticated tenant principal."""
+    """Return aggregate counters only to a privileged operator."""
     _tenant(ctx, operation="runtime_metrics")
     metrics = getattr(request.app.state, "runtime_metrics", None) or runtime_state.runtime_metrics
     return _metrics_snapshot(metrics)
@@ -208,7 +217,9 @@ async def submit_runtime_run(
         workflow_id=body.workflow_id or run_id,
         workflow_type=body.workflow_type,
         priority=body.priority,
-        metadata=dict(body.metadata),
+        metadata={
+            key: value for key, value in body.metadata.items() if key not in _AUTHZ_METADATA_KEYS
+        },
     )
     try:
         return await _runtime(request).submit_run(body, runtime_context)

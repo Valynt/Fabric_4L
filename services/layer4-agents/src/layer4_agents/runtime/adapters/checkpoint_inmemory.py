@@ -55,6 +55,8 @@ class InMemoryCheckpointAdapter(CheckpointPort):
 
         Returns ``None`` when nothing is visible to the requesting tenant.
         """
+        if not tenant_id:
+            raise TenantRequiredError(details={"run_id": run_id, "thread_id": thread_id})
         matching = [
             row
             for row in self._rows
@@ -69,6 +71,8 @@ class InMemoryCheckpointAdapter(CheckpointPort):
 
     async def list(self, run_id: str, tenant_id: str) -> list[Checkpoint]:
         """List checkpoints for a run in save order, scoped to the tenant."""
+        if not tenant_id:
+            raise TenantRequiredError(details={"run_id": run_id})
         return [
             row[1].model_copy(deep=True)
             for row in self._rows

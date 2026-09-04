@@ -477,7 +477,7 @@ class LangGraphWorkflowEngineAdapter:
                     RequestContext(
                         tenant_id=ctx.tenant_id,
                         user_id=ctx.user_id or "workflow_executor",
-                        roles=["tenant_admin"],
+                        roles=["system"],
                         auth_source="workflow_execution",
                         request_id=ctx.workflow_id or ctx.run_id,
                         trace_id=ctx.trace_id or ctx.run_id,

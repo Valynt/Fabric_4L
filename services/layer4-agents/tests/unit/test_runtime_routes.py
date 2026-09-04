@@ -8,9 +8,14 @@ from fastapi import FastAPI
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
-from layer4_agents.api.routes.runtime import router
+from layer4_agents.api.routes.runtime import (
+    _require_runtime_metrics_privileged,
+    router,
+)
 from layer4_agents.runtime import (
     AgentRuntimeImpl,
+    RunEnvelope,
+    RunRequest,
     RunStatus,
     RuntimeContext,
     WorkflowResult,
@@ -92,7 +97,8 @@ async def test_runtime_routes_return_explicit_shapes_and_scope_runs() -> None:
 
 
 async def test_runtime_health_and_metrics_have_stable_shapes() -> None:
-    app = _app(RequestContext(tenant_id="tenant-a"))
+    app = _app(RequestContext(tenant_id="tenant-a", roles=["super_admin"]))
+    app.dependency_overrides[_require_runtime_metrics_privileged] = lambda: RequestContext(tenant_id="tenant-a", roles=["super_admin"])
     app.state.agent_runtime = _runtime()
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
@@ -105,3 +111,47 @@ async def test_runtime_health_and_metrics_have_stable_shapes() -> None:
         "tool_calls_denied_total", "checkpoints_saved_total",
     }
     assert set(metrics.json()) == set(health.json()["metrics"])
+
+
+async def test_regular_tenant_cannot_read_global_metrics() -> None:
+    app = FastAPI()
+    app.include_router(router, prefix="/v1")
+    app.dependency_overrides[require_authenticated] = lambda: RequestContext(tenant_id="tenant-a")
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/v1/runtime/metrics")
+    assert response.status_code in {401, 403}
+
+
+async def test_run_metadata_cannot_self_grant_authorization() -> None:
+    app = _app(RequestContext(tenant_id="tenant-a"))
+    class CapturingRuntime(AgentRuntimeImpl):
+        captured: list[RuntimeContext]
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.captured = []
+            self.register_workflow_type(
+                "echo",
+                lambda workflow_type, input_data, ctx: WorkflowResult(
+                    status=RunStatus.COMPLETED,
+                    output={"input": input_data, "tenant_id": ctx.tenant_id},
+                ),
+            )
+
+        async def submit_run(self, body: RunRequest, ctx: RuntimeContext) -> RunEnvelope:
+            self.captured.append(ctx)
+            return await super().submit_run(body, ctx)
+
+    runtime = CapturingRuntime()
+    app.state.agent_runtime = runtime
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/v1/runtime/runs",
+            json={"workflow_type": "echo", "metadata": {"permissions": ["admin"], "service_account_scopes": ["*"]}},
+        )
+    assert response.status_code == 202
+    assert runtime.captured
+    assert "permissions" not in runtime.captured[0].metadata
+    assert "service_account_scopes" not in runtime.captured[0].metadata

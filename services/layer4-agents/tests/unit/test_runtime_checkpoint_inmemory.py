@@ -103,6 +103,15 @@ async def test_save_requires_tenant_and_fails_closed() -> None:
 
 
 @pytest.mark.asyncio
+async def test_load_and_list_require_tenant() -> None:
+    adapter = InMemoryCheckpointAdapter()
+    with pytest.raises(TenantRequiredError):
+        await adapter.load("run-1", "thread-1", "")
+    with pytest.raises(TenantRequiredError):
+        await adapter.list("run-1", "")
+
+
+@pytest.mark.asyncio
 async def test_load_without_checkpoint_id_returns_latest_for_thread() -> None:
     adapter = InMemoryCheckpointAdapter()
     await adapter.save(_checkpoint(checkpoint_id="run-1:state:aaaaaaaa", state_hash="aa" * 32), _payload())

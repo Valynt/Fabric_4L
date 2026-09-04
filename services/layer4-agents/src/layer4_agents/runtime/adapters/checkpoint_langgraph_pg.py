@@ -89,6 +89,8 @@ class PostgresCheckpointAdapter(CheckpointPort):
         *,
         checkpoint_id: str | None = None,
     ) -> tuple[Checkpoint, dict[str, Any]] | None:
+        if not tenant_id:
+            raise TenantRequiredError(details={"run_id": run_id, "thread_id": thread_id})
         stmt = select(RuntimeCheckpointRow).where(
             RuntimeCheckpointRow.tenant_id == tenant_id,
             RuntimeCheckpointRow.run_id == run_id,
@@ -104,6 +106,8 @@ class PostgresCheckpointAdapter(CheckpointPort):
         return _row_to_checkpoint(row), copy.deepcopy(row.state)
 
     async def list(self, run_id: str, tenant_id: str) -> list[Checkpoint]:
+        if not tenant_id:
+            raise TenantRequiredError(details={"run_id": run_id})
         stmt = (
             select(RuntimeCheckpointRow)
             .where(
