@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -127,16 +128,47 @@ def _compute_snapshot(manifests: list[Path]) -> tuple[str, str]:
     return snapshot_sha, registry_version
 
 
+def _select_input_commit_date(stdout: str, generated_prefix: str) -> str | None:
+    """Return the newest commit date whose changed files include input sources.
+
+    Parses ``git log --format=%cI --name-only`` output: each commit block is a
+    strict ISO date line followed by the changed file names. Commits whose
+    listed files all live under *generated_prefix* (the generated artifacts)
+    are skipped so the selected timestamp tracks input-source changes only.
+    """
+    date_line: str | None = None
+    touched_inputs = False
+    for raw in stdout.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if re.match(r"^\d{4}-\d{2}-\d{2}T", line):
+            if date_line is not None and touched_inputs:
+                return date_line
+            date_line = line
+            touched_inputs = False
+        elif date_line is not None and not line.startswith(generated_prefix):
+            touched_inputs = True
+    if date_line is not None and touched_inputs:
+        return date_line
+    return None
+
+
 def _git_generation_timestamp() -> str:
     """Deterministic generation timestamp in strict ISO 8601 (%cI).
 
-    Derived from the most recent commit that touched the *input* sources
-    (the manifests, policies, and schemas under ``contracts/tool-manifests``,
-    excluding the ``generated/`` artifacts). Deriving from the input sources --
-    rather than HEAD -- keeps the timestamp stable across later unrelated
-    commits, so regenerating at any newer HEAD is a no-op and the CI drift
-    check (``git diff --exit-code contracts/tool-manifests/generated``) does
-    not race with the commit timestamp.
+    Derived from the most recent commit that changed the *input* sources
+    (files under ``contracts/tool-manifests`` other than the ``generated/``
+    artifacts). Deriving from the input sources -- rather than HEAD --
+    keeps the timestamp stable across later unrelated commits, so
+    regenerating at any newer HEAD is a no-op and the CI drift check
+    (``git diff --exit-code contracts/tool-manifests/generated``) does not
+    race with commit timestamps.
+
+    The ``generated/`` exclusion is applied in Python rather than via git
+    ``:!`` pathspec magic: exclude magic combined with absolute pathspecs is
+    not portable across git builds (it is silently ignored by some Linux
+    gits), which previously produced nondeterministic timestamps in CI.
 
     Falls back to the current wall clock only when git metadata is unavailable
     (e.g. non-git checkouts), mirroring the loader's approach.
@@ -146,21 +178,22 @@ def _git_generation_timestamp() -> str:
             [
                 "git",
                 "log",
-                "-1",
                 "--format=%cI",
+                "--name-only",
                 "--",
-                str(MANIFESTS_DIR),
-                f":!{GENERATED_DIR}",
+                "contracts/tool-manifests",
             ],
+            cwd=REPO_ROOT,
             capture_output=True,
             text=True,
             encoding="utf-8",
             check=False,
         )
-        if out.returncode == 0 and out.stdout.strip():
-            return out.stdout.strip()
     except (OSError, subprocess.SubprocessError):
-        pass
+        return datetime.now(timezone.utc).isoformat()
+    date = _select_input_commit_date(out.stdout, "contracts/tool-manifests/generated/")
+    if out.returncode == 0 and date:
+        return date
     return datetime.now(timezone.utc).isoformat()
 
 

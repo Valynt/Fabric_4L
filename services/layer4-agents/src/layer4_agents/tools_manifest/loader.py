@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
@@ -295,6 +296,81 @@ def _load_policies(root: Path) -> tuple[dict[str, Any], dict[str, str]]:
     return policies, bindings
 
 
+def _select_input_commit_date(stdout: str, generated_prefix: str) -> str | None:
+    """Return the newest commit date whose changed files include input sources.
+
+    Parses ``git log --format=%cI --name-only`` output: each commit block is a
+    strict ISO date line followed by the changed file names. Commits whose
+    listed files all live under *generated_prefix* (the generated artifacts)
+    are skipped so the selected timestamp tracks input-source changes only.
+    """
+    date_line: str | None = None
+    touched_inputs = False
+    for raw in stdout.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if re.match(r"^\d{4}-\d{2}-\d{2}T", line):
+            if date_line is not None and touched_inputs:
+                return date_line
+            date_line = line
+            touched_inputs = False
+        elif date_line is not None and not line.startswith(generated_prefix):
+            touched_inputs = True
+    if date_line is not None and touched_inputs:
+        return date_line
+    return None
+
+
+def _deterministic_generation_at(root: Path) -> str:
+    """Generation timestamp derived from the last input-source commit.
+
+    The most recent commit that changed files under *root* other than the
+    ``generated/`` artifacts, in strict ISO 8601 (%cI). Deriving from the
+    input sources keeps the timestamp stable across later unrelated commits,
+    so the runtime loader and the CI generator agree.
+
+    The ``generated/`` exclusion is applied in Python rather than via git
+    ``:!`` pathspec magic: exclude magic combined with absolute pathspecs is
+    not portable across git builds (it is silently ignored by some Linux
+    gits), which previously produced nondeterministic timestamps in CI.
+
+    Falls back to the wall clock only when git metadata is unavailable
+    (e.g. non-git checkouts).
+    """
+    try:
+        ts = subprocess.run(
+            ["git", "log", "--format=%cI", "--name-only", "--", str(root)],
+            cwd=root,
+            capture_output=True,
+            text=True,
+        )
+        if ts.returncode != 0:
+            return datetime.now(UTC).isoformat()
+        top = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+        )
+        if top.returncode != 0 or not top.stdout.strip():
+            return datetime.now(UTC).isoformat()
+        generated_dir = (root / "generated").resolve()
+        try:
+            generated_prefix = generated_dir.relative_to(
+                Path(top.stdout.strip()).resolve()
+            ).as_posix() + "/"
+        except ValueError:
+            # generated/ outside the work tree: no artifact paths to exclude.
+            generated_prefix = "\x00"
+        date = _select_input_commit_date(ts.stdout, generated_prefix)
+        if date:
+            return date
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return datetime.now(UTC).isoformat()
+
+
 def load_manifests(
     manifests_dir: str | Path,
     *,
@@ -365,23 +441,11 @@ def load_manifests(
         report.add_pass(tool_id)
 
     # Build index
-    # Deterministic generation timestamp: the most recent commit that touched
-    # the *input* manifests (excluding the generated/ artifacts) in strict ISO
-    # 8601 (%cI). Deriving from the input sources -- rather than HEAD -- keeps
-    # the timestamp stable across later unrelated commits, so the loader and
-    # the CI generator agree and the drift check does not race with commit
-    # timestamps. Falls back to the wall clock only when git metadata is
-    # unavailable.
-    generated_dir = root / "generated"
-    ts = subprocess.run(
-        ["git", "log", "-1", "--format=%cI", "--", str(root), f":!{generated_dir}"],
-        cwd=root,
-        capture_output=True,
-        text=True,
-    )
-    generated_at = ts.stdout.strip() if ts.returncode == 0 else ""
-    if not generated_at:
-        generated_at = datetime.now(UTC).isoformat()
+    # Deterministic generation timestamp: the most recent commit that changed
+    # the *input* sources (files under *root* other than the ``generated/``
+    # artifacts), so the loader and the CI generator agree and the drift check
+    # does not race with commit timestamps. See _deterministic_generation_at.
+    generated_at = _deterministic_generation_at(root)
 
     # Compute registry snapshot version from the raw content of every validated
     # source manifest, so any manifest content change is reflected in the
