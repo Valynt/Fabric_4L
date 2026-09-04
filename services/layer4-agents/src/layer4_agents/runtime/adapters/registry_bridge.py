@@ -9,13 +9,12 @@ requiring a parallel registry implementation.
 
 from __future__ import annotations
 
-from contextvars import Token
 from typing import Any
 
 from value_fabric.shared.identity.context import (
     AUTH_SOURCE_SERVICE_ACCOUNT,
     RequestContext,
-    _current_context,
+    clear_current_context,
     get_request_context,
     set_request_context,
 )
@@ -105,16 +104,17 @@ class LegacyToolRegistryAdapter(ToolRegistryPort):
         runtime context's tenant rather than rejecting a raw string tenant_id.
         """
         input_dict = dict(arguments)
-        token: Token | None = None
+        synthesized = False
         try:
             if ctx is not None:
                 self._inject_envelope(input_dict, ctx)
                 if ctx.tenant_id and get_request_context() is None:
-                    token = set_request_context(self._build_execution_context(name, ctx))
+                    set_request_context(self._build_execution_context(name, ctx))
+                    synthesized = True
             legacy_result = await self._registry.execute(name, input_dict)
         finally:
-            if token is not None:
-                _current_context.reset(token)
+            if synthesized:
+                clear_current_context()
         return ToolResult(
             status=legacy_result.status,
             data=legacy_result.data,
