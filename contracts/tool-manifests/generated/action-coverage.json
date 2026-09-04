@@ -1,0 +1,25 @@
+{
+  "generated_at": "2026-09-02T11:41:58-04:00",
+  "snapshot_sha": "687ddc52ee4192cd",
+  "action_coverage": {
+    "billing:charge:read": [
+      "billing.charge.forecast"
+    ],
+    "billing:credit:write": [
+      "billing.credit.request_draft"
+    ],
+    "billing:invoice:read": [
+      "billing.invoice.explain"
+    ],
+    "billing:reconciliation:read": [
+      "billing.reconciliation.analyze"
+    ],
+    "billing:refund:write": [
+      "billing.refund.request_draft"
+    ],
+    "billing:subscription:write": [
+      "billing.subscription.change_draft"
+    ]
+  },
+  "uncovered_actions": []
+}

@@ -7250,6 +7250,60 @@
     },
     {
       "kind": "python-any",
+      "line": 23,
+      "path": "scripts/ci/generate_tool_index.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 40,
+      "path": "scripts/ci/generate_tool_index.py",
+      "text": "def _run_validator() -> tuple[bool, dict[str, Any]]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 59,
+      "path": "scripts/ci/generate_tool_index.py",
+      "text": "def _load_yaml(path: Path) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 68,
+      "path": "scripts/ci/generate_tool_index.py",
+      "text": "def _load_policies() -> list[dict[str, Any]]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 69,
+      "path": "scripts/ci/generate_tool_index.py",
+      "text": "policies: list[dict[str, Any]] = []"
+    },
+    {
+      "kind": "python-any",
+      "line": 77,
+      "path": "scripts/ci/generate_tool_index.py",
+      "text": "def _build_agent_class_bindings(policies: list[dict[str, Any]]) -> dict[str, str]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 91,
+      "path": "scripts/ci/generate_tool_index.py",
+      "text": "def _build_policy_map(policies: list[dict[str, Any]]) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 93,
+      "path": "scripts/ci/generate_tool_index.py",
+      "text": "out: dict[str, Any] = {}"
+    },
+    {
+      "kind": "python-any",
+      "line": 126,
+      "path": "scripts/ci/generate_tool_index.py",
+      "text": "manifests: list[dict[str, Any]] = []"
+    },
+    {
+      "kind": "python-any",
       "line": 19,
       "path": "scripts/ci/generate_workflow_registry.py",
       "text": "from typing import Any"
@@ -8045,6 +8099,66 @@
       "line": 42,
       "path": "scripts/ci/validate_production_readiness_manifest.py",
       "text": "suite: Any,"
+    },
+    {
+      "kind": "python-any",
+      "line": 19,
+      "path": "scripts/ci/validate_tool_registry.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 69,
+      "path": "scripts/ci/validate_tool_registry.py",
+      "text": "def _load_yaml(path: Path) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 74,
+      "path": "scripts/ci/validate_tool_registry.py",
+      "text": "def _load_json(path: Path) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 98,
+      "path": "scripts/ci/validate_tool_registry.py",
+      "text": "manifest: dict[str, Any],"
+    },
+    {
+      "kind": "python-any",
+      "line": 99,
+      "path": "scripts/ci/validate_tool_registry.py",
+      "text": "schema: dict[str, Any],"
+    },
+    {
+      "kind": "python-any",
+      "line": 250,
+      "path": "scripts/ci/validate_tool_registry.py",
+      "text": "def _validate_policy(policy: dict[str, Any], report: Report, source_path: str) -> None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 278,
+      "path": "scripts/ci/validate_tool_registry.py",
+      "text": "manifests: list[dict[str, Any]], policies: list[dict[str, Any]], report: Report"
+    },
+    {
+      "kind": "python-any",
+      "line": 320,
+      "path": "scripts/ci/validate_tool_registry.py",
+      "text": "manifests: list[dict[str, Any]], policies: list[dict[str, Any]], report: Report"
+    },
+    {
+      "kind": "python-any",
+      "line": 379,
+      "path": "scripts/ci/validate_tool_registry.py",
+      "text": "manifest_dicts: list[dict[str, Any]] = []"
+    },
+    {
+      "kind": "python-any",
+      "line": 409,
+      "path": "scripts/ci/validate_tool_registry.py",
+      "text": "policy_dicts: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
@@ -36707,6 +36821,90 @@
       "line": 48,
       "path": "services/layer4-agents/src/layer4_agents/tools/utility_tools.py",
       "text": "normalized: dict[str, Any] = {}"
+    },
+    {
+      "kind": "python-any",
+      "line": 22,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/loader.py",
+      "text": "from typing import Any, cast"
+    },
+    {
+      "kind": "python-any",
+      "line": 55,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/loader.py",
+      "text": "def _load_json_schema(path: Path) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 57,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/loader.py",
+      "text": "return cast(\"dict[str, Any]\", json.load(fh))"
+    },
+    {
+      "kind": "python-any",
+      "line": 60,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/loader.py",
+      "text": "def _load_yaml(path: Path) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 62,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/loader.py",
+      "text": "return cast(\"dict[str, Any]\", yaml.safe_load(fh))"
+    },
+    {
+      "kind": "python-any",
+      "line": 118,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/loader.py",
+      "text": "def to_dict(self) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 132,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/loader.py",
+      "text": "def _check_caller_selected_tenant_authority(raw: dict[str, Any]) -> list[str]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 158,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/loader.py",
+      "text": "raw: dict[str, Any],"
+    },
+    {
+      "kind": "python-any",
+      "line": 159,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/loader.py",
+      "text": "manifest_schema: dict[str, Any],"
+    },
+    {
+      "kind": "python-any",
+      "line": 220,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/loader.py",
+      "text": "def _load_policies(root: Path) -> tuple[dict[str, Any], dict[str, str]]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 254,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/loader.py",
+      "text": "manifest_schema: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 255,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/loader.py",
+      "text": "registry_schema: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 16,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/models.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 174,
+      "path": "services/layer4-agents/src/layer4_agents/tools_manifest/models.py",
+      "text": "provenance: dict[str, Any] | None = Field(None, description=\"Provenance metadata\")"
     },
     {
       "kind": "python-any",

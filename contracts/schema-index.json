@@ -351,6 +351,71 @@
       "title": "validate_input"
     },
     {
+      "path": "contracts/tool-manifests/tool-manifest.schema.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/tool-manifest.schema.json",
+      "title": "Fabric 4L Tool Manifest"
+    },
+    {
+      "path": "contracts/tool-manifests/registry.schema.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/registry.schema.json",
+      "title": "Fabric 4L Tool Registry Index"
+    },
+    {
+      "path": "contracts/tool-manifests/registry.yaml",
+      "id": "contract:contracts/tool-manifests/registry.yaml",
+      "title": "ToolRegistryExample"
+    },
+    {
+      "path": "contracts/tool-manifests/billing/invoice-explain.tool.yaml",
+      "id": "contract:contracts/tool-manifests/billing/invoice-explain.tool.yaml",
+      "title": "BillingInvoiceExplain"
+    },
+    {
+      "path": "contracts/tool-manifests/billing/charge-forecast.tool.yaml",
+      "id": "contract:contracts/tool-manifests/billing/charge-forecast.tool.yaml",
+      "title": "BillingChargeForecast"
+    },
+    {
+      "path": "contracts/tool-manifests/billing/subscription-change-draft.tool.yaml",
+      "id": "contract:contracts/tool-manifests/billing/subscription-change-draft.tool.yaml",
+      "title": "BillingSubscriptionChangeDraft"
+    },
+    {
+      "path": "contracts/tool-manifests/billing/credit-request-draft.tool.yaml",
+      "id": "contract:contracts/tool-manifests/billing/credit-request-draft.tool.yaml",
+      "title": "BillingCreditRequestDraft"
+    },
+    {
+      "path": "contracts/tool-manifests/billing/refund-request-draft.tool.yaml",
+      "id": "contract:contracts/tool-manifests/billing/refund-request-draft.tool.yaml",
+      "title": "BillingRefundRequestDraft"
+    },
+    {
+      "path": "contracts/tool-manifests/billing/reconciliation-analysis.tool.yaml",
+      "id": "contract:contracts/tool-manifests/billing/reconciliation-analysis.tool.yaml",
+      "title": "BillingReconciliationAnalysis"
+    },
+    {
+      "path": "contracts/tool-manifests/policies/billing-agent-policy.yaml",
+      "id": "contract:contracts/tool-manifests/policies/billing-agent-policy.yaml",
+      "title": "BillingAgentPolicy"
+    },
+    {
+      "path": "contracts/tool-manifests/policies/general-agent-policy.yaml",
+      "id": "contract:contracts/tool-manifests/policies/general-agent-policy.yaml",
+      "title": "GeneralAgentPolicy"
+    },
+    {
+      "path": "contracts/tool-manifests/generated/layer4-tool-index.json",
+      "id": "contract:contracts/tool-manifests/generated/layer4-tool-index.json",
+      "title": "Layer4ToolIndex"
+    },
+    {
+      "path": "contracts/tool-manifests/generated/action-coverage.json",
+      "id": "contract:contracts/tool-manifests/generated/action-coverage.json",
+      "title": "ToolActionCoverage"
+    },
+    {
       "path": "contracts/frontend/01-api-boundary-contract.md",
       "id": "contract:contracts/frontend/01-api-boundary-contract.md"
     },
