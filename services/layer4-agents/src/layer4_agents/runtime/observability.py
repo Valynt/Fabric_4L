@@ -52,6 +52,11 @@ _KIND_TO_STATUS = {
     RUN_CANCELLED: RunStatus.CANCELLED.value,
 }
 
+#: Default bound on distinct labels tracked per label map. Beyond the cap,
+#: aggregate totals keep counting but new labels are no longer tracked
+#: individually, so in-process memory grows to a fixed ceiling.
+DEFAULT_MAX_LABEL_CARDINALITY = 1024
+
 
 class RuntimeMetrics:
     """Thread-safe counters derived from the runtime event stream.
@@ -61,9 +66,24 @@ class RuntimeMetrics:
     type as internal-only label maps (aggregate counts keyed by label;
     no per-tenant content values). Tool counters are not tenant-labeled
     to bound cardinality.
+
+    Every label map is cardinality-capped at ``max_label_cardinality``
+    distinct keys (default 1024). Once the cap is reached, aggregate
+    totals keep counting all events while previously-tracked labels
+    continue to be updated; new labels are simply not tracked. This
+    bounds memory usage in production where tenant and workflow-type
+    cardinality is open-ended.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self, *, max_label_cardinality: int = DEFAULT_MAX_LABEL_CARDINALITY
+    ) -> None:
+        if max_label_cardinality < 1:
+            raise ValueError(
+                "max_label_cardinality must be a positive integer, got "
+                f"{max_label_cardinality}"
+            )
+        self._max_label_cardinality = max_label_cardinality
         self._lock = threading.Lock()
         self._runs_started_total = 0
         self._runs_started_by_tenant: dict[str, int] = {}
@@ -112,8 +132,16 @@ class RuntimeMetrics:
                 self._checkpoints_saved_total += 1
             # Unknown kinds belong to other observers and are ignored.
 
-    @staticmethod
-    def _bump(counter: dict[str, int], key: str) -> None:
+    def _bump(self, counter: dict[str, int], key: str) -> None:
+        """Increment a label counter under an explicit cardinality cap.
+
+        Once ``len(counter)`` reaches ``max_label_cardinality`` and ``key``
+        is not already tracked, the label is skipped: aggregate totals
+        (maintained by the callers) keep counting, but the map stops
+        growing so memory stays bounded.
+        """
+        if key not in counter and len(counter) >= self._max_label_cardinality:
+            return
         counter[key] = counter.get(key, 0) + 1
 
     def snapshot(self) -> dict[str, Any]:

@@ -196,6 +196,66 @@ async def test_runtime_metrics_snapshot_returns_a_copy_not_live_state() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Label-map cardinality cap
+# ---------------------------------------------------------------------------
+
+
+async def test_runtime_metrics_caps_tenant_label_cardinality() -> None:
+    metrics = RuntimeMetrics(max_label_cardinality=2)
+    for tenant in ("tenant-a", "tenant-b", "tenant-c"):
+        await metrics.publish(_event(kind=RUN_STARTED, tenant_id=tenant))
+
+    snapshot = metrics.snapshot()
+    # Totals count every run; the label map stops growing past the cap.
+    assert snapshot["runs_started_total"] == 3
+    assert snapshot["runs_started_by_tenant"] == {"tenant-a": 1, "tenant-b": 1}
+
+
+async def test_runtime_metrics_capped_labels_keep_counting_tracked_tenants() -> None:
+    metrics = RuntimeMetrics(max_label_cardinality=2)
+    await metrics.publish(_event(kind=RUN_STARTED, tenant_id="tenant-a"))
+    await metrics.publish(_event(kind=RUN_STARTED, tenant_id="tenant-b"))
+    # tenant-c exceeds the cap and is not tracked individually...
+    await metrics.publish(_event(kind=RUN_STARTED, tenant_id="tenant-c"))
+    # ...while already-tracked labels continue to be updated.
+    await metrics.publish(_event(kind=RUN_STARTED, tenant_id="tenant-a"))
+
+    snapshot = metrics.snapshot()
+    assert snapshot["runs_started_total"] == 4
+    assert snapshot["runs_started_by_tenant"] == {"tenant-a": 2, "tenant-b": 1}
+
+
+async def test_runtime_metrics_caps_workflow_type_label_cardinality() -> None:
+    metrics = RuntimeMetrics(max_label_cardinality=2)
+    for workflow_type in ("roi", "audit", "business_case"):
+        await metrics.publish(
+            _event(kind=RUN_STARTED, workflow_type=workflow_type)
+        )
+
+    snapshot = metrics.snapshot()
+    assert snapshot["runs_started_total"] == 3
+    assert snapshot["runs_started_by_workflow_type"] == {"roi": 1, "audit": 1}
+
+
+async def test_runtime_metrics_caps_tool_label_cardinality() -> None:
+    metrics = RuntimeMetrics(max_label_cardinality=2)
+    for tool_name in ("search", "summarize", "export"):
+        await metrics.publish(_event(kind=TOOL_CALLED, tool_name=tool_name))
+
+    snapshot = metrics.snapshot()
+    # Aggregate tool totals are uncapped; the per-tool map stops at the cap.
+    assert snapshot["tool_calls_total"] == 3
+    assert snapshot["tool_calls_by_tool"] == {"search": 1, "summarize": 1}
+
+
+def test_runtime_metrics_rejects_non_positive_cardinality_cap() -> None:
+    with pytest.raises(ValueError):
+        RuntimeMetrics(max_label_cardinality=0)
+    with pytest.raises(ValueError):
+        RuntimeMetrics(max_label_cardinality=-1)
+
+
+# ---------------------------------------------------------------------------
 # find_stale_runs
 # ---------------------------------------------------------------------------
 
