@@ -12,7 +12,6 @@
 import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { FabricDialog } from "@/components/ui/fabric/FabricDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,44 +19,10 @@ import { Textarea } from "@/components/ui/textarea";
 import type { DecisionRequestProjection } from "../types";
 import type { EditDecisionDraft } from "../intentPreview";
 import { formatMoneyAnnual } from "../viewModel";
-
-export function buildEditDecisionSchema(
-  recommendedWorkingHours: number,
-  recommendedAltHours: number,
-) {
-  return z
-    .object({
-      workingHours: z
-        .number({ error: "Enter the working target as a number." })
-        .int("Working target must be a whole number of hours.")
-        .positive("Working target must be above zero.")
-        .max(100_000, "Working target is unreasonably large."),
-      alternativeHours: z
-        .number({ error: "Enter the alternative as a number." })
-        .int("Alternative must be a whole number of hours.")
-        .positive("Alternative must be above zero.")
-        .max(100_000, "Alternative is unreasonably large.")
-        .optional(),
-      alternativeScope: z.string().trim().max(200, "Keep the scope note under 200 characters.").optional(),
-      rationale: z.string().trim().max(2_000, "Keep the rationale under 2,000 characters."),
-    })
-    .superRefine((values, ctx) => {
-      const departsFromRecommendation =
-        values.workingHours !== recommendedWorkingHours ||
-        (typeof values.alternativeHours === "number" &&
-          values.alternativeHours !== recommendedAltHours);
-      if (departsFromRecommendation && values.rationale.length === 0) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["rationale"],
-          message:
-            "A rationale is required when the edit departs from Flo's recommendation.",
-        });
-      }
-    });
-}
-
-type EditDecisionFormValues = z.infer<ReturnType<typeof buildEditDecisionSchema>>;
+import {
+  buildEditDecisionSchema,
+  type EditDecisionFormValues,
+} from "./editDecisionSchema";
 
 export interface EditDecisionFormProps {
   readonly decision: DecisionRequestProjection;
