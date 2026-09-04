@@ -189,6 +189,8 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false  # Gradual ratchet - set to true when ready
 ignore_missing_imports = true
+# Keep results deterministic when optional third-party stub wheels are absent.
+disable_error_code = ["import-untyped"]
 # Error report for CI
 show_error_codes = true
 show_column_numbers = true
