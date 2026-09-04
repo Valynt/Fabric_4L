@@ -144,7 +144,7 @@ async def list_tools(
         try:
             cat = ToolCategory(category.lower())
         except ValueError:
-            raise ValidationError(message=str(f"Invalid category: {category}"))
+            raise ValidationError(message=f"Invalid category: {category}")
 
     tools = registry.list_tools(category=cat, search=search)
 
@@ -169,7 +169,7 @@ async def get_tool_schema(
     """Get detailed schema for a specific tool."""
     authorize_action("layer4.tools.read_schema", ctx)
     if not registry.has_tool(tool_name):
-        raise NotFoundError(message=str(f"Tool '{tool_name}' not found"))
+        raise NotFoundError(message=f"Tool '{tool_name}' not found")
 
     tool = registry.get(tool_name)
     schema = tool.get_schema()
@@ -206,7 +206,7 @@ async def invoke_tool(
     """
     authorize_action("layer4.tools.invoke", ctx)
     if not registry.has_tool(request.tool_name):
-        raise NotFoundError(message=str(f"Tool '{request.tool_name}' not found"))
+        raise NotFoundError(message=f"Tool '{request.tool_name}' not found")
 
     try:
         # ── GATE enforcement: route through ToolGateway; never fall back to ungoverned execution ──
@@ -350,7 +350,7 @@ async def export_document_tool(
         )
 
         if not result:
-            raise NotFoundError(message=str(f"Business case {request.business_case_id} not found"))
+            raise NotFoundError(message=f"Business case {request.business_case_id} not found")
 
         # Extract business case data
         output = result.get("output", {})
