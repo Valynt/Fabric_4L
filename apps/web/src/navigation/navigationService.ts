@@ -235,9 +235,9 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
   "context-source-detail": { path: "/t/:tenantSlug/context/sources/:sourceId", params: ["tenantSlug", "sourceId"], analyticsRouteId: "context.source-detail" },
   "context-entities": { path: "/t/:tenantSlug/context/entities", params: ["tenantSlug"], analyticsRouteId: "context.entities" },
   "context-entity-detail": { path: "/t/:tenantSlug/context/entities/:entityId", params: ["tenantSlug", "entityId"], analyticsRouteId: "context.entity-detail" },
-  "context-graph": { path: "/t/:tenantSlug/context/ontology/graph", params: ["tenantSlug"], analyticsRouteId: "context.graph" },
-  "context-ingestion-runs": { path: "/t/:tenantSlug/context/ingestion/jobs", params: ["tenantSlug"], analyticsRouteId: "context.ingestion-jobs" },
-  "context-ingestion-run-detail": { path: "/t/:tenantSlug/context/ingestion/jobs/:runId", params: ["tenantSlug", "runId"], analyticsRouteId: "context.ingestion-run-detail" },
+  "context-graph": { path: "/t/:tenantSlug/context/graph", params: ["tenantSlug"], analyticsRouteId: "context.graph" },
+  "context-ingestion-runs": { path: "/t/:tenantSlug/context/ingestion-runs", params: ["tenantSlug"], analyticsRouteId: "context.ingestion-runs" },
+  "context-ingestion-run-detail": { path: "/t/:tenantSlug/context/ingestion-runs/:runId", params: ["tenantSlug", "runId"], analyticsRouteId: "context.ingestion-run-detail" },
   "context-extraction": { path: "/t/:tenantSlug/context/extraction", params: ["tenantSlug"], analyticsRouteId: "context.extraction" },
   "context-ontology": { path: "/t/:tenantSlug/context/ontology", params: ["tenantSlug"], analyticsRouteId: "context.ontology" },
   "context-agents": { path: "/t/:tenantSlug/context/agents", params: ["tenantSlug"], analyticsRouteId: "context.agents" },
@@ -262,13 +262,13 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
 
   // Agents & Workflows
   agents: { path: "/t/:tenantSlug/accounts/:accountId/agents", params: ["tenantSlug", "accountId"], analyticsRouteId: "agents.console" },
-  "agents-thread": { path: "/t/:tenantSlug/accounts/:accountId/agents/threads/:threadId", params: ["tenantSlug", "accountId", "threadId"], analyticsRouteId: "agents.thread" },
+  "agents-thread": { path: "/t/:tenantSlug/accounts/:accountId/agents/threads/:threadId", params: ["tenantSlug", "accountId"], analyticsRouteId: "agents.thread" },
   workflows: { path: "/t/:tenantSlug/accounts/:accountId/workflows", params: ["tenantSlug", "accountId"], analyticsRouteId: "agents.workflows" },
   "workflow-run": { path: "/t/:tenantSlug/accounts/:accountId/workflows/:workflowRunId", params: ["tenantSlug", "accountId", "workflowRunId"], analyticsRouteId: "agents.workflow-run" },
 
   // Academy (tenant-scoped)
   academy: { path: "/t/:tenantSlug/academy", params: ["tenantSlug"], analyticsRouteId: "academy.workspace" },
-  "academy-pillar": { path: "/t/:tenantSlug/academy/pillars/:pillarId", params: ["tenantSlug", "pillarId"], analyticsRouteId: "academy.pillar" },
+  "academy-pillar": { path: "/t/:tenantSlug/academy/pillars/:pillarId", params: ["tenantSlug"], analyticsRouteId: "academy.pillar" },
   "academy-quiz": { path: "/t/:tenantSlug/academy/pillars/:pillarId/quiz", params: ["tenantSlug", "pillarId"], analyticsRouteId: "academy.quiz" },
   "academy-resources": { path: "/t/:tenantSlug/academy/resources", params: ["tenantSlug"], analyticsRouteId: "academy.resources" },
   "academy-profile": { path: "/t/:tenantSlug/academy/profile", params: ["tenantSlug"], analyticsRouteId: "academy.profile" },
@@ -281,14 +281,14 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
   "settings-sessions": { path: "/settings/sessions", analyticsRouteId: "settings.sessions" },
   "settings-activity": { path: "/settings/activity", analyticsRouteId: "settings.activity" },
 
-  // Settings — Tenant (tenant-scoped)
+  // Settings — Tenant
   "tenant-settings": { path: "/t/:tenantSlug/settings", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.workspace" },
   "tenant-settings-workspace": { path: "/t/:tenantSlug/settings/workspace", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.workspace-profile" },
   "tenant-settings-billing": { path: "/t/:tenantSlug/settings/billing", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.billing" },
   "tenant-settings-subscription": { path: "/t/:tenantSlug/settings/billing/subscription", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.subscription" },
-  "tenant-settings-usage": { path: "/t/:tenantSlug/settings/billing/usage", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.usage" },
-  "tenant-settings-payment-methods": { path: "/t/:tenantSlug/settings/billing/payment-methods", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.payment-methods" },
-  "tenant-settings-invoices": { path: "/t/:tenantSlug/settings/billing/invoices", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.invoices" },
+  "tenant-settings-usage": { path: "/t/:tenantSlug/settings/usage", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.usage" },
+  "tenant-settings-payment-methods": { path: "/t/:tenantSlug/settings/payment-methods", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.payment-methods" },
+  "tenant-settings-invoices": { path: "/t/:tenantSlug/settings/invoices", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.invoices" },
   "tenant-settings-users": { path: "/t/:tenantSlug/settings/users", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.users" },
   "tenant-settings-roles": { path: "/t/:tenantSlug/settings/roles", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.roles" },
   "tenant-settings-permissions": { path: "/t/:tenantSlug/settings/permissions", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.permissions" },
