@@ -26528,30 +26528,6 @@
     },
     {
       "kind": "python-any",
-      "line": 16,
-      "path": "services/layer4-agents/src/layer4_agents/api/runtime_state.py",
-      "text": "from typing import TYPE_CHECKING, Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 30,
-      "path": "services/layer4-agents/src/layer4_agents/api/runtime_state.py",
-      "text": "agent_runtime: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 31,
-      "path": "services/layer4-agents/src/layer4_agents/api/runtime_state.py",
-      "text": "runtime_metrics: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 37,
-      "path": "services/layer4-agents/src/layer4_agents/api/runtime_state.py",
-      "text": "gate_timeout_scheduler: Any | None = None"
-    },
-    {
-      "kind": "python-any",
       "line": 13,
       "path": "services/layer4-agents/src/layer4_agents/api/schemas/accounts.py",
       "text": "from typing import Any"

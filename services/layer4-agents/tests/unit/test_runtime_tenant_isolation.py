@@ -57,7 +57,7 @@ async def _completed_factory(
 
 
 async def _paused_factory(
-    workflow_type: str, input_data: dict[str, Any], ctx: RuntimeContext
+    workflow_type: str, input_data: dict[str, object], ctx: RuntimeContext
 ) -> WorkflowResult:
     return WorkflowResult(status=RunStatus.PAUSED)
 
@@ -172,7 +172,7 @@ async def test_cancel_run_rejects_terminal_run_and_preserves_history() -> None:
     runtime = AgentRuntimeImpl()
     runtime.register_workflow_type("demo", _completed_factory)
     envelope = await runtime.submit_run(RunRequest(workflow_type="demo"), _ctx(tenant_id="tenant-a"))
-    run_id = envelope.run_id  # type: ignore[no-any-return]
+    run_id = envelope.run_id
 
     with pytest.raises(AgentRuntimeError) as exc_info:
         await runtime.cancel_run(run_id, "tenant-a")
