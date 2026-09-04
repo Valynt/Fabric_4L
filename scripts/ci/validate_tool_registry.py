@@ -252,8 +252,10 @@ def _validate_manifest(
             )
         )
 
-# manifests_valid reflects manifests that pass schema AND every policy/cross-
-    # reference check, not just schema validation (see comment 3915922764).
+    # manifests_valid reflects manifests that pass schema AND every policy/cross-
+    # reference check, not just schema validation.
+    if any(v.severity == "error" and v.path == source_path for v in report.violations):
+        valid = False
     if valid:
         report.manifests_valid += 1
 

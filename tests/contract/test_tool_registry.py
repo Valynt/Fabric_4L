@@ -289,9 +289,9 @@ def _summary(
         financial_state_change=(
             side_effect
             in {
-                SideEffectClass.REVERSIBLE_MUTATION,
-                SideEffectClass.PROTECTED_MUTATION,
-                SideEffectClass.IRREVERSIBLE,
+                SideEffectClass.REVERSIBLE_MUTATION.value,
+                SideEffectClass.PROTECTED_MUTATION.value,
+                SideEffectClass.IRREVERSIBLE.value,
             }
         ),
         supported_agent_classes=supported,
