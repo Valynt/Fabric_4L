@@ -1,6 +1,6 @@
 {
   "goal_id": "phase6-runtime-hardening",
-  "status": "passed",
+  "status": "completed",
   "iteration": 5,
   "builder_model": "GPT:5.6-Luna",
   "inspector_model": "GPT:5.6-Sol",
