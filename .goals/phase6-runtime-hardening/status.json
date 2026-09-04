@@ -21,6 +21,11 @@
       "iteration": 3,
       "verdict": "FAIL",
       "summary": "All gates pass and Layer 7 is resolved, but tenant/authz hardening gaps remain in runtime metadata, metrics, and checkpoints."
+    },
+    {
+      "iteration": 4,
+      "verdict": "FAIL",
+      "summary": "Global metrics remain exposed through health, and contract freshness fails after the authz change."
     }
   ]
 }
