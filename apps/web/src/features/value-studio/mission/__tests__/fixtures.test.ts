@@ -222,7 +222,7 @@ describe("error state", () => {
     const view = getValueStudioFixture("error").view;
     expect(view).toEqual({
       kind: "error",
-      message: "The value case could not be loaded.",
+      message: "The Value Studio projection could not be loaded.",
       correlationId: "corr_fixture_error_01",
       retryable: true,
     });
