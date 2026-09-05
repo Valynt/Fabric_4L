@@ -1,0 +1,18 @@
+apiVersion: fabric.skill/v1
+kind: Skill
+metadata:
+  name: code-quality-improvement
+  version: '2026-06-25'
+  description: Use this skill when functional code needs a focused production-quality
+    pass. The goal is not broad refactoring; it is to
+  category: engineering
+compatibleAgents:
+- claude-code
+- copilot
+- cursor
+- windsurf
+- opencode
+- openclaw
+- hermes
+deprecatedSince: null
+source: SKILL.md

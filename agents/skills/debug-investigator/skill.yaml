@@ -1,0 +1,17 @@
+apiVersion: fabric.skill/v1
+kind: Skill
+metadata:
+  name: debug-investigator
+  version: '2026-01-01'
+  description: Follow this loop every time. Jumping straight to "fix" without reproducing
+  category: engineering
+compatibleAgents:
+- claude-code
+- copilot
+- cursor
+- windsurf
+- opencode
+- openclaw
+- hermes
+deprecatedSince: null
+source: SKILL.md

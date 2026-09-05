@@ -1,0 +1,18 @@
+apiVersion: fabric.skill/v1
+kind: Skill
+metadata:
+  name: data-flywheel
+  version: '2026-04-25'
+  description: Use this skill when a user wants to turn repeated human-approved agent
+    work
+  category: operations
+compatibleAgents:
+- claude-code
+- copilot
+- cursor
+- windsurf
+- opencode
+- openclaw
+- hermes
+deprecatedSince: null
+source: SKILL.md

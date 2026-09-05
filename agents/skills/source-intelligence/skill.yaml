@@ -1,0 +1,18 @@
+apiVersion: fabric.skill/v1
+kind: Skill
+metadata:
+  name: source-intelligence
+  version: '2026-05-13'
+  description: Layer 1's reasoning procedure for transforming raw external/internal
+    company materials into structured, provenance-backe
+  category: engineering
+compatibleAgents:
+- claude-code
+- copilot
+- cursor
+- windsurf
+- opencode
+- openclaw
+- hermes
+deprecatedSince: null
+source: SKILL.md

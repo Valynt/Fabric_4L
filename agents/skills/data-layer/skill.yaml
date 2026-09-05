@@ -1,0 +1,18 @@
+apiVersion: fabric.skill/v1
+kind: Skill
+metadata:
+  name: data-layer
+  version: '2026-04-26'
+  description: Use this skill when the user wants to measure agent activity across
+    Claude Code,
+  category: operations
+compatibleAgents:
+- claude-code
+- copilot
+- cursor
+- windsurf
+- opencode
+- openclaw
+- hermes
+deprecatedSince: null
+source: SKILL.md
