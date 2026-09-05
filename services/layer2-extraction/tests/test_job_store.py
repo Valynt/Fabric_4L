@@ -88,7 +88,7 @@ class TestInMemoryJobStoreSetGet:
         store = InMemoryJobStore()
         job = _job("j1")
         await store.set_job(job)
-        updated = PipelineJob(job_id="j1", extraction_status="completed")
+        updated = PipelineJob(job_id="j1", tenant_id="t1", extraction_status="completed")
         await store.set_job(updated)
         retrieved = await store.get_job("j1")
         assert retrieved.extraction_status == "completed"
@@ -217,6 +217,7 @@ class TestRedisJobStoreMocked:
         from layer2_extraction.integration.job_store import RedisJobStore
 
         mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=None)
         mock_redis.setex = AsyncMock()
 
         with patch("redis.asyncio.from_url", return_value=mock_redis):
