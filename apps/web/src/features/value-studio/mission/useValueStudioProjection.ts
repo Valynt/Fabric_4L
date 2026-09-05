@@ -66,7 +66,7 @@ export function useValueStudioProjection(
     isLoading: query.isLoading,
     error: query.error ? normalizeProjectionError(query.error) : null,
     refetch: () => {
-      void query.refetch();
+      void query.refetch().catch(() => undefined);
     },
   };
 }
