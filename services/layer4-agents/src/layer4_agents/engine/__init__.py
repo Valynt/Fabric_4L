@@ -2,8 +2,16 @@ from __future__ import annotations
 
 """Engine package for workflow execution."""
 
+import warnings
 from importlib import import_module
 from typing import Any
+
+warnings.warn(
+    "layer4_agents.engine is a legacy compatibility package; use "
+    "layer4_agents.runtime and its adapters for new integrations.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 _EXPORTS = {
     "LegacyTaskExecutionAdapter": "layer4_agents.adapters.task_execution",

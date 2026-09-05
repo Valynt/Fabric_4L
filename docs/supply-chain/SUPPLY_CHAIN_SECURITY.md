@@ -87,7 +87,7 @@ Fabric_4L/
 │       ├── identity/          # Cross-layer auth (JWT, API keys, RBAC)
 │       ├── audit/             # Append-only audit log (DB trigger-enforced)
 │       └── testability/       # DI primitives (Clock, IDGenerator, HTTPClient)
-├── AGENTS.md                  # AI agent contributor guide
+├── AGENTS.md                  # Concise agent entry point
 ├── Architecture.md            # System architecture overview
 ├── SECURITY.md                # Security policy and vulnerability reporting
 └── Makefile                   # 31 automation targets
@@ -97,7 +97,7 @@ Fabric_4L/
 
 | File | Purpose |
 |------|---------|
-| `AGENTS.md` | AI agent safety rules (P0/P1 change constraints) |
+| `AGENTS.md` | Workspace package map and scoped guidance links |
 | `Architecture.md` | 6-layer pipeline architecture |
 | `SECURITY.md` | Vulnerability reporting, security design principles |
 | `CONTRIBUTING.md` | Contribution workflow and standards |

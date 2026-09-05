@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 
 from value_fabric.shared.probes import normalize_probe_response
 
@@ -26,7 +27,10 @@ async def health_check() -> dict[str, object]:
         "readiness",
         {"is_ready": False, "reason": "neo4j_uninitialized"},
     )
-    return normalize_probe_response(result, default_service="layer2-extraction")
+    return cast(
+        dict[str, object],
+        normalize_probe_response(result, default_service="layer2-extraction"),
+    )
 
 
 async def readiness_check() -> dict[str, str]:

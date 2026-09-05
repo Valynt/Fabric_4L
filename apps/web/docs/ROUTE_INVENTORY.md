@@ -97,7 +97,7 @@ These routes render inside `GlobalLayout` + `RequireClerkAuth`.
 > `StudioShell` is the single chrome owner: it renders the account header, canonical tab bar, AI right rail, and active tab content.
 > Individual Studio page components render only page-specific content; they do not render their own headers, tab bars, or right rails.
 > Tab definitions (labels, order, visibility, right-rail mapping) are sourced from `studioTabRegistry.ts`.
-> NAV_SCHEMA lists 7 active sub-tabs; router handles them via a single dynamic route.
+> NAV_SCHEMA lists 8 sub-tabs: 7 active plus the prototype-gated `mission` tab (FE-VOS-STUDIO-001); the router handles all of them via the single dynamic `:tabId` route below.
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
@@ -108,6 +108,7 @@ These routes render inside `GlobalLayout` + `RequireClerkAuth`.
 
 | Tab ID | Label | Tier | Explicit Router Entry? | Right Rail |
 |--------|-------|------|------------------------|------------|
+| `mission` | Mission | standard | No (handled by `:tabId`); prototype-gated — visible only when `VITE_ENABLE_VS_MISSION_PROTOTYPE=true` | Detail panel (decision rail injected via shell) + agent stream |
 | `action-plan` | Action Plan | standard | No (handled by `:tabId`) | Agent stream |
 | `value-model` | Value Model | standard | No (handled by `:tabId`) | Agent stream |
 | `driver-tree` | Driver Tree | standard | No (handled by `:tabId`) | Agent stream |

@@ -24,6 +24,7 @@ from uuid import UUID
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.errors import NodeInterrupt
 from opentelemetry import trace
+from pydantic import ValidationError
 from value_fabric.shared.identity.context import (
     RequestContext,
     _current_context,
@@ -648,16 +649,8 @@ class OrchestrationController:
             checkpoint_interval=checkpoint_interval,
         )
 
-    async def get_result(self, workflow_id: str) -> dict[str, Any] | None:
-        """Get a durable workflow result by workflow ID.
-
-        Reads persisted workflow state via ``StateManager`` and returns a
-        route-friendly shape used by analysis/tools endpoints.
-        """
-        state = await self.state_manager.load_state(workflow_id)
-        if not state:
-            return None
-
+    def _build_result_from_state(self, state: AgentState) -> OrchestrationController_get_resultResult:
+        """Serialize persisted workflow state into the route-facing result shape."""
         persisted_metadata = dict(state.metadata or {})
         if "workflow_id" not in persisted_metadata:
             persisted_metadata["workflow_id"] = state.workflow_id
@@ -687,6 +680,47 @@ class OrchestrationController:
                 "completed_at": self._fmt_dt(state.completed_at),
             }
         )
+
+    async def _load_result_state(self, workflow_id: str) -> AgentState | None:
+        """Load persisted state for result retrieval, failing closed on malformed ownership metadata."""
+        try:
+            return await self.state_manager.load_state(workflow_id)
+        except (ValidationError, ValueError) as exc:
+            logger.warning(
+                "Failed to load persisted workflow result state",
+                extra={"workflow_id": workflow_id, "error_type": type(exc).__name__},
+                exc_info=True,
+            )
+            return None
+
+    async def get_result(
+        self, workflow_id: str
+    ) -> OrchestrationController_get_resultResult | None:
+        """Get a durable workflow result by workflow ID.
+
+        Reads persisted workflow state via ``StateManager`` and returns a
+        route-friendly shape used by analysis/tools endpoints.
+        """
+        state = await self._load_result_state(workflow_id)
+        if not state:
+            return None
+        return self._build_result_from_state(state)
+
+    async def get_result_for_tenant(
+        self,
+        workflow_id: str,
+        tenant_id: str,
+    ) -> OrchestrationController_get_resultResult | None:
+        """Return a durable workflow result only when authoritative tenant ownership matches."""
+        state = await self._load_result_state(workflow_id)
+        if not state:
+            return None
+
+        owner_tenant = getattr(state, "tenant_id", None)
+        if not owner_tenant or str(owner_tenant) != str(tenant_id):
+            return None
+
+        return self._build_result_from_state(state)
 
     async def schedule_workflow(
         self,

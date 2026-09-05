@@ -1,0 +1,87 @@
+tool_id: "billing.refund.request_draft"
+version: "1.0.0"
+status: "ACTIVE"
+owner: "agents/billing-experience"
+description: >
+  Generate a draft refund request with eligibility check and balance impact
+  preview. Does NOT execute the refund; returns a draft for approval.
+
+implementation:
+  service: "services/layer7-billing"
+  operation_id: "createRefundDraft"
+
+action_id: "billing:refund:write"
+principal_types:
+  - agent
+  - user
+
+input_schema_ref: "jsonschema://tools/billing/refund-request-draft-input@1.0.0"
+output_schema_ref: "jsonschema://tools/billing/refund-request-draft-output@1.0.0"
+
+resource_resolver:
+  name: "billingInvoiceResolver"
+  authoritative_service: "services/layer7-billing"
+
+tenant_binding:
+  client_supplied_tenant_authoritative: false
+  resolve_server_side: true
+
+side_effect: "DRAFT_ONLY"
+financial_state_change: true
+human_confirmation_required: true
+
+approval_requirement:
+  required: true
+  separation_of_duty: true
+  approver_principal_types:
+    - user
+    - admin
+
+idempotency:
+  required: true
+  key_input_fields:
+    - invoice_id
+    - amount_cents
+    - reason_code
+
+revision:
+  etag_required: false
+  optimistic_locking: false
+
+audit:
+  required: true
+  action: "billing.refund.request_draft"
+  include_authorization_decision_id: true
+  include_correlation_id: true
+  include_causation_id: true
+  evidence_requirements:
+    - invoice_id
+    - amount_cents
+    - reason_code
+    - eligibility_check_passed
+
+data_controls:
+  allowed:
+    - invoice_id
+    - amount_cents
+    - reason_code
+    - eligibility_check_passed
+    - balance_impact_preview
+  prohibited:
+    - payment_method_token
+    - payment_card_number
+  prompt_visible_fields:
+    - invoice_id
+    - amount_cents
+    - reason_code
+    - eligibility_check_passed
+    - balance_impact_preview
+
+runtime:
+  timeout_ms: 8000
+  retry_policy: "IDEMPOTENT_TRANSIENT_ONLY"
+  rate_limit_class: "billing-write"
+
+supported_agent_classes:
+  - billing-copilot
+  - general-agent

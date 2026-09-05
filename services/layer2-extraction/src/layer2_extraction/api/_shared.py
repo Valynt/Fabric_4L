@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 import sys
 from dataclasses import dataclass
+from typing import cast
 
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.security.config import is_strict_environment
@@ -50,7 +51,7 @@ def _current_environment() -> str | None:
 def _is_strict_runtime() -> bool:
     """Return whether Layer 2 must enforce strict startup safety checks."""
     environment = _current_environment()
-    return is_strict_environment(environment or "unknown")
+    return cast(bool, is_strict_environment(environment or "unknown"))
 
 
 def _require_authenticated_tenant_id(tenant_id: object, *, operation: str) -> str:
@@ -62,7 +63,10 @@ def _require_authenticated_tenant_id(tenant_id: object, *, operation: str) -> st
         and main_mod._require_authenticated_tenant_id
         is not _require_authenticated_tenant_id
     ):
-        return main_mod._require_authenticated_tenant_id(tenant_id, operation=operation)
+        return cast(
+            str,
+            main_mod._require_authenticated_tenant_id(tenant_id, operation=operation),
+        )
 
     if tenant_id is None:
         raise AuthorizationError(

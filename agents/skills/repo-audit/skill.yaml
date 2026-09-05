@@ -1,0 +1,20 @@
+apiVersion: fabric.skill/v1
+kind: Skill
+metadata:
+  name: repo-audit
+  version: '2026-06-25'
+  description: Autonomous repository health auditing with scorecard tracking, finding
+    management, and remediation sprint planning. Use when the user asks to audit the
+    repo, check codebase health, review scorecards, manage findings, or plan remediation
+    sprints.
+  category: engineering
+compatibleAgents:
+- claude-code
+- copilot
+- cursor
+- windsurf
+- opencode
+- openclaw
+- hermes
+deprecatedSince: null
+source: SKILL.md

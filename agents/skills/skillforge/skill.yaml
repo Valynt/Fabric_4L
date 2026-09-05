@@ -1,0 +1,17 @@
+apiVersion: fabric.skill/v1
+kind: Skill
+metadata:
+  name: skillforge
+  version: '2026-01-01'
+  description: 'When a new capability is needed:'
+  category: meta
+compatibleAgents:
+- claude-code
+- copilot
+- cursor
+- windsurf
+- opencode
+- openclaw
+- hermes
+deprecatedSince: null
+source: SKILL.md

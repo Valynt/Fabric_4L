@@ -1,0 +1,46 @@
+tool_id: "billing.charge.forecast"
+version: "1.0.0"
+status: "ACTIVE"
+owner: "agents/billing-experience"
+description: >
+  Forecast upcoming charges for a billing account based on current subscriptions,
+  usage trends, and scheduled plan changes. Read-only calculation.
+
+implementation:
+  service: "services/layer7-billing"
+  operation_id: "forecastCharges"
+
+action_id: "billing:charge:read"
+principal_types:
+  - agent
+  - user
+
+input_schema_ref: "jsonschema://tools/billing/charge-forecast-input@1.0.0"
+output_schema_ref: "jsonschema://tools/billing/charge-forecast-output@1.0.0"
+
+resource_resolver:
+  name: "billingAccountResolver"
+  authoritative_service: "services/layer7-billing"
+
+tenant_binding:
+  client_supplied_tenant_authoritative: false
+  resolve_server_side: true
+
+side_effect: "CALCULATION_ONLY"
+financial_state_change: false
+human_confirmation_required: false
+
+audit:
+  required: true
+  action: "billing.charge.forecast"
+  include_authorization_decision_id: true
+  include_correlation_id: true
+
+runtime:
+  timeout_ms: 8000
+  retry_policy: "READ_ONLY_TRANSIENT_ONLY"
+  rate_limit_class: "billing-read"
+
+supported_agent_classes:
+  - billing-copilot
+  - general-agent
