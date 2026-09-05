@@ -1,0 +1,24 @@
+{
+  "transitions_version": "1",
+  "states": [
+    "DRAFT",
+    "SUBMITTED",
+    "UNDER_REVIEW",
+    "APPROVED",
+    "REJECTED",
+    "ACTIVATED",
+    "EXPIRED",
+    "REVOKED"
+  ],
+  "transitions": {
+    "DRAFT": ["SUBMITTED"],
+    "SUBMITTED": ["UNDER_REVIEW"],
+    "UNDER_REVIEW": ["APPROVED", "REJECTED"],
+    "APPROVED": ["ACTIVATED", "EXPIRED", "REVOKED"],
+    "REJECTED": [],
+    "ACTIVATED": ["EXPIRED", "REVOKED"],
+    "EXPIRED": [],
+    "REVOKED": []
+  },
+  "terminal_states": ["REJECTED", "EXPIRED", "REVOKED"]
+}

@@ -364,6 +364,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application lifecycle — database init and teardown."""
     validate_production_safety()
 
+    # Authorization obligations must be registered before any protected
+    # command runs; without the audit handler every *allowed* protected
+    # decision would fail its obligations and 503 (fail closed).
+    from .authz_enforcement import register_l5_obligations
+
+    register_l5_obligations()
+
     if getattr(app.state, "telemetry_provider", None):
         logger.info("L5: OpenTelemetry tracing initialized")
 
@@ -695,6 +702,15 @@ def create_app() -> FastAPI:
             },
         ],
     )
+
+    # Authorization obligations must be registered before any protected
+    # command runs; calling here (idempotent, not only in lifespan) ensures it
+    # happens for every app build including ASGI test transports that never run
+    # the lifespan handler. Without the audit handler all allowed protected
+    # decisions would 503 (fail closed).
+    from .authz_enforcement import register_l5_obligations
+
+    register_l5_obligations()
 
     app.add_exception_handler(
         Layer3PolicyDeniedError, layer3_security_exception_handler

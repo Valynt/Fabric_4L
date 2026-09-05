@@ -1,0 +1,28 @@
+{
+  "name": "fabric.workflow-authz",
+  "version": "v1.0.0",
+  "policy_version": "fabric.authz.v1",
+  "description": "Declarative policy bundle for the Value Fabric authorization control plane.",
+  "engine": "opa",
+  "data": [
+    "data/baseline_roles.json",
+    "data/action_catalog.json",
+    "data/static_sod.json",
+    "data/exception_transitions.json",
+    "data/reason_codes.json"
+  ],
+  "policies": [
+    "policy/global.rego",
+    "policy/claims.rego",
+    "policy/opportunities.rego",
+    "policy/deliverables.rego",
+    "policy/exceptions.rego",
+    "policy/evidence.rego",
+    "policy/administration.rego",
+    "policy/external_access.rego"
+  ],
+  "schemas": [
+    "schemas/request.schema.json",
+    "schemas/decision.schema.json"
+  ]
+}

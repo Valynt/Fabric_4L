@@ -1,0 +1,8 @@
+{
+  "sod_version": "1",
+  "pairs": [
+    ["value_engineer", "finance_approver"],
+    ["technical_reviewer", "finance_approver"],
+    ["deal_desk", "security_reviewer"]
+  ]
+}
