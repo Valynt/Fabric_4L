@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hmac
+import http.server
+import time
 import webbrowser
-from urllib.parse import urlencode, urljoin, urlparse, urlunparse
-from uuid import uuid4
+from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
 import jwt
@@ -12,39 +14,115 @@ import typer
 from rich import print as rich_print
 from rich.prompt import Prompt
 
-from .config import CONFIG_DIR, CONFIG_FILE, _load_config, _save_config
+from .config import CONFIG_FILE, ConfigData, _load_config, _save_config
 
 app = typer.Typer(help="Authentication management")
 
-# PKCE state storage
-PKCE_STATE_FILE = CONFIG_DIR / ".pkce_state"
+LOCAL_CALLBACK_HOST = "127.0.0.1"
+LOCAL_CALLBACK_PORT = 8080
+LOCAL_CALLBACK_PATH = "/callback"
+LOCAL_REDIRECT_URI = f"http://{LOCAL_CALLBACK_HOST}:{LOCAL_CALLBACK_PORT}{LOCAL_CALLBACK_PATH}"
+SESSION_COOKIE_NAME = "vf_session"
 
 
-def _generate_pkce_verifier() -> str:
-    """Generate a PKCE code verifier."""
-    import secrets
+class TokenServer(http.server.HTTPServer):
+    """Loopback HTTP server that captures a server-exchanged OIDC access token."""
 
-    return secrets.token_urlsafe(32)
+    allow_reuse_address = True
+    captured_token: str | None = None
+    expected_state: str = ""
+    oidc_callback_url: str = ""
 
 
-def _generate_pkce_challenge(verifier: str) -> str:
-    """Generate a PKCE code challenge from verifier."""
-    import base64
-    import hashlib
+class CallbackHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        parsed = urlparse(self.path)
+        if parsed.path != LOCAL_CALLBACK_PATH:
+            self.send_error(404)
+            return
 
-    digest = hashlib.sha256(verifier.encode()).digest()
-    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+        qs = parse_qs(parsed.query)
+        code = qs.get("code", [None])[0]
+        state = qs.get("state", [None])[0]
+        server = self.server
+        assert isinstance(server, TokenServer)
+        if (
+            not code
+            or not state
+            or not server.expected_state
+            or not hmac.compare_digest(state, server.expected_state)
+        ):
+            self.send_error(400, "Invalid OIDC callback")
+            return
+
+        try:
+            response = httpx.get(
+                server.oidc_callback_url,
+                params={"code": code, "state": state},
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            token = response.cookies.get(SESSION_COOKIE_NAME)
+            if not isinstance(token, str) or not token:
+                raise ValueError("OIDC callback did not set a session cookie")
+            server.captured_token = token
+        except Exception:
+            # Break the CLI wait loop so it can fall back to manual JWT entry immediately.
+            server.captured_token = ""
+            self.send_error(502, "OIDC token exchange failed")
+            return
+
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write(
+            b"<html><body><h1>Authentication Successful</h1>"
+            b"<p>You can close this window and return to the CLI.</p></body></html>"
+        )
+
+    def log_message(self, format: str, *args: object) -> None:
+        pass
+
+
+def _wait_for_callback(server: TokenServer, timeout: int = 60) -> str | None:
+    """Wait for a validated loopback callback; uses monotonic time for the timeout."""
+    try:
+        start_time = time.monotonic()
+        while server.captured_token is None:
+            if time.monotonic() - start_time > timeout:
+                return None
+            server.handle_request()
+        return server.captured_token
+    except Exception as e:
+        rich_print(f"[dim]Local callback wait failed: {e}[/dim]")
+        return None
+
+
+def _begin_oidc_login(
+    base_url: str,
+    tenant: str,
+    redirect_uri: str,
+    server: TokenServer | None = None,
+) -> tuple[str, str]:
+    """Start the server-owned OIDC flow and open the returned IdP authorization URL."""
+    login_url = urljoin(base_url, f"/api/v1/auth/oidc/{tenant}/login")
+    response = httpx.get(login_url, params={"redirect_uri": redirect_uri}, timeout=30.0)
+    response.raise_for_status()
+    data = response.json()
+    if not isinstance(data, dict):
+        raise ValueError("OIDC login endpoint returned an invalid response")
+    authorization_url = data.get("authorization_url")
+    state = data.get("state")
+    if not isinstance(authorization_url, str) or not isinstance(state, str):
+        raise ValueError("OIDC login response is missing authorization_url or state")
+    if server is not None:
+        server.expected_state = state
+    webbrowser.open(authorization_url)
+    return authorization_url, state
 
 
 def _is_jwt(token: str) -> bool:
-    """Check if token is a JWT (3 base64url parts separated by dots).
-
-    Args:
-        token: The token string to check
-
-    Returns:
-        True if token appears to be a JWT structure
-    """
+    """Check if token is a JWT (3 base64url parts separated by dots)."""
     parts = token.split(".")
     return len(parts) == 3 and all(p for p in parts)
 
@@ -84,7 +162,6 @@ def _login_api_key(base_url: str | None) -> None:
     assert base_url is not None
     api_key = Prompt.ask("API Key", password=True)
 
-    # Verify the API key works
     try:
         from valuefabric import ValueFabricClient
 
@@ -96,7 +173,6 @@ def _login_api_key(base_url: str | None) -> None:
         rich_print(f"[red]✗ Authentication failed: {e}[/red]")
         raise typer.Exit(1) from None
 
-    # Save to config
     config.setdefault("profiles", {}).setdefault("default", {})["base_url"] = base_url
     config["profiles"]["default"]["api_key"] = api_key
     _save_config(config)
@@ -104,7 +180,7 @@ def _login_api_key(base_url: str | None) -> None:
 
 
 def _login_oidc(base_url: str | None, tenant: str | None) -> None:
-    """Authenticate using OIDC with PKCE."""
+    """Authenticate using server-owned OIDC with a local loopback callback."""
     config = _load_config()
 
     if not base_url:
@@ -120,64 +196,56 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
     assert base_url is not None
     assert tenant is not None
 
-    # Generate PKCE verifier and challenge
-    code_verifier = _generate_pkce_verifier()
-    code_challenge = _generate_pkce_challenge(code_verifier)
-    state = str(uuid4())
-
-    # Save state for callback verification
-    PKCE_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    PKCE_STATE_FILE.write_text(f"{state}:{code_verifier}")
-
-    # Build authorization URL
-    params = {
-        "response_type": "code",
-        "client_id": tenant,
-        "redirect_uri": f"{base_url}/auth/callback",
-        "scope": "openid profile email",
-        "state": state,
-        "code_challenge": code_challenge,
-        "code_challenge_method": "S256",
-    }
-    # Safely construct URL to avoid double query strings
-    parsed = urlparse(urljoin(base_url, f"/api/v1/auth/oidc/{tenant}/login"))
-    full_url = urlunparse(
-        (
-            parsed.scheme,
-            parsed.netloc,
-            parsed.path,
-            parsed.params,
-            urlencode(params),
-            parsed.fragment,
+    # Fail closed before opening the browser if the loopback port is unavailable.
+    # Opening with a local redirect_uri when bind failed could leak the auth code
+    # to whatever else is listening on that port.
+    try:
+        server = TokenServer((LOCAL_CALLBACK_HOST, LOCAL_CALLBACK_PORT), CallbackHandler)
+        server.timeout = 1
+    except OSError as e:
+        rich_print(
+            f"[red]Failed to bind local callback server on "
+            f"{LOCAL_CALLBACK_HOST}:{LOCAL_CALLBACK_PORT}: {e}[/red]"
         )
-    )
+        rich_print(
+            "[dim]Free that port and retry, or paste a JWT after a successful browser login.[/dim]"
+        )
+        token = Prompt.ask("\nPaste the JWT access token", password=True)
+        _persist_jwt(config, base_url, token)
+        return
 
-    rich_print("[dim]Opening browser for authentication...[/dim]")
-    webbrowser.open(full_url)
+    server.oidc_callback_url = urljoin(base_url, "/api/v1/auth/oidc/callback")
+    authorization_url = ""
+    try:
+        rich_print("[dim]Opening browser for authentication...[/dim]")
+        authorization_url, state = _begin_oidc_login(base_url, tenant, LOCAL_REDIRECT_URI)
+        server.expected_state = state
+        token = _wait_for_callback(server)
+    except Exception as e:
+        rich_print(f"[red]Failed to start OIDC login: {e}[/red]")
+        raise typer.Exit(1) from None
+    finally:
+        server.server_close()
 
-    # TODO(VF-SDK-AUTH-DEBT-001): Implement local callback server for automated token capture
-    # For now, user manually copies token
-    rich_print("\n[yellow]If browser didn't open, visit:[/yellow]")
-    rich_print(f"{full_url}")
-
-    # Manual token entry fallback
-    token = Prompt.ask(
-        "\nPaste the authorization code or JWT token from the callback", password=True
-    )
-
-    # Exchange code for token or use as-is
-    jwt_token: str | None
-    if _is_jwt(token):
-        jwt_token = token
+    if token:
+        rich_print("[green]✓ Access token captured via local callback[/green]")
     else:
-        # Exchange code for token
-        jwt_token = _exchange_code_for_token(base_url, token, code_verifier, tenant)
+        rich_print("\n[yellow]Automatic callback timed out or failed.[/yellow]")
+        if authorization_url:
+            rich_print("[yellow]If needed, reopen:[/yellow]")
+            rich_print(f"{authorization_url}")
+        token = Prompt.ask("\nPaste the JWT access token", password=True)
 
+    _persist_jwt(config, base_url, token)
+
+
+def _persist_jwt(config: ConfigData, base_url: str, token: str) -> None:
+    """Validate and persist a JWT access token into the active CLI profile."""
+    jwt_token = token if _is_jwt(token) else None
     if not jwt_token:
         rich_print("[red]Failed to obtain authentication token[/red]")
         raise typer.Exit(1) from None
 
-    # Verify token works
     try:
         from valuefabric import ValueFabricClient
 
@@ -188,49 +256,18 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
         rich_print(f"[red]✗ Token validation failed: {e}[/red]")
         raise typer.Exit(1) from None
 
-    # Extract token expiration for tracking
     try:
         decoded = jwt.decode(jwt_token, options={"verify_signature": False})
         jwt_expires_at = decoded.get("exp")
     except Exception:
         jwt_expires_at = None
 
-    # Save to config
     config.setdefault("profiles", {}).setdefault("default", {})["base_url"] = base_url
     config["profiles"]["default"]["jwt_token"] = jwt_token
     if jwt_expires_at:
         config["profiles"]["default"]["jwt_expires_at"] = jwt_expires_at
     _save_config(config)
     rich_print(f"[green]Credentials saved to {CONFIG_FILE}[/green]")
-
-
-def _exchange_code_for_token(
-    base_url: str, code: str, code_verifier: str, tenant: str
-) -> str | None:
-    """Exchange authorization code for access token."""
-    token_url = urljoin(base_url, f"/api/v1/auth/oidc/{tenant}/token")
-
-    try:
-        response = httpx.post(
-            token_url,
-            json={
-                "grant_type": "authorization_code",
-                "code": code,
-                "code_verifier": code_verifier,
-                "client_id": "valuefabric-cli",
-                "redirect_uri": "http://localhost:8080/callback",
-            },
-            timeout=30.0,
-        )
-        response.raise_for_status()
-        data = response.json()
-        if not isinstance(data, dict):
-            return None
-        token = data.get("access_token")
-        return token if isinstance(token, str) else None
-    except Exception as e:
-        rich_print(f"[red]Token exchange failed: {e}[/red]")
-        return None
 
 
 @app.command("logout")
@@ -271,7 +308,6 @@ def status() -> None:
     if auth_type:
         rich_print(f"[bold]Authentication:[/bold] [green]{auth_type}[/green]")
 
-        # Test connection
         try:
             from valuefabric import ValueFabricClient
 

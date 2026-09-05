@@ -83,7 +83,7 @@ flowchart TB
 
 This section is **authoritative**. All claims are backed by:
 
-- `AGENTS.md` — Agent reference and architecture rules
+- `AGENTS.md` — Concise agent entry point; follow its linked progressive-disclosure guidance
 - `docs/contract.md` — Canonical platform contract
 - `docs/explanations/adr/ADR-002-six-layer-architecture.md` — Layer boundary decisions
 - `docs/reference/layer-runtime-path-governance.md` — Canonical path policy

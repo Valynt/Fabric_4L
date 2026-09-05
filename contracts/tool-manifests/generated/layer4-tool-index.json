@@ -1,0 +1,183 @@
+{
+  "registry_version": "0.1.7529416400",
+  "generated_at": "2026-09-02T11:41:58-04:00",
+  "snapshot_sha": "687ddc52ee4192cd",
+  "tool_manifests": [
+    {
+      "tool_id": "billing.charge.forecast",
+      "version": "1.0.0",
+      "status": "ACTIVE",
+      "side_effect": "CALCULATION_ONLY",
+      "action_id": "billing:charge:read",
+      "principal_types": [
+        "agent",
+        "user"
+      ],
+      "human_confirmation_required": false,
+      "financial_state_change": false,
+      "supported_agent_classes": [
+        "billing-copilot",
+        "general-agent"
+      ],
+      "tenant_binding": {
+        "client_supplied_tenant_authoritative": false,
+        "resolve_server_side": true
+      },
+      "source_path": "contracts/tool-manifests/billing/charge-forecast.tool.yaml"
+    },
+    {
+      "tool_id": "billing.credit.request_draft",
+      "version": "1.0.0",
+      "status": "ACTIVE",
+      "side_effect": "DRAFT_ONLY",
+      "action_id": "billing:credit:write",
+      "principal_types": [
+        "agent",
+        "user"
+      ],
+      "human_confirmation_required": true,
+      "financial_state_change": true,
+      "supported_agent_classes": [
+        "billing-copilot",
+        "general-agent"
+      ],
+      "tenant_binding": {
+        "client_supplied_tenant_authoritative": false,
+        "resolve_server_side": true
+      },
+      "source_path": "contracts/tool-manifests/billing/credit-request-draft.tool.yaml"
+    },
+    {
+      "tool_id": "billing.invoice.explain",
+      "version": "1.0.0",
+      "status": "ACTIVE",
+      "side_effect": "READ_ONLY",
+      "action_id": "billing:invoice:read",
+      "principal_types": [
+        "agent",
+        "user"
+      ],
+      "human_confirmation_required": false,
+      "financial_state_change": false,
+      "supported_agent_classes": [
+        "billing-copilot",
+        "general-agent"
+      ],
+      "tenant_binding": {
+        "client_supplied_tenant_authoritative": false,
+        "resolve_server_side": true
+      },
+      "source_path": "contracts/tool-manifests/billing/invoice-explain.tool.yaml"
+    },
+    {
+      "tool_id": "billing.reconciliation.analyze",
+      "version": "1.0.0",
+      "status": "ACTIVE",
+      "side_effect": "READ_ONLY",
+      "action_id": "billing:reconciliation:read",
+      "principal_types": [
+        "agent",
+        "user"
+      ],
+      "human_confirmation_required": false,
+      "financial_state_change": false,
+      "supported_agent_classes": [
+        "billing-copilot",
+        "general-agent"
+      ],
+      "tenant_binding": {
+        "client_supplied_tenant_authoritative": false,
+        "resolve_server_side": true
+      },
+      "source_path": "contracts/tool-manifests/billing/reconciliation-analysis.tool.yaml"
+    },
+    {
+      "tool_id": "billing.refund.request_draft",
+      "version": "1.0.0",
+      "status": "ACTIVE",
+      "side_effect": "DRAFT_ONLY",
+      "action_id": "billing:refund:write",
+      "principal_types": [
+        "agent",
+        "user"
+      ],
+      "human_confirmation_required": true,
+      "financial_state_change": true,
+      "supported_agent_classes": [
+        "billing-copilot",
+        "general-agent"
+      ],
+      "tenant_binding": {
+        "client_supplied_tenant_authoritative": false,
+        "resolve_server_side": true
+      },
+      "source_path": "contracts/tool-manifests/billing/refund-request-draft.tool.yaml"
+    },
+    {
+      "tool_id": "billing.subscription.change_draft",
+      "version": "1.0.0",
+      "status": "ACTIVE",
+      "side_effect": "DRAFT_ONLY",
+      "action_id": "billing:subscription:write",
+      "principal_types": [
+        "agent",
+        "user"
+      ],
+      "human_confirmation_required": true,
+      "financial_state_change": true,
+      "supported_agent_classes": [
+        "billing-copilot",
+        "general-agent"
+      ],
+      "tenant_binding": {
+        "client_supplied_tenant_authoritative": false,
+        "resolve_server_side": true
+      },
+      "source_path": "contracts/tool-manifests/billing/subscription-change-draft.tool.yaml"
+    }
+  ],
+  "policies": {
+    "billing-copilot": {
+      "allowed_side_effects": [
+        "READ_ONLY",
+        "CALCULATION_ONLY",
+        "DRAFT_ONLY"
+      ],
+      "denied_side_effects": [
+        "REVERSIBLE_MUTATION",
+        "PROTECTED_MUTATION",
+        "IRREVERSIBLE"
+      ],
+      "allowed_tools": [],
+      "denied_tools": [],
+      "require_human_confirmation_for_financial_tools": true,
+      "description": "Billing copilot may only use tools that are READ_ONLY, CALCULATION_ONLY, or DRAFT_ONLY. It must never use REVERSIBLE_MUTATION, PROTECTED_MUTATION, or IRREVERSIBLE tools.\n"
+    },
+    "general-agent": {
+      "allowed_side_effects": [
+        "READ_ONLY",
+        "CALCULATION_ONLY",
+        "DRAFT_ONLY",
+        "REVERSIBLE_MUTATION"
+      ],
+      "denied_side_effects": [
+        "PROTECTED_MUTATION",
+        "IRREVERSIBLE"
+      ],
+      "allowed_tools": [],
+      "denied_tools": [],
+      "require_human_confirmation_for_financial_tools": true,
+      "description": "General-purpose agents may use READ_ONLY, CALCULATION_ONLY, DRAFT_ONLY, and REVERSIBLE_MUTATION tools. PROTECTED_MUTATION and IRREVERSIBLE tools are denied by default.\n"
+    }
+  },
+  "agent_class_bindings": {
+    "billing-copilot": "billing-copilot",
+    "general-agent": "general-agent"
+  },
+  "validation_report": {
+    "passed": true,
+    "violations": 0,
+    "manifests_loaded": 6,
+    "manifests_valid": 6
+  }
+}

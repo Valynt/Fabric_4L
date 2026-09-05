@@ -1,0 +1,20 @@
+apiVersion: fabric.skill/v1
+kind: Skill
+metadata:
+  name: context7-mcp
+  version: '2026-06-25'
+  description: This skill should be used when the user asks about libraries, frameworks,
+    API references, or needs code examples. Activates for setup questions, code generation
+    involving libraries, or mentions of specific frameworks like React, Vue, Next.js,
+    Prisma, Supabase, etc.
+  category: engineering
+compatibleAgents:
+- claude-code
+- copilot
+- cursor
+- windsurf
+- opencode
+- openclaw
+- hermes
+deprecatedSince: null
+source: SKILL.md

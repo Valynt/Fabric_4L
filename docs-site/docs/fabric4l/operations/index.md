@@ -98,6 +98,6 @@ pnpm ops:incident:check
 
 - `docs/development/BUILD_SYSTEM.md` — Build system hierarchy and command precedence
 - `docs/development/COMMANDS.md` — Full command inventory for local contributors and CI
-- `AGENTS.md` — Architecture rules, tenant isolation, and layer responsibilities
+- `AGENTS.md` — Agent entry point and links to architecture, security, and layer guidance
 - `k8s/README.md` — Kubernetes deployment guide and security hardening
 - `ops/incident/README.md` — Incident response workflow source of truth

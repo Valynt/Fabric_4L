@@ -12,7 +12,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { NavLink, useLocation, useParams } from "react-router-dom";
-import { NAV_SCHEMA } from "@/navigation/navSchema";
+import { NAV_SCHEMA, isNavNodeEnabled } from "@/navigation/navSchema";
 import { AccountPicker } from "@/components/navigation/AccountPicker";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useAccounts } from "@/hooks";
@@ -151,7 +151,7 @@ export function LeftNavigation({
 
           const visibleChildren = sectionActive
             ? (item.children ?? []).reduce((acc, child) => {
-                if (isItemVisible(child.tier, currentTier)) {
+                if (isItemVisible(child.tier, currentTier) && isNavNodeEnabled(child)) {
                   acc.push({ ...child, path: resolveNavPath(child.path, tenantSlug, accountId) });
                 }
                 return acc;

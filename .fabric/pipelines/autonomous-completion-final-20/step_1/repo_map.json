@@ -1,0 +1,364 @@
+{
+  "artifact": "repo_map",
+  "version": "2026-09-05-step1",
+  "repo_map_versioned": true,
+  "anchor_git_sha": "4bb4e142c2ccbc56297de843e71534d956bb198f",
+  "generated_at": "2026-09-05T15:20:00Z",
+  "module_boundaries": {
+    "backend_layers": [
+      {
+        "id": "L1",
+        "path": "services/layer1-ingestion",
+        "port": 8001,
+        "responsibility": "Playwright crawling, Celery, Redis, PostgreSQL state"
+      },
+      {
+        "id": "L2",
+        "path": "services/layer2-extraction",
+        "port": 8002,
+        "responsibility": "Ontology-guided extraction, LLM extraction, RDF/OWL"
+      },
+      {
+        "id": "L2.5",
+        "path": "services/layer2-5-signal-refinery",
+        "port": 8007,
+        "responsibility": "Normalize Layer 2 extraction output into tenant-scoped, evidence-backed ValueSignal objects"
+      },
+      {
+        "id": "L3",
+        "path": "services/layer3-knowledge",
+        "port": 8003,
+        "responsibility": "Neo4j graph, GraphRAG, hybrid retrieval, pgvector/neo4j_native vectors"
+      },
+      {
+        "id": "L4",
+        "path": "services/layer4-agents",
+        "port": 8004,
+        "responsibility": "LangGraph workflows, ROI, business cases, billing (canonical after COMPAT-L4-003 archive)"
+      },
+      {
+        "id": "L5",
+        "path": "services/layer5-ground-truth",
+        "port": 8005,
+        "responsibility": "TruthObject validation, maturity ladder, evidence-backed claims"
+      },
+      {
+        "id": "L6",
+        "path": "services/layer6-benchmarks",
+        "port": 8006,
+        "responsibility": "Peer comparison, statistical validation"
+      }
+    ],
+    "gateway": {
+      "path": "services/api",
+      "responsibility": "JWT/API-key auth, request routing"
+    },
+    "frontend": {
+      "path": "apps/web",
+      "stack": "React/Vite",
+      "design_contract": "DESIGN.md"
+    },
+    "value_studio_service": {
+      "path": "services/value-studio",
+      "stack": "TypeScript/Vitest",
+      "boundary": "private isolated domain service workspace"
+    },
+    "contracts": {
+      "path": "contracts/",
+      "kinds": [
+        "openapi",
+        "jsonschema",
+        "event-catalog",
+        "tool-manifests",
+        "agent-registry",
+        "route-contracts"
+      ]
+    },
+    "shared": [
+      "packages/shared",
+      "packages/platform-contract",
+      "packages/config",
+      "packages/eslint-plugin-fabric-contracts"
+    ],
+    "agent_brain": {
+      "canonical_skills": "agents/skills (PR #1683 merged as 4f2e29e08ebd83fae639efde2d17a9de865c9c6e; .agent/skills/MOVED.md is the COMPAT-SKILLS-001 shim)",
+      "portable_brain": ".agent/",
+      "fleet_registry": ".devin/AGENTS.md"
+    }
+  },
+  "dependency_graph": {
+    "edge_direction": "consumer_to_provider_or_canonical_source",
+    "scope": "Static, source-evidenced cross-module dependencies at anchor_git_sha; absence of an edge means not established by this Step 1 pass, not runtime independence.",
+    "nodes": [
+      "services/layer1-ingestion",
+      "services/layer2-extraction",
+      "services/layer2-5-signal-refinery",
+      "services/layer3-knowledge",
+      "services/layer4-agents",
+      "services/layer5-ground-truth",
+      "services/layer6-benchmarks",
+      "services/api",
+      "services/value-studio",
+      "apps/web",
+      "packages/shared",
+      "packages/platform-contract",
+      "contracts"
+    ],
+    "edges": [
+      {
+        "from": "services/layer2-5-signal-refinery",
+        "to": "services/layer2-extraction",
+        "kind": "input_contract",
+        "evidence": "services/layer2-5-signal-refinery/README.md: normalizes Layer 2 extraction output"
+      },
+      {
+        "from": "services/layer2-5-signal-refinery",
+        "to": "services/layer3-knowledge",
+        "kind": "runtime_client",
+        "evidence": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/clients/l3_graph_client.py"
+      },
+      {
+        "from": "services/layer2-5-signal-refinery",
+        "to": "packages/shared",
+        "kind": "shared_runtime",
+        "evidence": "services/layer2-5-signal-refinery/Dockerfile.full copies packages/shared/src/value_fabric/shared"
+      },
+      {
+        "from": "apps/web",
+        "to": "packages/platform-contract",
+        "kind": "view_model_contract",
+        "evidence": "AGENTS.md repository rule: frontend components consume domain/view models through canonical platform contracts"
+      },
+      {
+        "from": "services/api",
+        "to": "contracts",
+        "kind": "gateway_contract",
+        "evidence": "docs/development/DISCOVERY_MAP.md API gateway route: OpenAPI and route contracts are canonical drift surfaces"
+      }
+    ],
+    "isolated_nodes": [
+      {
+        "id": "services/value-studio",
+        "evidence": "services/value-studio/AGENTS.md and package.json define a private deterministic workspace with no declared runtime workspace dependency"
+      }
+    ]
+  },
+  "api_contracts": {
+    "openapi_dir": "contracts/openapi",
+    "route_contracts": "contracts/route-contracts.json",
+    "governance": "contracts/GOVERNANCE.md",
+    "rfcs_in_tree": [
+      {
+        "id": "RFC-001",
+        "title": "Formula Scenario Endpoint",
+        "status_in_file": "Approved",
+        "date": "2026-04-27"
+      },
+      {
+        "id": "RFC-002",
+        "title": "Add journey-id to L4 agent stream request",
+        "file": "contracts/rfcs/RFC-002-add-journey-id-to-l4-agent-stream-request.md"
+      }
+    ],
+    "github_rfcs_open": [
+      {
+        "number": 1675,
+        "title": "RFC: Add Layer 4 Agent Runtime /v1/runtime/* paths and agent-runtime JSON schemas (additive)",
+        "labels": [
+          "contract-rfc",
+          "needs-council-review"
+        ]
+      },
+      {
+        "number": 1636,
+        "title": "RFC: Register event payload schemas, complete tool/prompt/skill registries, add x-tenant-scope metadata (additive)",
+        "labels": [
+          "contract-rfc",
+          "needs-council-review"
+        ]
+      },
+      {
+        "number": 1613,
+        "title": "RFC: Consolidate billing ownership in Layer 4 compatibly",
+        "labels": [
+          "contract-rfc",
+          "needs-council-review"
+        ]
+      }
+    ]
+  },
+  "schema_definitions": {
+    "jsonschema": "contracts/jsonschema",
+    "schema_index": "contracts/schema-index.json",
+    "behavior_contract": "contracts/behavior-contract.yaml"
+  },
+  "unfinished_backlog": {
+    "ticketed_todos": [
+      {
+        "id": "VF-SDK-AUTH-DEBT-001",
+        "path": "sdk/python/src/valuefabric/cli/auth.py:158",
+        "text": "local callback server for automated token capture",
+        "open_pr": 1681
+      },
+      {
+        "id": "VF-L1-TERMINAL-DEBT-001",
+        "path": "services/layer1-ingestion/tests/pipeline/test_terminal_state_reconciliation.py:379",
+        "text": "stuck-jobs reconciliation loop not yet wired to metrics",
+        "state": "skip"
+      },
+      {
+        "id": "VF-L1-IDEMPOTENCY-DEBT-001",
+        "path": "services/layer1-ingestion/tests/api/test_targets_execute_idempotency.py:278",
+        "text": "idempotency key format validation not yet implemented",
+        "state": "skip; sibling items marked DONE with unit tests still pending"
+      },
+      {
+        "id": "VF-L4-AUTH-DEBT-001",
+        "count": 5,
+        "path": "services/layer4-agents/tests/test_feature_flags.py",
+        "state": "pytest.skip"
+      },
+      {
+        "id": "VF-L4-AUDIT-DEBT-001",
+        "count": 2,
+        "path": "services/layer4-agents/tests/test_feature_flags.py",
+        "state": "pytest.skip"
+      },
+      {
+        "id": "TODO(lifecycle)",
+        "path": "services/layer3-knowledge/src/api/dependencies_tenant_secured.py:336",
+        "text": "per-request Neo4j session cleanup not wired",
+        "open_pr": 1661
+      }
+    ],
+    "pytest_skip_xfail_hits": 110,
+    "notimplemented_hits": 20,
+    "value_studio_slice_1": {
+      "status": "merged to main as #1679",
+      "slice_2_plus": [
+        "Backend projection adapter behind existing seam",
+        "Mission command channel (accept/edit/defer/pause/resume/undo)",
+        "Activity event streaming",
+        "Deterministic calculation service integration",
+        "Generative lens rendering (Thesys/OpenUI explicitly not adopted)",
+        "Publication workflow beyond blocked/provisional display",
+        "Rewind/undo of activity events"
+      ],
+      "source": "docs/contracts/FE-VOS-STUDIO-001.md"
+    },
+    "audit_items_requires_implementation": [
+      {
+        "id": "S5-2",
+        "item": "Install ArgoCD and validate sync",
+        "register": "docs/governance/audit-remediation-sprint-register.md"
+      },
+      {
+        "id": "S5-3",
+        "item": "Fill WAL-G placeholders and execute restore drill"
+      },
+      {
+        "id": "S5-4",
+        "item": "Begin OpenTelemetry tracing migration"
+      }
+    ],
+    "launch_environment_dependent": [
+      "P0-001",
+      "P0-002",
+      "P0-003",
+      "P1-001",
+      "P1-002",
+      "P1-003",
+      "P1-004",
+      "P1-008",
+      "P1-009"
+    ],
+    "open_product_prs": [
+      {
+        "number": 1684,
+        "title": "docs(audit): Slice T Neo4j/pgvector tenant-filter gap report",
+        "finding": "1 MEDIUM: L4 Neo4jVariableRegistry CRUD/search with no tenant scoping"
+      },
+      {
+        "number": 1681,
+        "title": "feat(sdk): local OIDC loopback callback"
+      },
+      {
+        "number": 1669,
+        "title": "security(layer4): enforce tenant ownership on document export"
+      },
+      {
+        "number": 1650,
+        "title": "feat: L5 claim.approve multi-model authorization enforcement"
+      },
+      {
+        "number": 1635,
+        "title": "feat(contracts): complete event/schema/tool/prompt registries"
+      }
+    ],
+    "open_issues_non_dependabot": [
+      {
+        "number": 1639,
+        "title": "P0 security: upgrade and canonicalize pnpm >=10.34.5"
+      },
+      {
+        "number": 1643,
+        "title": "P2 frontend: verify lock integrity after pnpm upgrade"
+      },
+      {
+        "number": 1644,
+        "title": "P2 supply-chain: regression test for manifests, locks, toolchain, and security floors"
+      },
+      {
+        "number": 1593,
+        "title": "Skips/xfails in L4 & make verify"
+      },
+      {
+        "number": 1590,
+        "title": "LEGACY_FLAT_ROUTE_MAP"
+      },
+      {
+        "number": 1582,
+        "title": "The L3-SEC-007 regression suite"
+      },
+      {
+        "number": 1574,
+        "title": "T4 thin suites at L2/L6"
+      },
+      {
+        "number": 1573,
+        "title": "T3 collection-basin overlap"
+      }
+    ]
+  },
+  "implicit_contracts_from_call_sites": [
+    {
+      "name": "ValueStudioProjectionAdapter",
+      "path": "apps/web/src/features/value-studio/mission/adapter.ts",
+      "note": "Phase-2 backend adapter must preserve ValueStudioViewState; components must not derive domain state"
+    },
+    {
+      "name": "COMMAND_BACKEND_NOTICE",
+      "note": "Slice 1 domain actions are presentation-only; connecting a command channel is a product/backend decision"
+    },
+    {
+      "name": "ACTIVE_VECTOR_STORE=neo4j_native",
+      "note": "Slice T audit: pgvector is fallback, not active backend"
+    },
+    {
+      "name": "accountStdPolicy(studio.workspace / studio.mission)",
+      "note": "DEC-FE-007 route/nav canon"
+    }
+  ],
+  "compat_debt_overdue_as_of_2026_09_05": [
+    "COMPAT-L1-001 (target 2026-08-31)",
+    "COMPAT-L3-001",
+    "COMPAT-L3-002",
+    "COMPAT-L3-005",
+    "COMPAT-WEB-004",
+    "COMPAT-WEB-018",
+    "COMPAT-WEB-019",
+    "COMPAT-WEB-020",
+    "COMPAT-L4-001",
+    "COMPAT-L4-004"
+  ]
+}

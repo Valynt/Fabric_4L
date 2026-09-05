@@ -40,6 +40,47 @@ class TestOrchestrationControllerLifecycleAndEnvelope:
         assert result["completed_at"] is not None
 
     @pytest.mark.asyncio
+    async def test_get_result_for_tenant_returns_result_only_for_owner(self):
+        """Tenant-scoped results should be returned only for the authoritative owner."""
+        controller = OrchestrationController(tool_registry=ToolRegistry())
+        state = ROIAgentState(
+            tenant_id="tenant-123",
+            workflow_id="wf-tenant-owned",
+            workflow_type=WorkflowType.ROI_CALCULATOR,
+        )
+        state.status = WorkflowStatus.COMPLETED
+        state.output_data = {"roi_percentage": 145.5}
+        await controller.state_manager.save_state("wf-tenant-owned", state)
+
+        owner_result = await controller.get_result_for_tenant("wf-tenant-owned", "tenant-123")
+        foreign_result = await controller.get_result_for_tenant("wf-tenant-owned", "tenant-999")
+
+        assert owner_result is not None
+        assert owner_result["workflow_id"] == "wf-tenant-owned"
+        assert foreign_result is None
+
+    @pytest.mark.asyncio
+    async def test_get_result_for_tenant_fails_closed_when_persisted_tenant_is_missing(self):
+        """Malformed persisted state without tenant ownership must be denied."""
+        controller = OrchestrationController(tool_registry=ToolRegistry())
+        workflow_id = "wf-missing-tenant"
+        key = controller.state_manager._get_key(workflow_id)
+        controller.state_manager._memory_store[key] = {
+            "data": {
+                "workflow_id": workflow_id,
+                "workflow_type": "roi_calculator",
+                "status": "completed",
+                "output_data": {"roi_percentage": 145.5},
+                "metadata": {"workflow_id": workflow_id},
+            },
+            "expires": datetime.now(UTC).timestamp() + 60,
+        }
+
+        result = await controller.get_result_for_tenant(workflow_id, "tenant-123")
+
+        assert result is None
+
+    @pytest.mark.asyncio
     async def test_get_workflow_status_envelope_contract(self):
         """Assert the structural contract of get_workflow_status output envelope."""
         controller = OrchestrationController(tool_registry=ToolRegistry())

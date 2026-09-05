@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from value_fabric.shared.audit import AuditAction, AuditEmitter, AuditOutcome, emit_audit_event
 from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_authenticated
+from value_fabric.shared.identity.dependencies import require_authenticated, require_tenant_context
 from value_fabric.shared.identity.policy_registry import authorize_action
 
 from ...config.settings import get_settings
@@ -102,8 +102,15 @@ def get_executor() -> WorkflowExecutor:
     from .main import workflow_executor
 
     if workflow_executor is None:
-        raise ServiceUnavailableError(message = "Workflow executor not initialized")
+        raise ServiceUnavailableError(message="Workflow executor not initialized")
     return workflow_executor
+
+
+async def _require_export_tenant_context(
+    context: RequestContext = Depends(require_authenticated),
+) -> RequestContext:
+    """Require validated tenant context without changing the endpoint body shape."""
+    return await require_tenant_context(context)
 
 
 def require_tool_gateway_available() -> None:
@@ -113,7 +120,9 @@ def require_tool_gateway_available() -> None:
             "Tool governance gateway unavailable; refusing ungoverned tool execution",
             exc_info=_GATE_IMPORT_ERROR,
         )
-        raise ServiceUnavailableError(message = "Tool governance gateway unavailable; refusing ungoverned tool execution.")
+        raise ServiceUnavailableError(
+            message="Tool governance gateway unavailable; refusing ungoverned tool execution."
+        )
 
 
 @router.get("/tools", response_model=list[ToolListResponse])
@@ -135,7 +144,7 @@ async def list_tools(
         try:
             cat = ToolCategory(category.lower())
         except ValueError:
-            raise ValidationError(message = str(f"Invalid category: {category}"))
+            raise ValidationError(message=f"Invalid category: {category}")
 
     tools = registry.list_tools(category=cat, search=search)
 
@@ -160,7 +169,7 @@ async def get_tool_schema(
     """Get detailed schema for a specific tool."""
     authorize_action("layer4.tools.read_schema", ctx)
     if not registry.has_tool(tool_name):
-        raise NotFoundError(message = str(f"Tool '{tool_name}' not found"))
+        raise NotFoundError(message=f"Tool '{tool_name}' not found")
 
     tool = registry.get(tool_name)
     schema = tool.get_schema()
@@ -197,7 +206,7 @@ async def invoke_tool(
     """
     authorize_action("layer4.tools.invoke", ctx)
     if not registry.has_tool(request.tool_name):
-        raise NotFoundError(message = str(f"Tool '{request.tool_name}' not found"))
+        raise NotFoundError(message=f"Tool '{request.tool_name}' not found")
 
     try:
         # ── GATE enforcement: route through ToolGateway; never fall back to ungoverned execution ──
@@ -286,12 +295,35 @@ class ExportAuditRecord(BaseModel):
     details: dict[str, Any]
 
 
-@router.post("/tools/export-document", response_model=DocumentExportResponse)
+@router.post(
+    "/tools/export-document",
+    response_model=DocumentExportResponse,
+    responses={
+        400: {
+            "description": "Tenant context is missing or invalid",
+            "content": {
+                "application/json": {"schema": {"$ref": "#/components/schemas/ErrorEnvelope"}}
+            },
+        },
+        404: {
+            "description": "Business case not found",
+            "content": {
+                "application/json": {"schema": {"$ref": "#/components/schemas/ErrorEnvelope"}}
+            },
+        },
+        503: {
+            "description": "Export service unavailable",
+            "content": {
+                "application/json": {"schema": {"$ref": "#/components/schemas/ErrorEnvelope"}}
+            },
+        },
+    },
+)
 async def export_document_tool(
     request: DocumentExportRequest,
     registry: ToolRegistry = Depends(get_tool_registry),
     workflow_executor: WorkflowExecutor = Depends(get_executor),
-    context: RequestContext = Depends(require_authenticated),
+    context: RequestContext = Depends(_require_export_tenant_context),
 ) -> DocumentExportResponse:
     """Export a business case to PDF using DocumentExportTool.
 
@@ -310,12 +342,15 @@ async def export_document_tool(
     authorize_action("layer4.tools.export_document", context)
     try:
         if not get_settings().export_storage_endpoint:
-            raise ServiceUnavailableError(message = "Export storage endpoint is not configured")
+            raise ServiceUnavailableError(message="Export storage endpoint is not configured")
 
-        result = await workflow_executor.get_result(request.business_case_id)
+        result = await workflow_executor.get_result_for_tenant(
+            request.business_case_id,
+            str(context.tenant_id),
+        )
 
         if not result:
-            raise NotFoundError(message = str(f"Business case {request.business_case_id} not found"))
+            raise NotFoundError(message=f"Business case {request.business_case_id} not found")
 
         # Extract business case data
         output = result.get("output", {})
@@ -483,6 +518,8 @@ async def export_document_tool(
             format=request.format,
         )
 
+    except ValueFabricException:
+        raise
     except asyncio.CancelledError:
         raise
     except Exception:

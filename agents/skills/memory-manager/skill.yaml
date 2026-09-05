@@ -1,0 +1,17 @@
+apiVersion: fabric.skill/v1
+kind: Skill
+metadata:
+  name: memory-manager
+  version: '2026-01-01'
+  description: After every major task or failure, call `.agent/tools/memory_reflect.py` to log what happened.
+  category: meta
+compatibleAgents:
+- claude-code
+- copilot
+- cursor
+- windsurf
+- opencode
+- openclaw
+- hermes
+deprecatedSince: null
+source: SKILL.md

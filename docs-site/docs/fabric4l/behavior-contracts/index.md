@@ -94,7 +94,7 @@ make production-readiness-gate
 ## Related documentation
 
 - `docs/governance/behavior-first-testing.md` — Canonical governance statement
-- `AGENTS.md` — Agent and contributor testing rules
+- `docs/testing/` — Canonical testing governance and behavior-readiness guidance
 - `pytest.ini` — Marker definitions and test profiles
 - `config/ci/behavior_contract_baseline.json` — Ratchet baseline (do not regress)
 - `config/ci/behavior_readiness_waivers.yaml` — Skip and xfail waiver register

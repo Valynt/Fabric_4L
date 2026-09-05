@@ -426,4 +426,4 @@ Supported gates are `typecheck`, `lint`, `test`, `security`, `schema`, `isolatio
 - [Canonical Build System](./BUILD_SYSTEM.md) - Command hierarchy and public interface policy.
 - [Development Discovery Map](./DISCOVERY_MAP.md) - Route issue types to canonical files, drift checks, validation commands, and evidence.
 - [Contributing](../../CONTRIBUTING.md) - Contributor setup and PR process.
-- [Agent Reference](../../AGENTS.md) - AI agent command and governance reference.
+- [Agent Entry Point](../../AGENTS.md) - shared package map and links to scoped agent guidance.
