@@ -4,13 +4,15 @@
 **Mode:** Read-only investigation — **no code changes made**
 **Branch:** `bmsull560-tenant-filter-audit`
 **Date:** 2026-09-05
-**Scope:** Catalog every graph (Neo4j/Cypher) and vector (pgvector / Neo4j-native vector / Pinecone) query in the monorepo; check each for tenant-filter presence; report gaps.
+**Scope:** Catalog every graph (Neo4j/Cypher) and vector (pgvector / Neo4j-native vector / Pinecone) query in the monorepo, plus the related full-text (BM25) retrieval surfaces that share the same tenant-filter invariant; check each for tenant-filter presence; report gaps.
 
 ---
 
 ## 1. Executive Summary
 
 The audit cataloged every graph and vector query surface across the monorepo and checked each for tenant-filter presence. **The tenant-isolation invariant is overwhelmingly upheld.** The vast majority of query sites route through approved fail-closed execution seams that either force-assign `tenant_id` or reject queries lacking an explicit tenant predicate.
+
+**38 query surfaces were cataloged** (30 graph/Cypher, 5 vector, 3 full-text BM25). The full-text (BM25) surfaces are included because they share the same tenant-filter invariant and are part of the hybrid retrieval path; they are counted separately from the graph and vector surfaces so the totals reconcile with the catalog tables below.
 
 **Two gaps were confirmed.** The primary one is the Layer 4 `Neo4jVariableRegistry`, which performs CRUD/search with **no tenant scoping whatsoever** (no `tenant_id` property on the model, no tenant filter on any query). This is assessed as **MEDIUM** severity (design gap) because pack variable definitions are global templates loaded at startup/CI, but it violates the invariant that *every graph query carries a tenant filter*. A second, **LOW** defense-in-depth gap exists in the `query_graph` tool, whose tenant filter scopes only the first node alias of a MATCH clause (see GAP-2).
 
@@ -115,6 +117,8 @@ These are the seams that make most query sites SAFE. Any query routed through th
 | 35 | `tools/knowledge_tools.py` (`SemanticSearchTool`) | `index.query(...)` | Requires valid `TenantContext` (fail-closed); `filter_dict = {"tenant_id": str(tenant_ctx.tenant_id)}` injected into Pinecone metadata filter | ✅ SAFE |
 
 ### 4.4 Full-text (BM25) — related retrieval surface
+
+> **Note:** These full-text (BM25) surfaces are part of the hybrid retrieval path and share the same tenant-filter invariant. They are cataloged here for completeness and counted separately (rows 36-38) so the 38-surface total reconciles with the graph (30) and vector (5) counts above.
 
 | # | File | Query site | Tenant filter | Status |
 |---|------|-----------|---------------|--------|
