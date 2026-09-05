@@ -1,0 +1,110 @@
+{
+  "policy_id": "ac20-node-budget",
+  "version": "1.0.0-proposed",
+  "status": "proposed_not_in_force",
+  "in_force_when": "operator_explicitly_approves_this_file_or_a_superseding_version_at_GATE-1",
+  "replaces": "use pipeline defaults",
+  "pipeline_id": "autonomous-completion-final-20",
+  "created_at": "2026-09-05T16:00:00Z",
+  "notes": [
+    "Numeric limits are proposed because the original spec used per_node_configurable with no numbers.",
+    "This file is not product intent. Approving it is a GATE-1 human choice.",
+    "Repo PR template requires 'small and focused' but no numeric LOC/file ceiling was found in CODEOWNERS, AGENTS.md, or pull_request_template.md. Governance Docs Guard has a 'Enforce PR size policy' step that was skipped on the main push of 4bb4e14 (push, not PR).",
+    "Owners are CODEOWNERS teams, not invented individuals."
+  ],
+  "enforcement": {
+    "both_limits_are_hard": true,
+    "overrun_if": "handwritten_loc_delta > node.budget.max_loc OR files_touched > node.budget.max_files",
+    "on_overrun": {
+      "action": "halt_node_and_flag_GATE-2",
+      "forbidden": ["force_completion", "raise_budget_without_human", "split_secretly_after_the_fact"]
+    },
+    "loc_counting": {
+      "includes": "handwritten source, tests written in step_3, docs the node owns",
+      "excludes_from_loc": [
+        "contracts/openapi/*.json regenerated",
+        "**/generated/**",
+        "pnpm-lock.yaml",
+        "uv.lock",
+        "**/pnpm-lock.yaml",
+        "apps/web/src/api/generated/**"
+      ],
+      "generated_files_still_count_toward_max_files": true,
+      "generated_files_soft_cap": 40,
+      "generated_files_soft_cap_overrun": "flag_GATE-2_with_generated_justification_required"
+    },
+    "file_counting": {
+      "includes": "every path in the node diff, including generated",
+      "rename_equals": "one_file_if_git_detects_rename_else_two"
+    }
+  },
+  "default_profile": "service-feature",
+  "profiles": {
+    "service-feature": {
+      "max_loc": 400,
+      "max_files": 12,
+      "use_when": "one service behavior change with tests"
+    },
+    "security-narrow": {
+      "max_loc": 250,
+      "max_files": 8,
+      "use_when": "tenant isolation, authz, or export-path hardening"
+    },
+    "frontend-slice": {
+      "max_loc": 500,
+      "max_files": 15,
+      "use_when": "one Value Studio / web slice behind an existing seam"
+    },
+    "contract-metadata": {
+      "max_loc": 200,
+      "max_files": 40,
+      "use_when": "additive schemas/registries; loc is handwritten validators/docs only"
+    },
+    "toolchain": {
+      "max_loc": 300,
+      "max_files": 25,
+      "use_when": "pin/lock/CI surface alignment (fan-out expected)"
+    },
+    "test-debt": {
+      "max_loc": 350,
+      "max_files": 10,
+      "use_when": "closing skips/xfails without product behavior change"
+    },
+    "evidence-docs": {
+      "max_loc": 800,
+      "max_files": 20,
+      "use_when": "pipeline evidence tree only; this PR class"
+    },
+    "ops-manifest": {
+      "max_loc": 300,
+      "max_files": 15,
+      "use_when": "ArgoCD/WAL-G/OTel manifests without app feature work"
+    }
+  },
+  "owner_directory": {
+    "source": "CODEOWNERS + .github/CODEOWNERS",
+    "fallback": "@value-fabric/maintainers",
+    "teams": {
+      "L1": ["@value-fabric/backend-leads", "@value-fabric/data-engineering"],
+      "L2": ["@value-fabric/backend-leads", "@value-fabric/ai-ml-leads"],
+      "L3": ["@value-fabric/backend-leads", "@value-fabric/graph-specialists"],
+      "L4": ["@value-fabric/backend-leads", "@value-fabric/agent-team"],
+      "L5": ["@value-fabric/backend-leads", "@value-fabric/data-engineering"],
+      "L6": ["@value-fabric/backend-leads", "@value-fabric/qa-leads"],
+      "gateway": ["@value-fabric/backend-leads", "@value-fabric/security-leads"],
+      "web": ["@value-fabric/frontend-leads", "@value-fabric/ux-designers"],
+      "contracts": ["@value-fabric/architects", "@value-fabric/backend-leads"],
+      "infra": ["@value-fabric/sre-leads", "@value-fabric/infrastructure-leads"],
+      "security": ["@value-fabric/security-leads", "@value-fabric/ciso"],
+      "ci": ["@value-fabric/sre-leads", "@value-fabric/maintainers"],
+      "platform-architecture": ["@value-fabric/architects"]
+    }
+  },
+  "gate_2": {
+    "gate_id": "GATE-2",
+    "blocking": true,
+    "trigger": "node handwritten_loc_delta > max_loc OR files_touched > max_files",
+    "human_may": ["raise_budget_once_in_writing", "split_node", "drop_scope"],
+    "agent_may_not": ["self_raise_budget"]
+  }
+}

@@ -14,7 +14,14 @@
   "global_policies": {
     "observability": {
       "audit_trail": "append_only",
-      "log_fields": ["agent_id", "step_id", "prompt", "diff", "test_results", "timestamp"]
+      "log_fields": [
+        "agent_id",
+        "step_id",
+        "prompt",
+        "diff",
+        "test_results",
+        "timestamp"
+      ]
     },
     "rollback": {
       "strategy": "git_tag_checkpoints",
@@ -32,9 +39,24 @@
       "side_effects_forbidden_outside_worktrees": true
     },
     "human_gates": [
-      { "gate_id": "GATE-1", "step": "step_1", "trigger": "spec_gaps_review", "blocking": true },
-      { "gate_id": "GATE-2", "step": "step_4", "trigger": "budget_overrun_diff", "blocking": true },
-      { "gate_id": "GATE-3", "step": "step_6", "trigger": "production_release_approval", "blocking": true }
+      {
+        "gate_id": "GATE-1",
+        "step": "step_1",
+        "trigger": "spec_gaps_review",
+        "blocking": true
+      },
+      {
+        "gate_id": "GATE-2",
+        "step": "step_4",
+        "trigger": "budget_overrun_diff",
+        "blocking": true
+      },
+      {
+        "gate_id": "GATE-3",
+        "step": "step_6",
+        "trigger": "production_release_approval",
+        "blocking": true
+      }
     ],
     "agent_constraints": {
       "test_files_read_only_after_step_3": true,
@@ -50,8 +72,14 @@
       "goal": "Guarantee a deterministic, identical environment so all downstream results are attributable to code changes, not drift.",
       "agent": {
         "role": "environment_agent",
-        "permissions": ["read_repo", "build_container", "run_tests"],
-        "write_access": ["baseline_artifacts_only"]
+        "permissions": [
+          "read_repo",
+          "build_container",
+          "run_tests"
+        ],
+        "write_access": [
+          "baseline_artifacts_only"
+        ]
       },
       "actions": [
         "pin_toolchain_versions",
@@ -61,9 +89,25 @@
         "record_anchor_git_sha"
       ],
       "outputs": [
-        { "artifact": "container_image", "type": "oci_image" },
-        { "artifact": "lockfile_hash_manifest", "type": "json" },
-        { "artifact": "baseline_report", "type": "json", "fields": ["test_pass_state", "coverage_pct", "build_time", "latency_p50", "latency_p95"] }
+        {
+          "artifact": "container_image",
+          "type": "oci_image"
+        },
+        {
+          "artifact": "lockfile_hash_manifest",
+          "type": "json"
+        },
+        {
+          "artifact": "baseline_report",
+          "type": "json",
+          "fields": [
+            "test_pass_state",
+            "coverage_pct",
+            "build_time",
+            "latency_p50",
+            "latency_p95"
+          ]
+        }
       ],
       "completion_criteria": [
         "container_image_reproducible == true",
@@ -71,9 +115,22 @@
       ],
       "failure_path": {
         "condition": "existing_test_suite_red",
-        "action": "halt_pipeline",
+        "action": "halt_implementation_steps_3_to_6",
         "escalation": "human_triage_required",
-        "message": "Never build the missing 20% on a broken 80%."
+        "message": "Never build the missing 20% on a broken 80%.",
+        "step_1_exception": {
+          "permitted": true,
+          "reason": "read_only_mapping_required_for_GATE_1",
+          "mutations_allowed": false,
+          "write_access": [
+            "map_artifacts_only",
+            "evidence_artifact_corrections"
+          ]
+        },
+        "step_2_exception": {
+          "permitted": false,
+          "reason": "DAG_is_planning_for_implementation"
+        }
       }
     },
     {
@@ -82,8 +139,13 @@
       "goal": "Produce an immutable, machine-readable reference map of behaviors, contracts, schemas, and unfinished stubs.",
       "agent": {
         "role": "inspection_agent",
-        "permissions": ["read_repo", "parse_ast"],
-        "write_access": ["map_artifacts_only"],
+        "permissions": [
+          "read_repo",
+          "parse_ast"
+        ],
+        "write_access": [
+          "map_artifacts_only"
+        ],
         "mutations_allowed": false
       },
       "actions": [
@@ -95,20 +157,42 @@
         "compute_churn_complexity_heatmap"
       ],
       "outputs": [
-        { "artifact": "repo_map", "type": "json", "contents": ["dependency_graph", "api_contracts", "schema_definitions", "unfinished_backlog"] },
-        { "artifact": "SPEC_GAPS.md", "type": "markdown", "purpose": "items_requiring_human_intent" },
-        { "artifact": "risk_heatmap", "type": "json" }
+        {
+          "artifact": "repo_map",
+          "type": "json",
+          "contents": [
+            "dependency_graph",
+            "api_contracts",
+            "schema_definitions",
+            "unfinished_backlog"
+          ]
+        },
+        {
+          "artifact": "SPEC_GAPS.md",
+          "type": "markdown",
+          "purpose": "items_requiring_human_intent"
+        },
+        {
+          "artifact": "risk_heatmap",
+          "type": "json"
+        }
       ],
       "completion_criteria": [
         "repo_map_versioned == true",
-        "spec_gaps_signed_off == true"
+        "SPEC_GAPS.md produced",
+        "decision_packet_produced == true"
       ],
       "gate": {
         "gate_id": "GATE-1",
         "type": "human_review",
-        "target": "SPEC_GAPS.md",
+        "target": "step_1/DECISION_TABLE.md",
         "blocking": true,
-        "rule": "agents_must_not_guess_product_intent"
+        "rule": "agents_must_not_guess_product_intent",
+        "human_owned_criterion": "spec_gaps_signed_off == true",
+        "current": {
+          "spec_gaps_signed_off": false,
+          "disposition": "DEFER"
+        }
       }
     },
     {
@@ -117,7 +201,11 @@
       "goal": "Convert the missing 20% into atomic, non-overlapping DAG nodes with enforced boundaries.",
       "agent": {
         "role": "planning_agent",
-        "permissions": ["read_repo_map", "create_worktrees", "define_dag"]
+        "permissions": [
+          "read_repo_map",
+          "create_worktrees",
+          "define_dag"
+        ]
       },
       "actions": [
         "decompose_into_atomic_tasks",
@@ -130,7 +218,10 @@
       ],
       "constraints": {
         "file_ownership": "exclusive_per_node",
-        "budgets": { "max_loc_delta": "per_node_configurable", "max_files_touched": "per_node_configurable" },
+        "budgets": {
+          "max_loc_delta": "per_node_configurable",
+          "max_files_touched": "per_node_configurable"
+        },
         "dag_must_be_acyclic": true
       },
       "outputs": [
@@ -144,7 +235,10 @@
             "depends_on": "array<node_id>",
             "worktree_branch": "string",
             "owned_files": "array<path>",
-            "budget": { "max_loc": "int", "max_files": "int" },
+            "budget": {
+              "max_loc": "int",
+              "max_files": "int"
+            },
             "effort_score": "number"
           }
         }
@@ -165,7 +259,11 @@
       "goal": "Encode success and failure boundaries before implementation (Red state).",
       "agent": {
         "role": "test_synthesis_agent",
-        "permissions": ["read_repo_map", "read_api_contracts", "write_test_files"]
+        "permissions": [
+          "read_repo_map",
+          "read_api_contracts",
+          "write_test_files"
+        ]
       },
       "actions": [
         "generate_unit_tests",
@@ -193,8 +291,15 @@
       "agent": {
         "role": "worker_agent",
         "instances": "one_per_dag_node",
-        "permissions": ["write_owned_files_only", "run_node_scoped_tests", "read_tests"],
-        "forbidden": ["modify_test_files", "write_outside_ownership_manifest"]
+        "permissions": [
+          "write_owned_files_only",
+          "run_node_scoped_tests",
+          "read_tests"
+        ],
+        "forbidden": [
+          "modify_test_files",
+          "write_outside_ownership_manifest"
+        ]
       },
       "actions": [
         "implement_logic_in_worktree",
@@ -205,9 +310,20 @@
       ],
       "controls": {
         "iteration_cap": 10,
-        "on_iteration_exhaustion": { "action": "escalate_to_human", "payload": "diagnostic_bundle" },
-        "diff_size_trigger": { "condition": "loc_delta > node_budget", "action": "flag_for_human_inspection", "gate_id": "GATE-2" },
-        "static_analysis": { "cyclomatic_complexity_max": "configurable", "nesting_depth_max": "configurable", "duplication_pct_max": "configurable" }
+        "on_iteration_exhaustion": {
+          "action": "escalate_to_human",
+          "payload": "diagnostic_bundle"
+        },
+        "diff_size_trigger": {
+          "condition": "loc_delta > node_budget",
+          "action": "flag_for_human_inspection",
+          "gate_id": "GATE-2"
+        },
+        "static_analysis": {
+          "cyclomatic_complexity_max": "configurable",
+          "nesting_depth_max": "configurable",
+          "duplication_pct_max": "configurable"
+        }
       },
       "completion_criteria": [
         "node_test_pass_rate_pct == 100",
@@ -224,16 +340,37 @@
       "agents": [
         {
           "role": "architecture_auditor",
-          "independence": { "shared_context_with_peer": false, "distinct_model_instance": true },
-          "focus": ["contract_stability", "layering_violations", "abstraction_fit", "dependency_direction"]
+          "independence": {
+            "shared_context_with_peer": false,
+            "distinct_model_instance": true
+          },
+          "focus": [
+            "contract_stability",
+            "layering_violations",
+            "abstraction_fit",
+            "dependency_direction"
+          ]
         },
         {
           "role": "adversarial_auditor",
-          "independence": { "shared_context_with_peer": false, "distinct_model_instance": true },
-          "focus": ["injection_surfaces", "authz_gaps", "race_conditions", "resource_exhaustion", "malformed_input_fuzzing"]
+          "independence": {
+            "shared_context_with_peer": false,
+            "distinct_model_instance": true
+          },
+          "focus": [
+            "injection_surfaces",
+            "authz_gaps",
+            "race_conditions",
+            "resource_exhaustion",
+            "malformed_input_fuzzing"
+          ]
         }
       ],
-      "additional_scans": ["secrets_scan", "pii_scan", "dependency_vulnerability_audit_for_new_packages"],
+      "additional_scans": [
+        "secrets_scan",
+        "pii_scan",
+        "dependency_vulnerability_audit_for_new_packages"
+      ],
       "finding_requirements": {
         "every_flag_must_include": "failing_reproduction_case",
         "opinion_only_flags_accepted": false
@@ -256,12 +393,21 @@
       "goal": "Topologically merge DAG branches and validate system stability under runtime conditions.",
       "agent": {
         "role": "orchestration_agent",
-        "permissions": ["merge_branches", "run_e2e_suite", "run_perf_benchmarks", "generate_reports"]
+        "permissions": [
+          "merge_branches",
+          "run_e2e_suite",
+          "run_perf_benchmarks",
+          "generate_reports"
+        ]
       },
       "merge_strategy": {
         "order": "topological",
         "mode": "incremental",
-        "sequence_per_node": ["merge_node", "run_smoke_suite", "proceed_or_isolate"],
+        "sequence_per_node": [
+          "merge_node",
+          "run_smoke_suite",
+          "proceed_or_isolate"
+        ],
         "rationale": "instant_failure_attribution"
       },
       "validation": {
@@ -276,7 +422,10 @@
           "action": "quarantine_and_report",
           "forbidden": "silent_retry_to_green"
         },
-        "feature_flags": { "required_for_user_facing_changes": true, "purpose": "staged_rollout" }
+        "feature_flags": {
+          "required_for_user_facing_changes": true,
+          "purpose": "staged_rollout"
+        }
       },
       "completion_criteria": [
         "e2e_build_green == true",
@@ -288,7 +437,13 @@
         {
           "artifact": "release_report",
           "type": "json",
-          "contents": ["per_node_changelog", "audit_signoffs", "performance_deltas", "feature_flag_inventory", "rollback_instructions"]
+          "contents": [
+            "per_node_changelog",
+            "audit_signoffs",
+            "performance_deltas",
+            "feature_flag_inventory",
+            "rollback_instructions"
+          ]
         }
       ],
       "gate": {
@@ -299,5 +454,7 @@
         "rule": "pipeline_produces_release_candidate_only; human_owns_deploy_decision"
       }
     }
-  ]
+  ],
+  "halt_and_resume_policy_ref": "policies/halt_and_resume.v1.json",
+  "node_budget_policy_ref": "policies/node-budget.v1.json"
 }

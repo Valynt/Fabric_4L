@@ -1,0 +1,48 @@
+{
+  "policy_id": "ac20-halt-and-resume",
+  "version": "1.0.0",
+  "status": "in_force_on_evidence_branch",
+  "narrative": "HALT_POLICY.md",
+  "replaces_literal": "step_0.failure_path.action = halt_pipeline",
+  "step_0_failure_path": {
+    "condition": "existing_test_suite_red",
+    "action": "halt_implementation_steps_3_to_6",
+    "escalation": "human_triage_required",
+    "message": "Never build the missing 20% on a broken 80%.",
+    "step_1_exception": {
+      "permitted": true,
+      "reason": "read_only_mapping_required_for_GATE_1",
+      "mutations_allowed": false,
+      "write_access": ["map_artifacts_only", "evidence_artifact_corrections"]
+    },
+    "step_2_exception": {
+      "permitted": false,
+      "reason": "DAG_is_planning_for_implementation"
+    }
+  },
+  "step_0_incomplete": {
+    "condition": "container_image_reproducible == false OR golden_baseline_measurements_missing",
+    "blocks": ["step_3", "step_4", "step_5", "step_6"],
+    "does_not_block": ["step_1"]
+  },
+  "gate_1": {
+    "unsigned_or_defer_blocks": ["step_2", "step_3", "step_4", "step_5", "step_6"],
+    "spec_gaps_signed_off": false,
+    "current_disposition": "DEFER"
+  },
+  "gap_0_operator": {
+    "classification": "block",
+    "independent_of_gate_1": true,
+    "blocks": ["step_2", "step_3", "step_4", "step_5", "step_6"]
+  },
+  "resume_step_2": [
+    "GATE-1 APPROVE with four required fields",
+    "GAP-0 is not block, OR blocking jobs green on a new freeze SHA",
+    "node-budget policy approved"
+  ],
+  "resume_steps_3_to_6": [
+    "step_2 complete",
+    "H-RED-SUITE cleared or waived in writing",
+    "H-STEP0-INCOMPLETE cleared or waived in writing"
+  ]
+}

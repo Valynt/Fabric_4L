@@ -1,3 +1,8 @@
+<!-- GATE-1 STATUS -->
+> **Disposition: DEFER (2026-09-05).** `spec_gaps_signed_off: false`. GAP-0: **block**.
+> Sign-off surface for this round: `DECISION_TABLE.md`. Catalog below is unchanged.
+> See `../DECISION_PACKET.md`.
+
 # SPEC_GAPS.md — GATE-1 (blocking)
 
 **Pipeline:** `autonomous-completion-final-20` v2.0.0

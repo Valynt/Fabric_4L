@@ -1,24 +1,21 @@
 # Step 0 — Environment Freeze (partial)
 
 - **Anchor SHA:** `4bb4e142c2ccbc56297de843e71534d956bb198f`
-- **Captured:** 2026-09-05T15:20:00Z
-- **Container image:** NOT produced (reproducible=false)
-- **Golden baseline:** CI proxy only; local suite not executed
-- **Test pass state:** RED on main (PR Checks + Prod Readiness Gates)
+- **Captured:** 2026-09-05T15:20:00Z; reconciled 2026-09-05T16:00:00Z
+- **Container image:** NOT produced (`reproducible=false`) — H-STEP0-INCOMPLETE
+- **Golden baseline:** CI proxy only; local suite not executed; p50/p95/coverage/build_time null
+- **Test pass state:** RED on main (confirmed: Docker/e2e/runtime-contract + Prod Readiness)
 
-## Halt decision
+## Halt decision (reconciled)
 
-Pipeline `failure_path.existing_test_suite_red` is **true**.
+`failure_path.existing_test_suite_red` is **true**.
 
-Implementation steps (3–6) are halted. Step 1 mapping is included because it is
-read-only (`mutations_allowed: false`) and is required for GATE-1.
+Original spec action `halt_pipeline` is **too broad**. Canonical action is `halt_implementation_steps_3_to_6` with an **explicit Step 1 exception** (read-only mapping). Step 2 is not excepted.
 
-Static/contract critical gates on the same SHA are green. The red set mixes
-environment-dependent Docker/e2e jobs with unclassified failures
-(`02-code-quality-and-tests`, prod-readiness). Human triage must decide whether
-the unclassified red jobs are accepted-risk or blocking before any DAG work.
+Operator 2026-09-05: GAP-0 = **block**, GATE-1 = **DEFER**. Steps 2–6 remain halted.
+
+See `../HALT_POLICY.md` and `PREREQUISITES.md`.
 
 ## Toolchain pins recorded (not mutated)
 
-See `baseline_report.json` → `toolchain`. Pins were **not** rewritten; drift is
-flagged for GATE-1 rather than silently “fixed”.
+See `baseline_report.json` → `toolchain`. Pins were **not** rewritten; drift is GAP-9/10/11 (prerequisite maintenance, not AC-20 features).
