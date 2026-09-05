@@ -27,10 +27,18 @@ export default function StudioShell() {
   const [railMode, setRailMode] = useState<RightRailMode>("agent");
   const [detailContent, setDetailContent] = useState<ReactNode | null>(null);
 
-  // Reset any page-injected detail content when the active tab changes.
+  // Detail-content lifecycle is owned by the tabs themselves:
+  // useStudioDetailRail clears a tab's contribution on unmount and on change,
+  // so a shell-side reset would race (and clobber) same-commit injections.
+
+  // Surface tab-injected detail content: when a tab provides detail content
+  // (e.g. the mission decision rail), the shell's single right rail switches
+  // to Details so the content is visible; when the content is cleared, the
+  // rail returns to the agent stream. Manual mode toggles are unaffected —
+  // this effect only reacts to content presence transitions.
   useEffect(() => {
-    setDetailContent(null);
-  }, [activeTab]);
+    setRailMode(detailContent ? "detail" : "agent");
+  }, [detailContent]);
 
   const { messages, sendMessage, suggestedActions, steps, isStreaming, metadata } =
     useAgentEvents({

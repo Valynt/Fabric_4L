@@ -2,8 +2,9 @@
  * Value Studio (mission-led) — loading skeletons (contract §10, FE-LOAD-001).
  *
  * Geometry-matched to the composed page (header → journey → mission strip →
- * impact row → two-column grid) so loading never shifts layout when the
- * projection arrives. Decorative skeletons are aria-hidden; the single
+ * impact row → single-column content; the decision chrome lives in the
+ * shell-owned right rail per DEC-FE-008) so loading never shifts layout when
+ * the projection arrives. Decorative skeletons are aria-hidden; the single
  * role="status" live region carries the accessible loading announcement.
  */
 
@@ -33,14 +34,11 @@ export function ValueStudioSkeletons() {
           <Skeleton className="h-28" />
           <Skeleton className="h-28" />
         </div>
-        {/* Main grid: content + 400px decision rail */}
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
-          <div className="space-y-6">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-56 w-full" />
-            <Skeleton className="h-72 w-full" />
-          </div>
-          <Skeleton className="h-[560px]" />
+        {/* Main content column (decision chrome renders in the shell rail) */}
+        <div className="space-y-6">
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-56 w-full" />
+          <Skeleton className="h-72 w-full" />
         </div>
       </div>
     </div>

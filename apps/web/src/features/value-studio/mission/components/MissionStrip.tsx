@@ -5,7 +5,10 @@
  * coordination mode, autonomy summary, action progress as a segmented bar
  * with an accessible progressbar role, the distinct next-action and
  * needs-decision blocks, and Pause/Resume controls rendered ONLY when the
- * backend allowedActions list authorizes them (FE-MSN-006).
+ * backend allowedActions list authorizes them (FE-MSN-006). While the
+ * projection is stale or offline, ALL mission mutations are disabled —
+ * matching the DecisionRail FE-RAIL-008/009 gating — so the strip never
+ * contradicts the degraded-state banners.
  */
 
 import { AlertTriangle, Pause, Play } from "lucide-react";
@@ -25,6 +28,11 @@ export interface MissionStripProps {
   readonly onPause: () => void;
   readonly onResume: () => void;
   readonly commandPending: boolean;
+  /** Degraded-projection gating (FE-RAIL-008/009 consistency): when the
+   *  projection is stale or offline, Pause/Resume are disabled together with
+   *  every other mission mutation. */
+  readonly stale?: boolean;
+  readonly offline?: boolean;
 }
 
 const STATUS_BADGE: Record<MissionStatus, BlockStatus> = {
@@ -40,9 +48,18 @@ const STATUS_BADGE: Record<MissionStatus, BlockStatus> = {
   FAILED: "failed",
 };
 
-export function MissionStrip({ mission, onPause, onResume, commandPending }: MissionStripProps) {
+export function MissionStrip({
+  mission,
+  onPause,
+  onResume,
+  commandPending,
+  stale = false,
+  offline = false,
+}: MissionStripProps) {
   const canPause = mission.allowedActions.includes(VALUE_STUDIO_ACTIONS.missionPause);
   const canResume = mission.allowedActions.includes(VALUE_STUDIO_ACTIONS.missionResume);
+  const mutationsPaused = stale || offline;
+  const controlsDisabled = commandPending || mutationsPaused;
   const progressText = `${mission.completedActionCount} of ${mission.totalActionCount} actions completed`;
   const needsDecision = mission.pendingDecisionCount > 0;
 
@@ -64,13 +81,13 @@ export function MissionStrip({ mission, onPause, onResume, commandPending }: Mis
         </span>
         <span className="flex-1" />
         {canPause && (
-          <Btn variant="outline" size="sm" onClick={onPause} disabled={commandPending}>
+          <Btn variant="outline" size="sm" onClick={onPause} disabled={controlsDisabled}>
             <Pause className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
             Pause mission
           </Btn>
         )}
         {canResume && (
-          <Btn variant="outline" size="sm" onClick={onResume} disabled={commandPending}>
+          <Btn variant="outline" size="sm" onClick={onResume} disabled={controlsDisabled}>
             <Play className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
             Resume mission
           </Btn>

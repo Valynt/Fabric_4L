@@ -22,6 +22,11 @@ export interface MissionActivityFeedProps {
   readonly events: readonly MissionActivityEvent[];
   readonly onUndo: (eventId: string) => void;
   readonly onEventExpanded: (eventId: string) => void;
+  /** Degraded-projection gating: mirrors DecisionRail FE-RAIL-008/009 — while the
+   *  projection is stale or offline, every mission mutation (including Undo) is
+   *  disabled so the controls never contradict the degraded-state banners. */
+  readonly stale?: boolean;
+  readonly offline?: boolean;
 }
 
 const STATUS_LABEL: Record<MissionActivityStatus, string> = {
@@ -44,8 +49,11 @@ export function MissionActivityFeed({
   events,
   onUndo,
   onEventExpanded,
+  stale = false,
+  offline = false,
 }: MissionActivityFeedProps) {
   const [expandedIds, setExpandedIds] = useState<ReadonlySet<string>>(new Set());
+  const mutationsPaused = stale || offline;
   const ordered = orderActivityEvents(events);
 
   const toggle = (eventId: string) => {
@@ -134,6 +142,7 @@ export function MissionActivityFeed({
                       size="sm"
                       onClick={() => onUndo(event.eventId)}
                       aria-label={`Undo event ${event.eventId}`}
+                      disabled={mutationsPaused}
                     >
                       <Undo2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
                       Undo this step

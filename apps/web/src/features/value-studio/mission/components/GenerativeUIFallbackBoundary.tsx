@@ -6,6 +6,10 @@
  * phases. On failure it reports through telemetry (`captureException`) and the
  * §14 fallback event, then renders ONLY the static fallback notice — the
  * broken subtree is never partially rendered (FE-SUC-011).
+ *
+ * Recovery: the failed state is NOT latched forever. Callers pass a `resetKey`
+ * identifying the rendered projection; when the key changes (refetch, fixture
+ * switch, new projection version), the boundary resets and retries the child.
  */
 
 import { Component, type ReactNode } from "react";
@@ -15,6 +19,9 @@ import { StaticGenerativeUIFallback } from "./StaticGenerativeUIFallback";
 
 export interface GenerativeUIFallbackBoundaryProps {
   readonly componentName: string;
+  /** Identity of the content being rendered. A change resets a latched
+   *  failure so a recovered projection is not stuck behind the fallback. */
+  readonly resetKey?: string;
   readonly children: ReactNode;
 }
 
@@ -30,6 +37,14 @@ export class GenerativeUIFallbackBoundary extends Component<
 
   static getDerivedStateFromError(): GenerativeUIFallbackBoundaryState {
     return { failed: true };
+  }
+
+  override componentDidUpdate(
+    prevProps: GenerativeUIFallbackBoundaryProps,
+  ): void {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.failed) {
+      this.setState({ failed: false });
+    }
   }
 
   override componentDidCatch(error: Error): void {
