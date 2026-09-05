@@ -3,7 +3,7 @@
 **Slice:** T (S22-A1 audit half, pulled forward)
 **Mode:** Read-only investigation — **no code changes made**
 **Branch:** `bmsull560-tenant-filter-audit`
-**Date:** (audit session)
+**Date:** 2026-09-05
 **Scope:** Catalog every graph (Neo4j/Cypher) and vector (pgvector / Neo4j-native vector / Pinecone) query in the monorepo; check each for tenant-filter presence; report gaps.
 
 ---
@@ -12,7 +12,7 @@
 
 The audit cataloged every graph and vector query surface across the monorepo and checked each for tenant-filter presence. **The tenant-isolation invariant is overwhelmingly upheld.** The vast majority of query sites route through approved fail-closed execution seams that either force-assign `tenant_id` or reject queries lacking an explicit tenant predicate.
 
-**One genuine gap was confirmed** — the Layer 4 `Neo4jVariableRegistry` performs CRUD/search with **no tenant scoping whatsoever** (no `tenant_id` property on the model, no tenant filter on any query). This is assessed as **MEDIUM** severity (design gap) because pack variable definitions are global templates loaded at startup/CI, but it violates the invariant that *every graph query carries a tenant filter*.
+**Two gaps were confirmed.** The primary one is the Layer 4 `Neo4jVariableRegistry`, which performs CRUD/search with **no tenant scoping whatsoever** (no `tenant_id` property on the model, no tenant filter on any query). This is assessed as **MEDIUM** severity (design gap) because pack variable definitions are global templates loaded at startup/CI, but it violates the invariant that *every graph query carries a tenant filter*. A second, **LOW** defense-in-depth gap exists in the `query_graph` tool, whose tenant filter scopes only the first node alias of a MATCH clause (see GAP-2).
 
 A small number of **conditional / defense-in-depth** observations were noted where tenant filtering relies on a wrapper seam rather than being explicit in the query text — these are SAFE by design but worth documenting.
 
@@ -29,9 +29,9 @@ These are the seams that make most query sites SAFE. Any query routed through th
 | `run_scoped_query` | `db/query_execution.py` L629 | Takes `ScopedQuery` from builders |
 | `run_validated_query` | `db/query_execution.py` L669 | Legacy raw Cypher; fail-closed structural validation; force-assigns tenant; `require_explicit_tenant_id=True` option |
 | `run_tenant_query` / `run_system_query` | `db/query_execution.py` | Tenant-scoped / system-scoped |
-| `TenantScopedCypher` | `packages/shared/.../isolation.py` L304 | Always injects `_tenant_id` param + tenant predicates |
-| `custom_tenant_query` | `packages/shared/.../isolation.py` L665 | Requires `$_tenant_id`/`$tenant_id` reference AND explicit tenant predicate (raises ValueError otherwise) |
-| `SystemCypher` | `packages/shared/.../isolation.py` L189 | Schema/migration/backup/health (system-scoped, no tenant data) |
+| `TenantScopedCypher` | `packages/shared/src/value_fabric/shared/identity/isolation.py` L304 | Always injects `_tenant_id` param + tenant predicates |
+| `custom_tenant_query` | `packages/shared/src/value_fabric/shared/identity/isolation.py` L665 | Requires `$_tenant_id`/`$tenant_id` reference AND explicit tenant predicate (raises ValueError otherwise) |
+| `SystemCypher` | `packages/shared/src/value_fabric/shared/identity/isolation.py` L189 | Schema/migration/backup/health (system-scoped, no tenant data) |
 | `Neo4jTenantSessionSecured.run` | `api/dependencies_tenant_secured.py` L106 | Validates Cypher text (blocks broad MATCH without tenant predicate), **auto-injects `tenant_id`/`_tenant_id` into params**, runs through `TenantQueryExecutor` |
 | `ValidatedNeo4jSession` | `security/query_validator.py` L416 | Routes through `TenantQueryExecutor`, fail-closed |
 
@@ -42,7 +42,6 @@ These are the seams that make most query sites SAFE. Any query routed through th
 | `QueryGraphTool._inject_tenant_filter` | `tools/knowledge_tools.py` L100-160 | Injects `<alias>.tenant_id = $tenant_id` on first node alias |
 | `QueryGraphTool._ensure_tenant_parameters` | `tools/knowledge_tools.py` L162-180 | Rejects tenant spoofing |
 | `QueryGraphTool.execute` | `tools/knowledge_tools.py` L192+ | Requires valid `TenantContext` fail-closed |
-| `ValidatedNeo4jSession` | (L4) | Routes through `TenantQueryExecutor` |
 | `run_tenant_validated_query` | `services/tenant_query_helper.py` | Tenant-validated query helper |
 
 ---
@@ -64,27 +63,30 @@ These are the seams that make most query sites SAFE. Any query routed through th
 | 9 | `services/product_service.py` | `_run_cypher` → `run_validated_query` | `tenant_id` in query/params; wrapper protects tenant-owned labels | ✅ SAFE |
 | 10 | `api/routes/entities.py` L191/344/371/479 | `neo4j.execute_query` with `TenantScopedCypher.custom_tenant_query` | Builder-scoped | ✅ SAFE |
 | 11 | `api/routes/entities.py` L235/252/275 | Direct `neo4j.execute_query` raw Cypher | `tenant_id` predicates in query text; relies on `Neo4jTenantSessionSecured` auto-inject | ⚠️ CONDITIONAL (SAFE via seam) |
-| 12 | `db/dual_store_coordinator.py` | pgvector fallback writes/compensating deletes | Requires explicit `tenant_id` (raises ValueError if missing) | ✅ SAFE |
+| 12 | `api/routes/variables.py` | `create_neo4j_tenant_session(tenant_id)` + `WHERE v.tenant_id = $tenant_id` (L223/288/377/452/512/539/604/720/755) | Yes — all queries tenant-scoped | ✅ SAFE |
+| 13 | `db/dual_store_coordinator.py` | pgvector fallback writes/compensating deletes | Requires explicit `tenant_id` (raises ValueError if missing) | ✅ SAFE |
 
 ### 3.2 Layer 4 — Agents (`services/layer4-agents`)
 
 | # | File | Query site | Tenant filter | Status |
 |---|------|-----------|---------------|--------|
-| 13 | `services/context_gatherer.py` | `MATCH (s:Signal {tenant_id: $tenant_id})` etc. via `run_tenant_validated_query` | Yes | ✅ SAFE |
-| 14 | `services/formula_governance_service.py` | All `MATCH (f:Formula {id: $formula_id, tenant_id: $tenant_id})` via `fetch_tenant_validated_records` | Yes | ✅ SAFE |
-| 15 | `services/intelligence_orchestrator.py` | All `MATCH (... {tenant_id: $tenant_id})` via `fetch_tenant_validated_records` | Yes | ✅ SAFE |
-| 16 | `services/value_pack_service.py` | All `MATCH (vp:ValuePack {tenant_id: $tenant_id})` via `fetch_tenant_validated_records` | Yes | ✅ SAFE |
-| 17 | `services/value_hypothesis_engine.py` | `where_clauses = ["vh.tenant_id = $tenant_id", ...]` via `fetch_tenant_validated_records` | Yes | ✅ SAFE |
-| 18 | `services/narrative_builder_service.py` | `where_clauses = ["n.tenant_id = $tenant_id"]` via `fetch_tenant_validated_records` | Yes | ✅ SAFE |
-| 19 | `tools/knowledge.py` | Direct Neo4j queries | All tenant-filtered | ✅ SAFE |
-| 20 | `tools/knowledge_tools.py` (`QueryGraphTool`) | `_inject_tenant_filter` on first node alias | Injects `<alias>.tenant_id = $tenant_id`; rejects spoofing; fail-closed | ✅ SAFE |
-| 21 | `workflows/whitespace.py` L288 | `MATCH (c:Capability)` via `query_graph` tool | Injected by tool | ✅ SAFE |
-| 22 | `workflows/queries.py` | Deprecated builders with optional tenant_id | Injected by `query_graph` tool | ✅ SAFE |
-| 23 | `workflows/business_case.py` L378 | Passes tenant_id through `query_graph` | Injected by tool | ✅ SAFE |
-| 24 | `integration/layer3_client.py` | HTTP client (not direct query) | Tenant propagated via `X-Tenant-ID` header | ✅ SAFE |
-| 25 | `agents/audit_orchestrator/persistence.py` | Direct Neo4j queries | All tenant-filtered | ✅ SAFE |
-| 26 | `api/routes/analysis_workspace.py` | Direct Neo4j queries | All tenant-filtered | ✅ SAFE |
-| 27 | **`services/variable_registry_service.py`** | `Neo4jVariableRegistry` CRUD/search | **NO tenant scoping** | 🔴 **GAP** |
+| 14 | `services/context_gatherer.py` | `MATCH (s:Signal {tenant_id: $tenant_id})` etc. via `run_tenant_validated_query` | Yes | ✅ SAFE |
+| 15 | `services/formula_governance_service.py` | All `MATCH (f:Formula {id: $formula_id, tenant_id: $tenant_id})` via `fetch_tenant_validated_records` | Yes | ✅ SAFE |
+| 16 | `services/intelligence_orchestrator.py` | All `MATCH (... {tenant_id: $tenant_id})` via `fetch_tenant_validated_records` | Yes | ✅ SAFE |
+| 17 | `services/value_pack_service.py` | All `MATCH (vp:ValuePack {tenant_id: $tenant_id})` via `fetch_tenant_validated_records` | Yes | ✅ SAFE |
+| 18 | `services/value_hypothesis_engine.py` | `where_clauses = ["vh.tenant_id = $tenant_id", ...]` via `fetch_tenant_validated_records` | Yes | ✅ SAFE |
+| 19 | `services/narrative_builder_service.py` | `where_clauses = ["n.tenant_id = $tenant_id"]` via `fetch_tenant_validated_records` | Yes | ✅ SAFE |
+| 20 | `tools/knowledge.py` | Direct Neo4j queries | All tenant-filtered | ✅ SAFE |
+| 21 | `tools/knowledge_tools.py` (`QueryGraphTool`) | `_inject_tenant_filter` on first node alias | Injects `<alias>.tenant_id = $tenant_id`; rejects spoofing; fail-closed | ✅ SAFE |
+| 22 | `tools/competitive_tools.py` | `_query_graph_for_competitor` L229-270 | `MATCH (c:Competitor {name: $name, tenant_id: $tenant_id})` + `WHERE cap/risk/cs.tenant_id = $tenant_id` | ✅ SAFE |
+| 23 | `workflows/whitespace.py` L288 | `MATCH (c:Capability)` via `query_graph` tool | Injected by tool | ✅ SAFE |
+| 24 | `workflows/queries.py` | Deprecated builders with optional tenant_id | Injected by `query_graph` tool | ✅ SAFE |
+| 25 | `workflows/business_case.py` L378 | Passes tenant_id through `query_graph` | Injected by tool | ✅ SAFE |
+| 26 | `workflows/roi_calculator.py` L426/511 | `query_graph` tool calls (benchmark_variables, value_drivers) | `tenant_id` passed into tool input; injected by tool | ✅ SAFE |
+| 27 | `integration/layer3_client.py` | HTTP client (not direct query) | Tenant propagated via `X-Tenant-ID` header | ✅ SAFE |
+| 28 | `agents/audit_orchestrator/persistence.py` | Direct Neo4j queries | All tenant-filtered | ✅ SAFE |
+| 29 | `api/routes/analysis_workspace.py` | Direct Neo4j queries | All tenant-filtered | ✅ SAFE |
+| 30 | **`services/variable_registry_service.py`** | `Neo4jVariableRegistry` CRUD/search | **NO tenant scoping** | 🔴 **GAP** |
 
 ---
 
@@ -94,15 +96,15 @@ These are the seams that make most query sites SAFE. Any query routed through th
 
 | # | File | Query site | Tenant filter | Status |
 |---|------|-----------|---------------|--------|
-| 28 | `retrieval/vector_store.py` | `_build_vector_search_query` L174-187 (`db.index.vector.queryNodes`) | `WHERE node.tenant_id = $_tenant_id` | ✅ SAFE |
-| 29 | `services/evidence_search.py` L86/112 | `db.index.vector.queryNodes('evidence_embedding_idx', ...)` | `WHERE node.tenant_id = $tenant_id` | ✅ SAFE |
-| 30 | `services/entity_resolution.py` L61 | `_build_vector_query` (`db.index.vector.queryNodes`) | `WHERE node:{entity_type} AND node.tenant_id = $tenant_id` | ✅ SAFE |
+| 31 | `retrieval/vector_store.py` | `_build_vector_search_query` L174-187 (`db.index.vector.queryNodes`) | `WHERE node.tenant_id = $_tenant_id` | ✅ SAFE |
+| 32 | `services/evidence_search.py` L86/112 | `db.index.vector.queryNodes('evidence_embedding_idx', ...)` | `WHERE node.tenant_id = $tenant_id` | ✅ SAFE |
+| 33 | `services/entity_resolution.py` L61 | `_build_vector_query` (`db.index.vector.queryNodes`) | `WHERE node:{entity_type} AND node.tenant_id = $tenant_id` | ✅ SAFE |
 
 ### 4.2 pgvector (fallback / secondary store)
 
 | # | File | Query site | Tenant filter | Status |
 |---|------|-----------|---------------|--------|
-| 31 | `db/dual_store_coordinator.py` | pgvector fallback writes/compensating deletes | Requires explicit `tenant_id` (raises ValueError if missing) | ✅ SAFE |
+| 34 | `db/dual_store_coordinator.py` | pgvector fallback writes/compensating deletes | Requires explicit `tenant_id` (raises ValueError if missing) | ✅ SAFE |
 
 > **Note:** `scripts/ci/check_vector_store_health.py` confirms `pgvector_required=false` — pgvector is a fallback, not the active backend. The active vector store is Neo4j-native vector indexes.
 
@@ -110,15 +112,15 @@ These are the seams that make most query sites SAFE. Any query routed through th
 
 | # | File | Query site | Tenant filter | Status |
 |---|------|-----------|---------------|--------|
-| 32 | `tools/knowledge_tools.py` (`SemanticSearchTool`) | `index.query(...)` | Requires valid `TenantContext` (fail-closed); `filter_dict = {"tenant_id": str(tenant_ctx.tenant_id)}` injected into Pinecone metadata filter | ✅ SAFE |
+| 35 | `tools/knowledge_tools.py` (`SemanticSearchTool`) | `index.query(...)` | Requires valid `TenantContext` (fail-closed); `filter_dict = {"tenant_id": str(tenant_ctx.tenant_id)}` injected into Pinecone metadata filter | ✅ SAFE |
 
 ### 4.4 Full-text (BM25) — related retrieval surface
 
 | # | File | Query site | Tenant filter | Status |
 |---|------|-----------|---------------|--------|
-| 33 | `retrieval/hybrid_search.py` L321 | `db.index.fulltext.queryNodes` via `TenantScopedCypher.custom_tenant_query` | `$_tenant_id` | ✅ SAFE |
-| 34 | `retrieval/graph_rag.py` L546-576 | `db.index.fulltext.queryNodes` via `TenantScopedCypher.custom_tenant_query` | `$_tenant_id` | ✅ SAFE |
-| 35 | `services/evidence_search.py` L188/209 | `db.index.fulltext.queryNodes` via `run_validated_query` | `tenant_id` | ✅ SAFE |
+| 36 | `retrieval/hybrid_search.py` L321 | `db.index.fulltext.queryNodes` via `TenantScopedCypher.custom_tenant_query` | `$_tenant_id` | ✅ SAFE |
+| 37 | `retrieval/graph_rag.py` L546-576 | `db.index.fulltext.queryNodes` via `TenantScopedCypher.custom_tenant_query` | `$_tenant_id` | ✅ SAFE |
+| 38 | `services/evidence_search.py` L188/209 | `db.index.fulltext.queryNodes` via `run_validated_query` | `tenant_id` | ✅ SAFE |
 
 ---
 
@@ -145,6 +147,19 @@ These are the seams that make most query sites SAFE. Any query routed through th
 
 **Recommended fix (NOT applied — out of scope for this read-only audit):** Add `tenant_id` to the `Variable` model and scope all four queries to `tenant_id`. Route through `fetch_tenant_validated_records` (the L4 fail-closed seam). This belongs in the enforcement sprint touching `shared/security`.
 
+### GAP-2 (LOW): `QueryGraphTool._inject_tenant_filter` scopes only the first node alias
+
+**File:** `services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py` L100-160
+
+`_inject_tenant_filter` injects `<alias>.tenant_id = $tenant_id` on the **first node alias** of a MATCH clause only. For a multi-node MATCH such as `MATCH (a:Account) MATCH (b:Account) RETURN b`, only `a` is tenant-scoped; `b` is not, so `b` can return records from every tenant. The same applies to multi-node patterns like `MATCH (a)-[:REL]->(b)` where `b` is reached transitively.
+
+**Risk assessment:**
+- **Severity: LOW** — the tool is the approved enforcement point and rejects tenant spoofing (`_ensure_tenant_parameters`), and all current in-repo call sites pass a single-node MATCH or rely on the first alias being the tenant-owned node. No current call site is known to exploit the multi-alias path. However, the seam does not guarantee tenant isolation for arbitrary multi-alias queries, so it is a defense-in-depth gap rather than fully SAFE.
+- **Exploitability:** Low — requires an LLM/agent to author a multi-alias MATCH that returns a non-first alias; the tool's `_ensure_tenant_parameters` still blocks tenant-parameter spoofing.
+- **Impact if exploited:** Cross-tenant read of graph nodes reachable via a non-first alias.
+
+**Recommended fix (NOT applied — out of scope for this read-only audit):** Extend `_inject_tenant_filter` to scope **every** matched node alias, or reject multi-clause/multi-alias MATCH queries that do not carry an explicit tenant predicate on each alias. This belongs in the enforcement sprint touching `shared/security`.
+
 ---
 
 ## 6. Conditional / Defense-in-Depth Observations (SAFE by design, worth documenting)
@@ -154,8 +169,7 @@ These are not gaps — tenant filtering is enforced by a wrapper seam rather tha
 | # | File | Observation |
 |---|------|-------------|
 | C1 | `api/routes/entities.py` L235/252/275 | Direct `neo4j.execute_query` raw Cypher with `tenant_id` predicates in query text; relies on `Neo4jTenantSessionSecured` auto-injecting `tenant_id` into params. SAFE via seam. |
-| C2 | `tools/knowledge_tools.py` (`QueryGraphTool._inject_tenant_filter`) | Only filters the **first node alias** in a MATCH clause. For multi-node MATCH (e.g., `MATCH (a)-[:REL]->(b)`), only `a` is tenant-scoped; `b` is reached transitively. This is the tool's design and the approved enforcement point, but worth noting as a partial/conditional concern. |
-| C3 | `workflows/queries.py` | Deprecated query builders with **optional** `tenant_id`. SAFE only because `query_graph` tool injects the filter. If these builders are ever called outside the tool, tenant scoping is not guaranteed. |
+| C2 | `workflows/queries.py` | Deprecated query builders with **optional** `tenant_id`. SAFE only because `query_graph` tool injects the filter. If these builders are ever called outside the tool, tenant scoping is not guaranteed. |
 
 ---
 
@@ -168,6 +182,14 @@ These are not gaps — tenant filtering is enforced by a wrapper seam rather tha
   - `scripts/ci/check_vector_store_health.py` → confirms `pgvector_required=false` (Neo4j-native vector is active).
 - **Manual verification:** Every query surface in the catalog above was manually inspected for tenant-filter presence and execution seam.
 - **Key insight:** The audit must distinguish actual Neo4j `.run()` calls from other `.run()` calls (langgraph state, graph objects, pandas). The naive L4 audit script flags any `.run()`.
+
+### Relationship to the canonical Cypher audit artifacts
+
+This report is a **distinct Slice T evidence artifact** scoped to the tenant-filter audit. It complements, and does not replace, the canonical Cypher audit artifacts:
+- `docs/audit/l3-l4-cypher-scope-report.md` — the canonical cross-layer Cypher scope report.
+- `docs/audit/l3-cypher-tenant-inventory.json` — the machine-readable L3 tenant-inventory artifact.
+
+Where this report and the canonical artifacts overlap (e.g., the L3 inventory's 342 findings), this report records the manual tenant-filter classification and the confirmed gaps. Any future change to the enforcement seams or the `query_graph` tool should update both this report and the canonical artifacts to avoid drift.
 
 ---
 
@@ -185,6 +207,6 @@ These are not gaps — tenant filtering is enforced by a wrapper seam rather tha
 | 🔴 CRITICAL | 0 | — |
 | 🟠 HIGH | 0 | — |
 | 🟡 MEDIUM | 1 | GAP-1: L4 `Neo4jVariableRegistry` no tenant scoping |
-| ⚪ LOW | 3 | C1-C3: conditional/defense-in-depth observations (SAFE by design) |
+| ⚪ LOW | 3 | GAP-2: `query_graph` first-alias-only tenant filter; C1-C2: conditional/defense-in-depth observations (SAFE by design) |
 
-**Bottom line:** The tenant-isolation invariant is upheld across all active graph and vector query surfaces. One MEDIUM design gap exists in the L4 `Neo4jVariableRegistry` (internal, no API exposure). No CRITICAL or HIGH gaps were found.
+**Bottom line:** The tenant-isolation invariant is upheld across all active graph and vector query surfaces. Two gaps exist: one MEDIUM design gap in the L4 `Neo4jVariableRegistry` (internal, no API exposure) and one LOW defense-in-depth gap in the `query_graph` tool's first-alias-only tenant filter. No CRITICAL or HIGH gaps were found.
