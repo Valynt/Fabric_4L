@@ -3,8 +3,7 @@ kind: Skill
 metadata:
   name: git-proxy
   version: '2026-01-01'
-  description: Handle git operations consistently. The fences (`constraints` above)
-    are
+  description: Handle git operations consistently. The fences (`constraints` above) are enforced by the `pre_tool_call` hook; this file tells the agent what good behavior looks like within those fences.
   category: operations
 compatibleAgents:
 - claude-code
