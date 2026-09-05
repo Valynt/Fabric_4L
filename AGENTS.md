@@ -19,10 +19,14 @@ This file is the repository-wide routing layer, not the complete policy manual. 
 ## Package manager and required gates
 
 - This is a pnpm-only monorepo. Use pnpm `10.18.1` via Corepack; do not use npm or Yarn.
+- Use the root workspace lockfile and `pnpm-workspace.yaml` for dependency resolution. Add internal dependencies with pnpm workspace protocols where a package is intentionally consumed by another workspace.
+- Keep shared versions and security overrides centralized in the root `package.json`; do not introduce package-local lockfiles or duplicate root overrides.
 - Use `make` for repository-wide build, test, contract, migration, release, and readiness workflows.
 - Use `pnpm` for JavaScript/TypeScript dependencies and workspace scripts.
 - Run the narrowest relevant validation first. Before a PR, run `make verify`; for agent, prompt, or skill changes also run `make evals`.
 - For contract changes, run `make contract-tests` and the applicable generated-type or breaking-change checks.
+
+When working below a package or service directory, check that directory for the nearest `AGENTS.md` before relying on this file. Local instructions add context for that scope; they do not weaken root safety, contract, or tenant-isolation requirements.
 
 ## Repository map
 
@@ -30,6 +34,9 @@ This file is the repository-wide routing layer, not the complete policy manual. 
 - `services/api/` — API gateway and cross-layer auth/routing.
 - `packages/shared/` — shared tenant, identity, model, and boundary utilities.
 - `packages/platform-contract/` — canonical cross-layer contract types and tests.
+- `packages/config/` — shared TypeScript environment-validation package.
+- `packages/eslint-plugin-fabric-contracts/` — ESLint rules for canonical contract enforcement.
+- `services/value-studio/` — isolated TypeScript/Vitest service workspace.
 - `apps/web/` — React/Vite frontend.
 - `contracts/` — API, schema, event, and tool-manifest sources of truth.
 - `docs/` — architecture, governance, testing, security, operations, and development references.
