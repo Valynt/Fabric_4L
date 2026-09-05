@@ -68,6 +68,8 @@ class CallbackHandler(http.server.BaseHTTPRequestHandler):
                 raise ValueError("OIDC callback did not set a session cookie")
             server.captured_token = token
         except Exception:
+            # Break the CLI wait loop so it can fall back to manual JWT entry immediately.
+            server.captured_token = ""
             self.send_error(502, "OIDC token exchange failed")
             return
 
