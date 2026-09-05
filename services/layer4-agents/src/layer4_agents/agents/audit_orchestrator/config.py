@@ -215,8 +215,9 @@ class ConfigManager:
     1. **Environment variables** — Keys prefixed with ``AUDIT__`` using
        double-underscore as a nesting delimiter (e.g. ``AUDIT__REPO_URL``,
        ``AUDIT__AREA_WEIGHTS__ARCHITECTURE``).
-    2. **YAML config file** — Located at ``.agent/skills/repo-audit/config.yaml``
-       by default, customizable via the ``yaml_path`` parameter.
+    2. **YAML config file** — Located at ``agents/skills/repo-audit/config.yaml``
+       by default (legacy ``.agent/skills/repo-audit/config.yaml`` fallback),
+       customizable via the ``yaml_path`` parameter.
     3. **Pydantic defaults** — Defined in the :class:`AuditConfig` model.
 
     The manager handles type coercion, nested key resolution, and validation

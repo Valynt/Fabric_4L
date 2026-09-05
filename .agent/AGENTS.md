@@ -36,18 +36,20 @@ judgment. Rationale is required for graduation — rubber-stamped promotions
 are the exact failure mode this layer prevents.
 
 ## Skills
-- `skills/_index.md` — read first for discovery
-- `skills/_manifest.jsonl` — machine-readable skill metadata
+Skills live in `agents/skills/` (repo root). They were promoted out of the
+`.agent/` brain in Slice S; see `.agent/skills/MOVED.md`.
+- `agents/skills/_index.md` — read first for discovery
+- `agents/skills/_manifest.jsonl` — machine-readable skill metadata
 - Load a full `SKILL.md` only when its triggers match the current task
 - Every skill has a self-rewrite hook; invoke it after failures
 
 ## Design Systems
 - If the project root contains `DESIGN.md`, treat it as the source of truth
-  for visual design decisions and load `skills/design-md/SKILL.md` when a
+  for visual design decisions and load `agents/skills/design-md/SKILL.md` when a
   task mentions `DESIGN.md`, Google Stitch, design tokens, design system,
   or visual design. (The skill's `preconditions` field gates loading on
   `DESIGN.md` actually existing — keep this rule in lockstep with
-  `skills/_manifest.jsonl` to avoid same-task / different-harness drift.)
+  `agents/skills/_manifest.jsonl` to avoid same-task / different-harness drift.)
 - Prefer exact tokens, component rules, and design rationale from
   `DESIGN.md` over invented colors, typography, spacing, shadows, or motion.
 - Do not modify `DESIGN.md` unless the user explicitly asks for a design

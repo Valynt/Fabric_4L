@@ -31,7 +31,7 @@ Before any work, detect the environment — this changes what "good" means:
 | `.devin/skills/shadcn-fabric/` | Follow its ui usage rules for every new component. |
 | `contracts/openapi/` | Contracts are source of truth — schema-first, never drift. |
 | `apps/web/src/components/ui/fabric/` | Reuse Fabric domain components (`FabricCard`, `DataTable`, `StatusBadge`). |
-| `.agent/skills/design-md/` | Load it when DESIGN.md exists (keeps tokens authoritative). |
+| `agents/skills/design-md/` | Load it when DESIGN.md exists (keeps tokens authoritative). |
 
 ## Phase Map — delegate, don't reinvent
 
