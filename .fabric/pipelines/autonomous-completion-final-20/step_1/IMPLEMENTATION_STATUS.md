@@ -87,17 +87,22 @@ Short form:
 
 **Option:** separate security PR, AC-20 node, or residual risk. Human chooses.
 
-## GAP-7 / GAP-8 / GAP-13 / GAP-16 / GAP-19 — external implementation ownership
+## GAP-7 / GAP-8 / GAP-16 / GAP-19 — external implementation ownership
 
 | ID | Open PR | work_class |
 |---|---|---|
 | GAP-7 | [#1669](https://github.com/Valynt/Fabric_4L/pull/1669) | `external_impl_owner` |
 | GAP-8 | [#1650](https://github.com/Valynt/Fabric_4L/pull/1650) (+5963 / 37 files, behind) | `external_impl_owner` |
-| GAP-13 | [#1683](https://github.com/Valynt/Fabric_4L/pull/1683) (blocked; PR body says FAB-106 is a different path) | `external_impl_owner` |
 | GAP-16 | [#1661](https://github.com/Valynt/Fabric_4L/pull/1661) (behind) | `external_impl_owner` |
 | GAP-19 | [#1681](https://github.com/Valynt/Fabric_4L/pull/1681) (blocked; 2 files) | `external_impl_owner` |
 
 **Option:** leave to those PRs, or pull a row into AC-20 in writing (size may trip GATE-2).
+
+## GAP-13 — skills path promotion landed
+
+PR [#1683](https://github.com/Valynt/Fabric_4L/pull/1683) merged as `4f2e29e08ebd83fae639efde2d17a9de865c9c6e`.
+`agents/skills/` is canonical and `.agent/skills/MOVED.md` retains the
+COMPAT-SKILLS-001 compatibility shim. No external implementation remains for AC-20.
 
 ## GAP-9 / 10 / 11 — toolchain (prerequisite maintenance)
 

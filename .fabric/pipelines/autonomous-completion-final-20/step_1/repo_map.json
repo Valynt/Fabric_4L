@@ -81,7 +81,7 @@
       "packages/eslint-plugin-fabric-contracts"
     ],
     "agent_brain": {
-      "canonical_skills": "agents/skills (PR #1683 open; main still has .agent/skills)",
+      "canonical_skills": "agents/skills (PR #1683 merged as 4f2e29e08ebd83fae639efde2d17a9de865c9c6e; .agent/skills/MOVED.md is the COMPAT-SKILLS-001 shim)",
       "portable_brain": ".agent/",
       "fleet_registry": ".devin/AGENTS.md"
     }
@@ -277,10 +277,6 @@
         "number": 1684,
         "title": "docs(audit): Slice T Neo4j/pgvector tenant-filter gap report",
         "finding": "1 MEDIUM: L4 Neo4jVariableRegistry CRUD/search with no tenant scoping"
-      },
-      {
-        "number": 1683,
-        "title": "Slice S: promote .agent/skills to agents/skills"
       },
       {
         "number": 1681,

@@ -151,9 +151,12 @@ From `docs/governance/compatibility-debt-registry.md` (active, not struck):
 
 **Intent required per row:** extend dated target, remove shim now, or keep until a named consumer migrates.
 
-### GAP-13 — Skills path promotion (#1683) vs FAB-106
+### GAP-13 — Skills path promotion landed (#1683)
 
-PR [#1683](https://github.com/Valynt/Fabric_4L/pull/1683) promotes `.agent/skills` → `agents/skills` with COMPAT-SKILLS-001 (removal 2026-12-31). Merge-order note vs FAB-106 is recorded on the PR. **work_class:** `external_impl_owner`.
+PR [#1683](https://github.com/Valynt/Fabric_4L/pull/1683) merged as
+`4f2e29e08ebd83fae639efde2d17a9de865c9c6e`. `agents/skills/` is canonical;
+`.agent/skills/MOVED.md` retains the COMPAT-SKILLS-001 shim (removal target
+2026-12-31). **work_class:** `docs_drift`; no AC-20 implementation node remains.
 
 ---
 
