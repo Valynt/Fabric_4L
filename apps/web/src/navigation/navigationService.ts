@@ -478,5 +478,5 @@ export function isRouteActive(location: string, resolvedPath: string): boolean {
     return current === "/";
   }
 
-  return current === route || current.startsWith(route + "/");
+  return current === route || (current.startsWith(route) && current[route.length] === "/");
 }

@@ -75,6 +75,7 @@ export function EditDecisionForm({
     decision.decisionId,
     decision.decisionVersion,
     decision.modelVersion,
+    decision.alternative.proposedScope,
     initialDraft,
     recommendedAlt,
     recommendedWorking,
