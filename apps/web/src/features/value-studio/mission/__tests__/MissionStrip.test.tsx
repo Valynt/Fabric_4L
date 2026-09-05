@@ -12,16 +12,25 @@ import { describe, expect, it, vi } from "vitest";
 
 import { makeMissionProjection } from "../fixtures";
 import { VALUE_STUDIO_ACTIONS } from "../types";
-import { MissionStrip } from "../components/MissionStrip";
+import { MissionStrip, type MissionStripProps } from "../components/MissionStrip";
 
 expect.extend(toHaveNoViolations);
 
-function renderStrip(overrides: Parameters<typeof makeMissionProjection>[0] = {}) {
+function renderStrip(
+  overrides: Parameters<typeof makeMissionProjection>[0] = {},
+  stripProps: Partial<Pick<MissionStripProps, "commandPending" | "stale" | "offline">> = {},
+) {
   const onPause = vi.fn();
   const onResume = vi.fn();
   const mission = makeMissionProjection(overrides);
   const utils = render(
-    <MissionStrip mission={mission} onPause={onPause} onResume={onResume} commandPending={false} />,
+    <MissionStrip
+      mission={mission}
+      onPause={onPause}
+      onResume={onResume}
+      commandPending={false}
+      {...stripProps}
+    />,
   );
   return { mission, onPause, onResume, ...utils };
 }
@@ -104,6 +113,32 @@ describe("MissionStrip", () => {
       <MissionStrip mission={mission} onPause={vi.fn()} onResume={vi.fn()} commandPending={true} />,
     );
     expect(screen.getByRole("button", { name: /Pause mission/ })).toBeDisabled();
+  });
+
+  it("disables ALL mission mutations while the projection is offline (PR #1679 R2)", () => {
+    renderStrip(
+      { allowedActions: [VALUE_STUDIO_ACTIONS.missionPause, VALUE_STUDIO_ACTIONS.missionResume] },
+      { offline: true },
+    );
+    expect(screen.getByRole("button", { name: /Pause mission/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Resume mission/ })).toBeDisabled();
+  });
+
+  it("disables ALL mission mutations while the projection is stale (PR #1679 R2)", () => {
+    renderStrip(
+      { allowedActions: [VALUE_STUDIO_ACTIONS.missionPause, VALUE_STUDIO_ACTIONS.missionResume] },
+      { stale: true },
+    );
+    expect(screen.getByRole("button", { name: /Pause mission/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Resume mission/ })).toBeDisabled();
+  });
+
+  it("keeps mission mutations enabled in the ready state", () => {
+    renderStrip(
+      { allowedActions: [VALUE_STUDIO_ACTIONS.missionPause] },
+      { stale: false, offline: false },
+    );
+    expect(screen.getByRole("button", { name: /Pause mission/ })).toBeEnabled();
   });
 
   it("has no axe violations", async () => {

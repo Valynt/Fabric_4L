@@ -12,14 +12,20 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe, toHaveNoViolations } from "jest-axe";
+import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import { NAV_SCHEMA, type NavSchemaNode } from "@/navigation/navSchema";
 import { getStatePath } from "@/navigation/navigationService";
+import {
+  StudioRightRailContext,
+  type StudioRightRailApi,
+} from "../../StudioRightRailContext";
 import ValueStudioPage, { COMMAND_BACKEND_NOTICE } from "../ValueStudioPage";
 
 expect.extend(toHaveNoViolations);
@@ -43,6 +49,26 @@ const ROUTE = "/t/:tenantSlug/accounts/:accountId/studio/mission";
 const BASE = "/t/acme/accounts/acct_acme_manufacturing/studio/mission";
 const HEADING = "Acme Manufacturing — OPP-1842";
 
+/**
+ * Test double for the StudioShell right-rail seam: captures tab-injected
+ * detail content into a plain container (mirroring the production RightRail,
+ * which renders detail content inside plain divs) so tests can assert that
+ * decision chrome is delivered through the shell's single right rail
+ * (DEC-FE-001/008) rather than a page-local column. A div — not a nested
+ * landmark — keeps the rendered tree axe-clean (DecisionRail is itself an
+ * aside).
+ */
+function TestDetailRailShell({ children }: { children: ReactNode }) {
+  const [detailContent, setDetailContent] = useState<ReactNode>(null);
+  const railApi = useMemo<StudioRightRailApi>(() => ({ setDetailContent }), []);
+  return (
+    <StudioRightRailContext.Provider value={railApi}>
+      {children}
+      <div data-testid="shell-detail-rail">{detailContent}</div>
+    </StudioRightRailContext.Provider>
+  );
+}
+
 function renderPage(entry: string = BASE) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -54,9 +80,11 @@ function renderPage(entry: string = BASE) {
           <Route
             path={ROUTE}
             element={
-              <main>
-                <ValueStudioPage />
-              </main>
+              <TestDetailRailShell>
+                <main>
+                  <ValueStudioPage />
+                </main>
+              </TestDetailRailShell>
             }
           />
         </Routes>
@@ -147,7 +175,7 @@ describe("named state composition (§8.1)", () => {
   it("renders the error state with correlation id and retry", async () => {
     renderPage(`${BASE}?fixture=error`);
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("The value case could not be loaded.");
+    expect(alert).toHaveTextContent("The Value Studio projection could not be loaded.");
     expect(alert).toHaveTextContent("corr_fixture_error_01");
     expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: HEADING })).not.toBeInTheDocument();
@@ -159,6 +187,9 @@ describe("named state composition (§8.1)", () => {
     expect(screen.getByText(/You are offline/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reconnect" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Accept recommendation" })).toBeDisabled();
+    // R2: mission mutations are disabled consistently while offline — the
+    // authorized Pause control must not contradict the offline banner.
+    expect(screen.getByRole("button", { name: /Pause mission/ })).toBeDisabled();
   });
 
   it("renders the stale state: out-of-date alert and paused submissions", async () => {
@@ -170,6 +201,8 @@ describe("named state composition (§8.1)", () => {
       screen.getByRole("button", { name: "Load latest projection" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Accept recommendation" })).toBeDisabled();
+    // R2: mission mutations are disabled consistently while stale.
+    expect(screen.getByRole("button", { name: /Pause mission/ })).toBeDisabled();
   });
 
   it("renders the unauthorized state with no protected body data (§8.1)", async () => {
@@ -306,6 +339,36 @@ describe("decision and intent interactions (§9.9, FE-INTENT-001)", () => {
     expect(screen.getByText(/DISP-01 — Resolve downtime target conflict/)).toBeInTheDocument();
     await user.click(reopen);
     expect(await screen.findByTestId("decision-rail")).toBeInTheDocument();
+  });
+});
+
+describe("single-chrome decision rail (PR #1679 review, R1 / DEC-FE-008)", () => {
+  it("delivers the decision surface through the shell detail rail, never a page-local column", async () => {
+    renderPage();
+    // Decision chrome arrives via the injected shell rail…
+    const rail = await screen.findByTestId("shell-detail-rail");
+    expect(await within(rail).findByTestId("decision-rail")).toBeInTheDocument();
+    // …and the main workspace keeps full width: no decision surface and no
+    // page-local rail grid inside the page body.
+    const main = screen.getByRole("main");
+    expect(within(main).queryByTestId("decision-rail")).not.toBeInTheDocument();
+    expect(within(main).queryByText(/No open decisions for this mission/)).not.toBeInTheDocument();
+    // No arbitrary-value grid-template split (the old 400px page-local rail
+    // column); named column counts like the impact row's xl:grid-cols-4 stay.
+    expect(document.querySelector('[class*="xl:grid-cols-["]')).toBeNull();
+  });
+
+  it("routes the closed-rail reopen card through the shell rail as well", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "Close decision rail" }));
+    const rail = await screen.findByTestId("shell-detail-rail");
+    expect(
+      await within(rail).findByRole("button", { name: "Reopen review" }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("main")).queryByRole("button", { name: "Reopen review" }),
+    ).not.toBeInTheDocument();
   });
 });
 

@@ -36,7 +36,7 @@ function normalizeProjectionError(error: unknown): Extract<ValueStudioViewState,
     message:
       typeof candidate.message === "string" && candidate.message.length > 0
         ? candidate.message
-        : "The value case could not be loaded.",
+        : "The Value Studio projection could not be loaded.",
     correlationId:
       typeof candidate.correlationId === "string" && candidate.correlationId.length > 0
         ? candidate.correlationId

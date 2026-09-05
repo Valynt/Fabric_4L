@@ -18,12 +18,14 @@
  * offline/stale/partial banners → ready grid.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FabricCard } from "@/components/ui/fabric/FabricCard";
 import { getStatePath } from "@/navigation/navigationService";
 import { useValueStudioProjection } from "./useValueStudioProjection";
+import { useStudioDetailRail } from "../StudioRightRailContext";
 import {
   VALUE_STUDIO_QUERY_KEYS,
   parseDecisionParam,
@@ -233,6 +235,7 @@ export default function ValueStudioPage() {
   return (
     <PageBody
       projection={view.projection}
+      projectionKey={projectionKey}
       offline={view.kind === "offline"}
       stale={view.kind === "stale"}
       lastSyncedAt={view.kind === "offline" ? view.lastSyncedAt : null}
@@ -312,6 +315,7 @@ export default function ValueStudioPage() {
 
 interface PageBodyProps {
   readonly projection: ValueStudioProjection;
+  readonly projectionKey: string;
   readonly offline: boolean;
   readonly stale: boolean;
   readonly lastSyncedAt: string | null;
@@ -348,6 +352,7 @@ interface PageBodyProps {
 
 function PageBody({
   projection,
+  projectionKey,
   offline,
   stale,
   lastSyncedAt,
@@ -387,6 +392,73 @@ function PageBody({
     return projection.partial.reasons[section] ?? "This section is temporarily unavailable.";
   };
   const activityUnavailable = sectionUnavailableReason("activity");
+
+  // ── Single-chrome decision rail (DEC-FE-001/008) ───────────────────────────
+  // The decision surface is injected into the StudioShell-owned right rail via
+  // useStudioDetailRail; the page never renders a second, page-local rail.
+  // Handler identities change every render, so they are read through a ref —
+  // the memoized rail content only changes identity when its real inputs do
+  // (otherwise every shell re-render would loop through setDetailContent).
+  const railHandlers = useRef({
+    onAccept,
+    onEdit,
+    onDefer,
+    onOpenEvidence,
+    onCloseRail,
+    onReopenRail,
+  });
+  useEffect(() => {
+    railHandlers.current = {
+      onAccept,
+      onEdit,
+      onDefer,
+      onOpenEvidence,
+      onCloseRail,
+      onReopenRail,
+    };
+  });
+
+  const decisionRailContent = useMemo<ReactNode>(() => {
+    if (!decision) return null;
+    if (railClosed) {
+      return (
+        <FabricCard title="Review required" padding="compact">
+          <p className="vf-text-body-s text-muted-foreground">
+            {decision.decisionId} — {decision.title}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={() => railHandlers.current.onReopenRail()}
+          >
+            Reopen review
+          </Button>
+        </FabricCard>
+      );
+    }
+    return (
+      <>
+        {decisionDeepLink !== null && decision.decisionId === decisionDeepLink && (
+          <span className="sr-only" data-testid="decision-deep-link">
+            Focused decision {decisionDeepLink}
+          </span>
+        )}
+        <DecisionRail
+          decision={decision}
+          stale={stale}
+          offline={offline}
+          submitting={false}
+          onAccept={() => railHandlers.current.onAccept(decision)}
+          onEdit={() => railHandlers.current.onEdit()}
+          onDefer={(input) => railHandlers.current.onDefer(decision, input)}
+          onOpenEvidence={(item) => railHandlers.current.onOpenEvidence(item)}
+          onClose={() => railHandlers.current.onCloseRail()}
+        />
+      </>
+    );
+  }, [decision, railClosed, stale, offline, decisionDeepLink]);
+  useStudioDetailRail(decisionRailContent);
 
   return (
     <div className="space-y-6">
@@ -470,6 +542,8 @@ function PageBody({
           onPause={onPause}
           onResume={onResume}
           commandPending={false}
+          stale={stale}
+          offline={offline}
         />
       )}
 
@@ -482,66 +556,38 @@ function PageBody({
         />
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
-        <div className="space-y-6 min-w-0">
-          {projection.patch && <ModelPatchCard patch={projection.patch} />}
+      {/* Single-column workspace: decision chrome lives in the shell-owned
+          right rail (injected above), never in a second page-local rail. */}
+      <div className="space-y-6 min-w-0">
+        {projection.patch && <ModelPatchCard patch={projection.patch} />}
 
-          <GenerativeUIFallbackBoundary componentName="BranchComparison">
-            <BranchComparison comparison={projection.branchComparison} />
-          </GenerativeUIFallbackBoundary>
+        <GenerativeUIFallbackBoundary componentName="BranchComparison" resetKey={projectionKey}>
+          <BranchComparison comparison={projection.branchComparison} />
+        </GenerativeUIFallbackBoundary>
 
-          {activityUnavailable !== null ? (
-            <FabricCard title="Mission activity" padding="normal">
-              <p role="status" className="vf-text-body-s text-muted-foreground">
-                {activityUnavailable}
-              </p>
-            </FabricCard>
-          ) : (
-            <MissionActivityFeed
-              events={projection.activity}
-              onUndo={onUndo}
-              onEventExpanded={onEventExpanded}
-            />
-          )}
-        </div>
+        {activityUnavailable !== null ? (
+          <FabricCard title="Mission activity" padding="normal">
+            <p role="status" className="vf-text-body-s text-muted-foreground">
+              {activityUnavailable}
+            </p>
+          </FabricCard>
+        ) : (
+          <MissionActivityFeed
+            events={projection.activity}
+            onUndo={onUndo}
+            onEventExpanded={onEventExpanded}
+            stale={stale}
+            offline={offline}
+          />
+        )}
 
-        <div className="min-w-0">
-          {decision && !railClosed ? (
-            <>
-              {decisionDeepLink !== null && decision.decisionId === decisionDeepLink && (
-                <span className="sr-only" data-testid="decision-deep-link">
-                  Focused decision {decisionDeepLink}
-                </span>
-              )}
-              <DecisionRail
-                decision={decision}
-                stale={stale}
-                offline={offline}
-                submitting={false}
-                onAccept={() => onAccept(decision)}
-                onEdit={onEdit}
-                onDefer={(input) => onDefer(decision, input)}
-                onOpenEvidence={onOpenEvidence}
-                onClose={onCloseRail}
-              />
-            </>
-          ) : decision ? (
-            <FabricCard title="Review required" padding="compact">
-              <p className="vf-text-body-s text-muted-foreground">
-                {decision.decisionId} — {decision.title}
-              </p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={onReopenRail}>
-                Reopen review
-              </Button>
-            </FabricCard>
-          ) : (
-            <FabricCard title="Review required" padding="compact">
-              <p className="vf-text-body-s text-muted-foreground">
-                No open decisions for this mission.
-              </p>
-            </FabricCard>
-          )}
-        </div>
+        {!decision && (
+          <FabricCard title="Review required" padding="compact">
+            <p className="vf-text-body-s text-muted-foreground">
+              No open decisions for this mission.
+            </p>
+          </FabricCard>
+        )}
       </div>
 
       {decision && (
