@@ -18,7 +18,7 @@ convention but were not listed — audit before migrating.
 | `.windsurf/` | unverified | audit; rules → stage READMEs | `handbook/03_implement/README.md` |
 | `.gemini/` | unverified (see also `apps/web/GEMINI.md`) | audit; rules → stage READMEs | `handbook/INDEX.md` |
 | `.devin/` | unverified | audit; playbooks → handbook stages | `handbook/01_understand/` … `04_verify/` |
-| `.agent/` | `AGENTS.md`, `hooks.json`, `install.json`, `plugins.json`, `skills.json`, `harness/`, `memory/`, `protocols/`, `skills/`, `tools/` | memory/ → `handbook/L1-system/` + behavior cards; protocols/ → stage READMEs; skills/, tools/ → `contracts/tool-manifests/` + card Verification; hooks.json → CI resync job spec | `handbook/L1-system/`, `handbook/L3-implementation/README.md`, `control-plane/behaviors/` |
+| `.agent/` | `AGENTS.md`, `hooks.json`, `install.json`, `plugins.json`, `skills.json`, `harness/`, `memory/`, `protocols/`, `skills/`, `tools/` | memory/ → `handbook/L1-system/` + behavior cards; protocols/ → stage READMEs; skills/ → `agents/skills/` (Slice S promotion); tools/ → `contracts/tool-manifests/` + card Verification; hooks.json → CI resync job spec | `handbook/L1-system/`, `handbook/L3-implementation/README.md`, `control-plane/behaviors/` |
 | `.agents/` | `hooks.json`, `mcp_config.json`, `plugins.json`, `skills.json`, `plugins/`, `rules/`, `skills/` | rules/ → stage READMEs; skills/ → card Verification sections; hooks.json/mcp_config.json → resync/CI wiring | `handbook/` stages, `control-plane/release/` |
 | `.ai/` | unverified | audit | `handbook/INDEX.md` |
 | `.jr/` | unverified | audit | `handbook/INDEX.md` |

@@ -58,4 +58,4 @@ Prefer the harness's existing machinery before hand-rolling:
 - `superpowers` skills (`dispatching-parallel-agents`, `subagent-driven-development`)
   for the methodology.
 - SDK custom agents (`.agent/`-equivalent) only if you move off CLI onto the
-  Copilot SDK host — CLI-only already covers this via `.agent/skills`.
+  Copilot SDK host — CLI-only already covers this via `agents/skills`.

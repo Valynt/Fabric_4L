@@ -1,0 +1,17 @@
+apiVersion: fabric.skill/v1
+kind: Skill
+metadata:
+  name: tldraw
+  version: '2026-04-21'
+  description: The tldraw MCP server exposes a live canvas at `http://localhost:3030`.
+  category: visualization
+compatibleAgents:
+- claude-code
+- copilot
+- cursor
+- windsurf
+- opencode
+- openclaw
+- hermes
+deprecatedSince: null
+source: SKILL.md

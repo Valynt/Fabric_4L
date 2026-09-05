@@ -89,7 +89,7 @@ recurring diagrams, reference material), snapshot it:
 
 ```bash
 # fetch current shapes via MCP get_canvas and pipe the JSON in
-python3 .agent/skills/tldraw/store.py snapshot \
+python3 agents/skills/tldraw/store.py snapshot \
     --label "auth-flow-v1" --tags architecture,auth \
     --note "login + refresh token flow agreed 2026-04-21"
 ```
