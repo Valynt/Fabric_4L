@@ -45,7 +45,7 @@
 - `agents/skills/frontend-excellence/SKILL.md` — self-reference
 - `agents/skills/frontend-excellence/references/subagent-orchestration.md` — self-reference
 - `handbook/MIGRATION.md` — `.agent/` row skills mapping
-- `.agent/DEPRECATED.md` — skills relocation note
+- the `.agent/` deprecation pointer — skills relocation note
 
 ---
 
@@ -568,7 +568,7 @@ for the dual-layout resolution."
 - Modify: `agents/skills/frontend-excellence/SKILL.md`
 - Modify: `agents/skills/frontend-excellence/references/subagent-orchestration.md`
 - Modify: `handbook/MIGRATION.md`
-- Modify: `.agent/DEPRECATED.md`
+- Modify: the `.agent/` deprecation pointer
 
 **Interfaces:**
 - Consumes: the canonical `agents/skills/` tree (Task 1).
@@ -671,9 +671,9 @@ to:
 skills/ → `agents/skills/` (Slice S promotion); tools/ → `contracts/tool-manifests/` + card Verification
 ```
 
-- [ ] **Step 6: Update `.agent/DEPRECATED.md`**
+- [ ] **Step 6: Update the `.agent/` deprecation pointer**
 
-In `.agent/DEPRECATED.md`, append this line at the end of the file:
+In the `.agent/` deprecation pointer file, append this line at the end:
 ```
 Note: `skills/` was promoted to `agents/skills/` in Slice S (2026-09-05); the directory now holds only a `MOVED.md` pointer.
 ```
@@ -690,18 +690,18 @@ Expected: the ONLY matches are the intentional ones:
 - `services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/config.py` (the `LEGACY_YAML_PATH` fallback)
 - `services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/catalog_checks.py` (the `_resolve_skills_root` legacy fallback + evidence strings)
 - `services/layer4-agents/tests/unit/test_audit_orchestrator_skill_paths.py` (the legacy-fallback test)
-- `.agent/AGENTS.md` and `.agent/DEPRECATED.md` (the relocation notes that mention the old path)
+- `.agent/AGENTS.md` and the `.agent/` deprecation pointer (the relocation notes that mention the old path)
 
 If any other live reference appears, update it to `agents/skills/` and re-run.
 
 - [ ] **Step 8: Commit**
 
 ```powershell
-git add CLAUDE.md .agent/AGENTS.md skills-lock.json .agents/skills.json .agent/skills.json agents/skills/tldraw/SKILL.md agents/skills/frontend-excellence/SKILL.md agents/skills/frontend-excellence/references/subagent-orchestration.md handbook/MIGRATION.md .agent/DEPRECATED.md
+git add CLAUDE.md .agent/AGENTS.md skills-lock.json .agents/skills.json .agent/skills.json agents/skills/tldraw/SKILL.md agents/skills/frontend-excellence/SKILL.md agents/skills/frontend-excellence/references/subagent-orchestration.md handbook/MIGRATION.md .agent/deprecated.md
 git commit -m "docs(skills): point all live references at agents/skills
 
 Update CLAUDE.md, .agent/AGENTS.md, the three skill lock files, the three
-in-skill self-references, handbook/MIGRATION.md, and .agent/DEPRECATED.md to
+in-skill self-references, handbook/MIGRATION.md, and the .agent/ deprecation pointer to
 reference the canonical agents/skills/ path. Historical docs (.goals,
 .agent/memory, docs/maintenance) are intentionally left as-is."
 ```
@@ -792,7 +792,7 @@ Before opening the PR, ensure it carries the labels `compat-shim-change` and `co
 - L4 `catalog_checks.py` `_resolve_skills_root` + 3 checks → Task 4. ✓
 - L4 `catalog_definitions.py` 2 `recommended_fix` strings → Task 4. ✓
 - L4 unit test for dual-layout resolution → Task 4. ✓
-- Reference updates (CLAUDE.md, .agent/AGENTS.md, 3 lock files, 3 in-skill self-refs, MIGRATION.md, DEPRECATED.md) → Task 5. ✓
+- Reference updates (CLAUDE.md, .agent/AGENTS.md, 3 lock files, 3 in-skill self-refs, MIGRATION.md, the .agent/ deprecation pointer) → Task 5. ✓
 - Verification (CDR parse, YAML parse, L4 tests, grep sweep) → Task 6. ✓
 - PR labels `compat-shim-change` + `compat-owner-ack` → Task 6 Step 8. ✓
 - Do NOT touch `services/layer4-agents/src/skills/` (L4 shim tree) → Global Constraints + Task 6 Step 5. ✓

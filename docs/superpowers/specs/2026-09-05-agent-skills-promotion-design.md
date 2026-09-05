@@ -9,7 +9,7 @@
 
 The first-party agent skills live in the dot-directory `.agent/skills/`. The
 `.agent/` brain is deprecated as the agent-context source of truth
-(`.agent/DEPRECATED.md`), and dot-directories are harness-specific, hard to
+(the `.agent/` deprecation pointer), and dot-directories are harness-specific, hard to
 discover, and invisible to tooling that scans canonical top-level paths.
 Promoting the skills to a first-class `agents/skills/` directory makes them
 discoverable, gives each skill a versioned machine-readable manifest, and lets
@@ -256,7 +256,7 @@ path:
 | `agents/skills/frontend-excellence/references/subagent-orchestration.md` | `.agent/skills` → `agents/skills` |
 | `agents/skills/_index.md` | internal `skills/...` path references → `agents/skills/...` |
 | `handbook/MIGRATION.md` | `.agent/` row: skills target corrected from `contracts/tool-manifests/` to `agents/skills/` (Slice S is authoritative) |
-| `.agent/DEPRECATED.md` | add a line noting skills were relocated to `agents/skills/` |
+| the `.agent/` deprecation pointer | add a line noting skills were relocated to `agents/skills/` |
 
 Historical references are **left as-is** (they are records, not live pointers):
 `.agent/memory/semantic/DECISIONS.md`, `.goals/**`, and
