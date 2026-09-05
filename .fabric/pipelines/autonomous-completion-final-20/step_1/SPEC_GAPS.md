@@ -1,6 +1,7 @@
 <!-- GATE-1 STATUS -->
-> **Disposition: DEFER (2026-09-05).** `spec_gaps_signed_off: false`. GAP-0: **block**.
-> Sign-off surface for this round: `DECISION_TABLE.md`. Catalog below is unchanged.
+> **Disposition: DEFER (second review, 2026-09-05).** `spec_gaps_signed_off: false`. GAP-0: **block**.
+> Sign-off surface: `DECISION_TABLE.md`. GAP-3 rewrite: `GAP-3.md`.
+> Rejected evidence SHA: `94bfd7ebf6bed8556d39ffb5906fc7c25a68a480`.
 > See `../DECISION_PACKET.md`.
 
 # SPEC_GAPS.md — GATE-1 (blocking)
@@ -9,12 +10,13 @@
 **Repo:** Valynt/Fabric_4L
 **Anchor SHA:** `4bb4e142c2ccbc56297de843e71534d956bb198f` (main, Value Studio Slice 1 #1679)
 **Generated:** 2026-09-05T15:20:00Z
+**Corrected:** 2026-09-05T18:40:00Z (CI pagination, GAP-3 rewrite, halt/budget/governance)
 **Rule:** agents_must_not_guess_product_intent
 **Status:** `spec_gaps_signed_off == false` — waiting on human review
 
 This file lists items where completing the remaining ~20% requires a human
 decision. Nothing below is an implementation plan. Options are recorded only
-so the signer can pick; they are not recommendations.
+so the signer can pick; they are not recommendations and not issue closures.
 
 ---
 
@@ -22,9 +24,31 @@ so the signer can pick; they are not recommendations.
 
 **GAP-0 — Existing suite is red on the 80%.**
 
-- Evidence: [PR Checks #33970450342](https://github.com/Valynt/Fabric_4L/actions/runs/33970450342) failed (`02-code-quality-and-tests`, Docker/e2e/runtime-contract, unified readiness). [Prod Readiness Gates #33970450317](https://github.com/Valynt/Fabric_4L/actions/runs/33970450317) failed (`prod-readiness`, `release-policy`, `gate-engineering`, `dependency-chaos`, `readiness-10`). Certify RC and Build and Deploy also failed. Critical Gates / Security / Contract / Supply Chain / Zero Trust passed on the same SHA.
-- Pipeline action taken: **do not start steps 2–6**. Step 1 mapping is the only continuation.
-- Decision needed: classify unclassified red jobs (especially `02-code-quality-and-tests` and prod-readiness) as (a) blocking until green, (b) known environment-dependent accepted risk, or (c) waived with owner signature.
+Complete inventory (do not use `failed_only`): `../step_0/ci_inventory.json`.
+
+[PR Checks #33970450342](https://github.com/Valynt/Fabric_4L/actions/runs/33970450342) — **45 jobs**, pages 1–2 (`per_page=30`): 36 success, 6 failure, 1 cancelled, 2 skipped.
+
+Underlying failures (independent causes):
+
+- Runtime Contract Tests (Services Up) — `Run runtime contract marker suite`
+- Integration Tests (Docker) — `Fetch secrets from Infisical`
+- p0-e2e-gate — `Start deterministic E2E backend`
+- Docker Image Build Verification (frontend) — **page 2**; image **build succeeded**; `Run Trivy image scan` failed
+
+Cancelled (kept; `failed_only` drops this):
+
+- Layer 3 - Knowledge — `Run tests with coverage` cancelled ~30m16s
+
+Aggregates (failed because of children, not extra suites):
+
+- Unified Readiness Gate — **page 2**; root-failure children: `docker-build-check`, `integration-checks`, `runtime-contract-checks`
+- 02-code-quality-and-tests — **page 2**; `layer3-checks=cancelled`. Layer 1/2/4/5/6/frontend/shared succeeded.
+
+[Prod Readiness Gates #33970450317](https://github.com/Valynt/Fabric_4L/actions/runs/33970450317) — **16/16 jobs**: underlying `dependency-chaos`, `readiness-10`, `gate-engineering`, `release-policy`; aggregates `06-production-readiness`, `prod-readiness`.
+
+Pipeline action taken: **do not start steps 2–6**. Step 1 mapping/evidence is the only continuation. H-STEP0-INCOMPLETE also blocks Step 2; no Step 2 exception is in force.
+
+Decision needed: classify the **underlying** red/cancelled jobs as (a) blocking until green, (b) known environment-dependent accepted risk, or (c) waived with owner signature. Do not classify by shrinking the inventory.
 
 ---
 
@@ -50,23 +74,33 @@ Contract `docs/contracts/FE-VOS-STUDIO-001.md` lists deliberately unresolved ite
 
 Root `ROADMAP.md` Q3/Q4 items (real-time collaboration, mobile, CRM webhooks, analytics dashboards, custom formula builder, value-realization tracking) are product schedule, not tickets. **Do not treat them as DAG nodes unless signed in.**
 
-### GAP-3 — RFC-001 Formula Scenario endpoint
+### GAP-3 — RFC-001 Formula Scenario endpoint (rewritten)
 
-`contracts/rfcs/RFC-001-formula-scenario-endpoint.md` is marked **Approved** (2026-04-27) for `POST /api/v1/formulas/scenario`. Implementation status was not assumed. **Intent required:** still wanted as-specified, superseded, or already shipped under another path.
+`POST /formulas/scenario` **is registered and implemented** (`formulas_evaluation_routes.py` → `formulas.calculate_scenario`). Do **not** add a duplicate path.
+
+Remaining intent (detail in `GAP-3.md`):
+
+- **Schema:** RFC-001 (`formula_id` + `variable_id`/`new_value`) vs shipped handler/hook (`base_case_id` + `name`/`value`/`original_value` + optional client `base_case_data`) vs FE contract test (`formula_id` + `scenarios[]`) vs contract-map (`formula_id`/`variables`). OpenAPI on this SHA has 0 hits for the path.
+- **Tenant-scoped authoritative data:** RFC §5 requires tenant Bearer and formula ownership. The path is on the public unauthenticated allowlist. The handler does not query Neo4j; client `base_case_data` bypasses lookup.
+- **Zero-value fallback:** missing payload → 200 with zeros + warning. FE hook does not send `base_case_data`. Route description says 400.
+
+**Intent required:** which schema is canonical; whether to publish OpenAPI to match it; public+client-data vs tenant lookup; 200-zeros vs 400/404. Same path.
 
 ### GAP-4 — RFC-002 journey-id on L4 agent stream
 
-File exists under `contracts/rfcs/`. **Intent required:** approve for DAG, defer, or close as already implemented.
+Implementation PRs #1385 and #1543 **merged**. Issue #1387 **closed completed** (closing PR #1543). In-tree RFC header still “Pending Council Review”; issue still labeled `needs-council-review`. **No council minutes found.**
+
+**Intent required:** docs-only header flip, and/or council paperwork. Do not infer council ratification from the issue close.
 
 ### GAP-5 — Open GitHub contract RFCs (council)
 
-| Issue | Title |
-| --- | --- |
-| [#1675](https://github.com/Valynt/Fabric_4L/issues/1675) | L4 Agent Runtime `/v1/runtime/*` + agent-runtime JSON schemas |
-| [#1636](https://github.com/Valynt/Fabric_4L/issues/1636) | Event payload schemas, tool/prompt/skill registries, `x-tenant-scope` |
-| [#1613](https://github.com/Valynt/Fabric_4L/issues/1613) | Consolidate billing ownership in Layer 4 |
+| Issue | Title | Cited state |
+| --- | --- | --- |
+| [#1675](https://github.com/Valynt/Fabric_4L/issues/1675) | L4 Agent Runtime `/v1/runtime/*` + agent-runtime JSON schemas | **open**, `needs-council-review`; PR #1666 merged; `closed_by_pull_requests=0` |
+| [#1636](https://github.com/Valynt/Fabric_4L/issues/1636) | Event payload schemas, tool/prompt/skill registries, `x-tenant-scope` | **open**; PR #1635 open |
+| [#1613](https://github.com/Valynt/Fabric_4L/issues/1613) | Consolidate billing ownership in Layer 4 | **open**, `needs-council-review`; RFC text keeps L7 compatibility; PR #1596 merged and **deleted** L7; `closed_by_pull_requests=0` |
 
-COMPAT-L4-003 is already archived: L4 billing is currently the canonical runtime. RFC-1613 may be obsolete or may reverse that. **Council must say which.**
+Council must act. This pipeline will not close these issues.
 
 ---
 
@@ -80,11 +114,11 @@ PR [#1684](https://github.com/Valynt/Fabric_4L/pull/1684) is docs-only. Finding:
 
 ### GAP-7 — Document-export tenant ownership
 
-Open PR [#1669](https://github.com/Valynt/Fabric_4L/pull/1669). **Intent required:** in-scope for this pipeline or leave to that PR.
+Open PR [#1669](https://github.com/Valynt/Fabric_4L/pull/1669). **work_class:** `external_impl_owner`. **Intent required:** in-scope for this pipeline or leave to that PR.
 
 ### GAP-8 — L5 `claim.approve` multi-model authorization
 
-Open PR [#1650](https://github.com/Valynt/Fabric_4L/pull/1650). **Intent required:** in-scope or independent.
+Open PR [#1650](https://github.com/Valynt/Fabric_4L/pull/1650). **work_class:** `external_impl_owner`. **Intent required:** in-scope or independent.
 
 ---
 
@@ -96,7 +130,7 @@ AGENTS.md and `.tool-versions` pin `pnpm 10.18.1`. Issue [#1639](https://github.
 
 ### GAP-10 — Python 3.11.15 vs 3.11.10
 
-`.python-version` = `3.11.15`; `.tool-versions` = `python 3.11.10`. **Intent required:** which is canonical.
+`.python-version` = `3.11.15`; `.tool-versions` = `python 3.11.10`. **Intent required:** which is canonical. No cited pin exists.
 
 ### GAP-11 — `apps/web/pnpm-lock.yaml` vs root-lockfile policy
 
@@ -119,7 +153,7 @@ From `docs/governance/compatibility-debt-registry.md` (active, not struck):
 
 ### GAP-13 — Skills path promotion (#1683) vs FAB-106
 
-PR [#1683](https://github.com/Valynt/Fabric_4L/pull/1683) promotes `.agent/skills` → `agents/skills` with COMPAT-SKILLS-001 (removal 2026-12-31). Merge-order note vs FAB-106 is recorded on the PR. **Intent required:** land S now, wait for FAB-106, or drop.
+PR [#1683](https://github.com/Valynt/Fabric_4L/pull/1683) promotes `.agent/skills` → `agents/skills` with COMPAT-SKILLS-001 (removal 2026-12-31). Merge-order note vs FAB-106 is recorded on the PR. **work_class:** `external_impl_owner`.
 
 ---
 
@@ -147,7 +181,7 @@ Mixed `TODO(...)` and `DONE(...)` skips:
 
 ### GAP-16 — L3 Neo4j session lifecycle
 
-`TODO(lifecycle)` in `services/layer3-knowledge/src/api/dependencies_tenant_secured.py:336`. PR [#1661](https://github.com/Valynt/Fabric_4L/pull/1661) already targets per-request cleanup. **Intent required:** this pipeline owns it, or #1661 does.
+`TODO(lifecycle)` in `services/layer3-knowledge/src/api/dependencies_tenant_secured.py:336`. PR [#1661](https://github.com/Valynt/Fabric_4L/pull/1661) already targets per-request cleanup. **work_class:** `external_impl_owner`.
 
 ---
 
@@ -161,27 +195,30 @@ From `docs/governance/audit-remediation-sprint-register.md` (status `requires im
 - S5-3 WAL-G placeholders + restore drill
 - S5-4 OpenTelemetry tracing migration (live trace receipt)
 
-These need environment and owner, not code guesses.
+**work_class:** `release_requirement`. These need environment and owner, not code guesses.
 
 ### GAP-18 — Launch P0/P1 environment evidence
 
-`docs/readiness/current.md` is **BLOCKED**. `docs/launch/launch-blocker-register.md` still requires staging evidence for P0-001 (4 of 7 journeys), rollback drill, SSO (scoped out of Core GA), billing provider, live LLM, alert receivers.
+`docs/readiness/current.md` is **BLOCKED**. `docs/launch/launch-blocker-register.md` still requires staging evidence for P0-001 (4 of 7 journeys), rollback drill, billing provider, live LLM, alert receivers.
 
-**Intent required:** is “final 20%” Core-GA waiver, paid-GA, or repository-owned code only?
+P0-003 SSO: `docs/launch/sso-core-ga-scope-decision.md` body records Option B, but signers are `_TBD_` and the file says it is **not authoritative until countersigned**. Do not treat as a closed decision.
+
+**Intent required:** is “final 20%” Core-GA waiver, paid-GA, or repository-owned code only? Countersign or reject the SSO draft separately.
 
 ### GAP-19 — SDK `vf auth login` loopback
 
-`TODO(VF-SDK-AUTH-DEBT-001)` on main; replacement PR [#1681](https://github.com/Valynt/Fabric_4L/pull/1681) exists (and ballooned #1624 should be closed). **Intent required:** merge #1681 outside this pipeline or include it.
+`TODO(VF-SDK-AUTH-DEBT-001)` on main; replacement PR [#1681](https://github.com/Valynt/Fabric_4L/pull/1681) exists. **work_class:** `external_impl_owner`.
 
 ---
 
 ## Sign-off
 
-Reply with:
+A GATE-1 APPROVE must name all of:
 
-1. **GAP-0 classification** (block / accepted-risk / waive)
+1. **GAP-0 classification** (block / accepted-risk / waive) with named jobs if not block
 2. **In-scope IDs** for the final-20% DAG (subset of GAP-1–19)
 3. **Out-of-scope IDs** (explicit)
-4. **Owner + max budget** (LOC/files) per in-scope item, or “use pipeline defaults”
+4. **Owner + max budget** (LOC/files) per in-scope item, or approval of `policies/node-budget.v1.json` version `1.1.0-proposed`
+5. **`freeze_sha`** and **`reviewed_evidence_sha`**
 
-Until this file is signed, `spec_gaps_signed_off` remains false and step_2 is not started.
+Until signed against those SHAs, `spec_gaps_signed_off` remains false and step_2 is not started. Later packet heads do not inherit sign-off.

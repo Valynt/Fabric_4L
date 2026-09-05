@@ -1,48 +1,83 @@
 {
   "policy_id": "ac20-halt-and-resume",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "in_force_on_evidence_branch",
   "narrative": "HALT_POLICY.md",
-  "replaces_literal": "step_0.failure_path.action = halt_pipeline",
-  "step_0_failure_path": {
-    "condition": "existing_test_suite_red",
-    "action": "halt_implementation_steps_3_to_6",
-    "escalation": "human_triage_required",
-    "message": "Never build the missing 20% on a broken 80%.",
-    "step_1_exception": {
-      "permitted": true,
-      "reason": "read_only_mapping_required_for_GATE_1",
-      "mutations_allowed": false,
-      "write_access": ["map_artifacts_only", "evidence_artifact_corrections"]
-    },
-    "step_2_exception": {
+  "supersedes": "1.0.0",
+  "correction": "v1.0.0 left Step 2 unblocked by H-STEP0-INCOMPLETE. That was an implicit Step 2 exception. v1.1.0 removes it. No Step 2 exception is in force.",
+  "step_1_exception": {
+    "applies_to": "H-RED-SUITE and H-STEP0-INCOMPLETE",
+    "permitted": true,
+    "source": "operator DEFER 2026-09-05: continue only permitted read-only investigation and correction of Step 0/1 evidence artifacts",
+    "mutations_allowed": false,
+    "write_access": ["map_artifacts_only", "evidence_artifact_corrections"],
+    "does_not_authorize": ["step_2", "step_3", "step_4", "step_5", "step_6"]
+  },
+  "step_2_exception": {
+    "h_red_suite": { "permitted": false, "reason": "DAG is planning-for-implementation" },
+    "h_step0_incomplete": {
       "permitted": false,
-      "reason": "DAG_is_planning_for_implementation"
+      "reason": "operator 2026-09-05: do not introduce a Step 2 exception to incomplete Step 0 without explicit approval",
+      "explicit_approval_present": false
     }
   },
-  "step_0_incomplete": {
-    "condition": "container_image_reproducible == false OR golden_baseline_measurements_missing",
-    "blocks": ["step_3", "step_4", "step_5", "step_6"],
-    "does_not_block": ["step_1"]
+  "halt_classes": {
+    "H-RED-SUITE": {
+      "trigger": "existing_test_suite_red on freeze SHA",
+      "blocks": ["step_2", "step_3", "step_4", "step_5", "step_6"],
+      "does_not_block": ["step_1"]
+    },
+    "H-STEP0-INCOMPLETE": {
+      "trigger": "container_image_reproducible == false OR golden_baseline_measurements_missing OR schema_seed_snapshot_missing",
+      "blocks": ["step_2", "step_3", "step_4", "step_5", "step_6"],
+      "does_not_block": ["step_1"]
+    },
+    "H-GATE-1": {
+      "trigger": "spec_gaps_signed_off == false OR disposition in [DEFER, REJECT]",
+      "blocks": ["step_2", "step_3", "step_4", "step_5", "step_6"],
+      "does_not_block": ["step_1"]
+    },
+    "H-GAP-0-BLOCK": {
+      "classification": "block",
+      "independent_of_gate_1": true,
+      "blocks": ["step_2", "step_3", "step_4", "step_5", "step_6"],
+      "operator_date": "2026-09-05"
+    }
   },
-  "gate_1": {
-    "unsigned_or_defer_blocks": ["step_2", "step_3", "step_4", "step_5", "step_6"],
-    "spec_gaps_signed_off": false,
-    "current_disposition": "DEFER"
+  "sign_off_binding": {
+    "required_fields_on_APPROVE": [
+      "disposition",
+      "freeze_sha",
+      "reviewed_evidence_sha",
+      "spec_gaps_signed_off",
+      "in_scope_ids",
+      "out_of_scope_ids",
+      "budget_policy_version"
+    ],
+    "freeze_rule": "A GATE-1 APPROVE is valid only for the freeze_sha and reviewed_evidence_sha named in that approval. A later packet head does not inherit sign-off. Changing the freeze SHA, the decision-table human-choice column, or the budget policy version invalidates the sign-off and requires a new APPROVE.",
+    "current": {
+      "disposition": "DEFER",
+      "spec_gaps_signed_off": false,
+      "freeze_sha": "4bb4e142c2ccbc56297de843e71534d956bb198f",
+      "reviewed_and_rejected_evidence_sha": "94bfd7ebf6bed8556d39ffb5906fc7c25a68a480",
+      "bound_approval": null
+    }
   },
-  "gap_0_operator": {
-    "classification": "block",
-    "independent_of_gate_1": true,
-    "blocks": ["step_2", "step_3", "step_4", "step_5", "step_6"]
-  },
-  "resume_step_2": [
-    "GATE-1 APPROVE with four required fields",
-    "GAP-0 is not block, OR blocking jobs green on a new freeze SHA",
-    "node-budget policy approved"
+  "resume_step_2_all_must_be_true": [
+    "GATE-1 APPROVE with required fields, bound to freeze_sha AND reviewed_evidence_sha",
+    "H-GAP-0-BLOCK cleared: GAP-0 is not block, OR named underlying blocking jobs are green on a freeze SHA that matches the bound approval",
+    "H-STEP0-INCOMPLETE cleared, OR operator files a named waiver, OR operator files an explicit Step-2-exception approval (none in force)",
+    "node-budget policy version named in the bound approval is in force"
   ],
-  "resume_steps_3_to_6": [
-    "step_2 complete",
+  "resume_steps_3_to_6_all_must_be_true": [
+    "step_2 complete against the bound freeze_sha",
     "H-RED-SUITE cleared or waived in writing",
-    "H-STEP0-INCOMPLETE cleared or waived in writing"
-  ]
+    "H-STEP0-INCOMPLETE cleared or waived in writing (reproducible container + golden measurements, or named CI-proxy waiver)",
+    "GATE-1 still bound to the freeze SHA in use"
+  ],
+  "permitted_now": {
+    "disposition": "DEFER",
+    "allowed": ["step_0_evidence_correction", "step_1_evidence_correction"],
+    "forbidden": ["dag", "tests", "application_code", "spec_gaps_signed_off_true", "issue_closure", "merge", "deploy"]
+  }
 }

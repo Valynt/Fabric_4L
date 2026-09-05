@@ -107,6 +107,11 @@
             "latency_p50",
             "latency_p95"
           ]
+        },
+        {
+          "artifact": "ci_inventory",
+          "type": "json",
+          "note": "complete pagination, include cancelled, separate aggregates from underlying causes"
         }
       ],
       "completion_criteria": [
@@ -115,7 +120,7 @@
       ],
       "failure_path": {
         "condition": "existing_test_suite_red",
-        "action": "halt_implementation_steps_3_to_6",
+        "action": "halt_implementation_steps_2_to_6",
         "escalation": "human_triage_required",
         "message": "Never build the missing 20% on a broken 80%.",
         "step_1_exception": {
@@ -130,6 +135,16 @@
         "step_2_exception": {
           "permitted": false,
           "reason": "DAG_is_planning_for_implementation"
+        }
+      },
+      "incomplete_path": {
+        "condition": "container_image_reproducible == false OR golden_baseline_measurements_missing OR schema_seed_snapshot_missing",
+        "action": "halt_steps_2_to_6",
+        "step_1_exception": true,
+        "step_2_exception": {
+          "permitted": false,
+          "reason": "operator_2026-09-05_do_not_introduce_a_Step_2_exception_to_incomplete_Step_0_without_explicit_approval",
+          "explicit_approval_present": false
         }
       }
     },
@@ -189,9 +204,22 @@
         "blocking": true,
         "rule": "agents_must_not_guess_product_intent",
         "human_owned_criterion": "spec_gaps_signed_off == true",
+        "sign_off_binding": {
+          "requires": [
+            "freeze_sha",
+            "reviewed_evidence_sha",
+            "in_scope_ids",
+            "out_of_scope_ids",
+            "budget_policy_version"
+          ],
+          "later_heads_do_not_inherit": true
+        },
         "current": {
           "spec_gaps_signed_off": false,
-          "disposition": "DEFER"
+          "disposition": "DEFER",
+          "freeze_sha": "4bb4e142c2ccbc56297de843e71534d956bb198f",
+          "reviewed_and_rejected_evidence_sha": "94bfd7ebf6bed8556d39ffb5906fc7c25a68a480",
+          "bound_approval": null
         }
       }
     },
@@ -219,11 +247,30 @@
       "constraints": {
         "file_ownership": "exclusive_per_node",
         "budgets": {
-          "max_loc_delta": "per_node_configurable",
-          "max_files_touched": "per_node_configurable"
+          "policy_ref": "policies/node-budget.v1.json",
+          "loc_delta_definition": "additions_plus_deletions",
+          "comparison_sha": "freeze_sha",
+          "max_loc_delta": "from_node_budget_profile",
+          "max_files_touched": "from_node_budget_profile",
+          "aggregate": {
+            "max_loc": 2500,
+            "max_files": 80
+          },
+          "generated_output_verification": true,
+          "on_overrun": "halt_node_and_flag_GATE-2",
+          "forbidden_on_overrun": [
+            "force_completion",
+            "halt_node_and_redecompose_without_GATE-2",
+            "exclude_generated_to_evade"
+          ]
         },
         "dag_must_be_acyclic": true
       },
+      "blocked_until": [
+        "GATE-1 APPROVE bound to freeze_sha and reviewed_evidence_sha",
+        "H-GAP-0-BLOCK cleared",
+        "H-STEP0-INCOMPLETE cleared or named waiver or explicit Step-2-exception approval (none in force)"
+      ],
       "outputs": [
         {
           "artifact": "execution_dag",
@@ -235,6 +282,7 @@
             "depends_on": "array<node_id>",
             "worktree_branch": "string",
             "owned_files": "array<path>",
+            "generated_outputs": "array<path>",
             "budget": {
               "max_loc": "int",
               "max_files": "int"
@@ -248,8 +296,8 @@
         "all_nodes_have_boundaries_budgets_ownership == true"
       ],
       "failure_path": {
-        "condition": "node_exceeds_budget_mid_flight",
-        "action": "halt_node_and_redecompose",
+        "condition": "loc_delta > node.budget.max_loc OR files_touched > node.budget.max_files OR aggregate_loc_delta > aggregate.max_loc OR aggregate_files_touched > aggregate.max_files OR generated_output_verification_failed",
+        "action": "halt_node_and_flag_GATE-2",
         "forbidden_action": "force_completion"
       }
     },
@@ -306,7 +354,8 @@
         "iterate_until_node_tests_pass",
         "run_automated_refactoring_pass",
         "enforce_complexity_ceilings",
-        "enforce_duplication_thresholds"
+        "enforce_duplication_thresholds",
+        "verify_generated_outputs_reproduce"
       ],
       "controls": {
         "iteration_cap": 10,
@@ -315,9 +364,10 @@
           "payload": "diagnostic_bundle"
         },
         "diff_size_trigger": {
-          "condition": "loc_delta > node_budget",
-          "action": "flag_for_human_inspection",
-          "gate_id": "GATE-2"
+          "condition": "loc_delta > node.budget.max_loc OR files_touched > node.budget.max_files OR aggregate_loc_delta > aggregate.max_loc OR aggregate_files_touched > aggregate.max_files OR generated_output_verification_failed",
+          "action": "halt_node_and_flag_GATE-2",
+          "gate_id": "GATE-2",
+          "counting": "additions_plus_deletions vs freeze_sha; generated counts and must verify"
         },
         "static_analysis": {
           "cyclomatic_complexity_max": "configurable",
@@ -330,7 +380,10 @@
         "lint_clean == true",
         "static_analysis_clean == true",
         "complexity_within_budget == true",
-        "zero_writes_outside_ownership_manifest == true"
+        "zero_writes_outside_ownership_manifest == true",
+        "generated_output_verification == true",
+        "loc_delta <= node.budget.max_loc",
+        "files_touched <= node.budget.max_files"
       ]
     },
     {

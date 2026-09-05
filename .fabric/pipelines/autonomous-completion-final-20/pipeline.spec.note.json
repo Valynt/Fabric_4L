@@ -1,18 +1,29 @@
 {
   "pipeline_spec_reconciliation": {
     "canonical_halt_override": "policies/halt_and_resume.v1.json",
+    "canonical_budget": "policies/node-budget.v1.json",
     "narrative": "HALT_POLICY.md",
-    "literal_in_pipeline_spec_json": {
-      "path": "steps[id=step_0].failure_path.action",
-      "was": "halt_pipeline",
-      "now_means": "halt_implementation_steps_3_to_6",
-      "step_1_exception": "permitted read-only mapping and evidence corrections",
-      "step_2_exception": false
+    "step_0_failure_path": {
+      "literal_was": "halt_pipeline",
+      "now_means": "halt_implementation_steps_2_to_6",
+      "step_1_exception": true,
+      "step_2_exception": false,
+      "step_2_exception_to_incomplete_step_0": false
     },
-    "step_1_completion_criteria_split": {
-      "agent_owned": ["repo_map_versioned == true", "SPEC_GAPS.md produced", "risk_heatmap produced", "decision packet produced"],
-      "human_owned": ["spec_gaps_signed_off == true"],
-      "current_human_owned": false
+    "step_0_incomplete": {
+      "blocks": ["step_2", "step_3", "step_4", "step_5", "step_6"],
+      "does_not_block": ["step_1"]
+    },
+    "budget_rule_everywhere": {
+      "loc_delta": "additions_plus_deletions vs freeze_sha",
+      "files_touched": "unique paths including generated",
+      "on_overrun": "halt_node_and_flag_GATE-2",
+      "generated_output_verification": true
+    },
+    "sign_off_binding": {
+      "spec_gaps_signed_off": false,
+      "requires": ["freeze_sha", "reviewed_evidence_sha"],
+      "later_heads_do_not_inherit": true
     }
   }
 }

@@ -1,38 +1,47 @@
 # GATE-1 — Human review required
 
 **Blocking:** yes  
-**Disposition:** **DEFER** (2026-09-05) — see `GATE-1-DISPOSITION.md`  
-**Target:** `step_1/DECISION_TABLE.md` (sign-off) + `step_1/SPEC_GAPS.md` (catalog)  
+**Disposition:** **DEFER** (second review, 2026-09-05) — see `GATE-1-DISPOSITION.md`  
+**Target:** `step_1/DECISION_TABLE.md` (sign-off) + `step_1/GAP-3.md` + `step_1/SPEC_GAPS.md`  
 **Rule:** agents_must_not_guess_product_intent  
 **`spec_gaps_signed_off`:** false
 
-## Halt (two independent brakes)
+A future APPROVE is valid only if it names:
 
-1. **H-RED-SUITE / GAP-0 = block** (operator): Steps 2–6 halted until named red jobs are green. See `HALT_POLICY.md` and `step_0/PREREQUISITES.md`.
-2. **H-GATE-1 DEFER:** Step 2 not started. Mapping may be corrected.
+1. `freeze_sha`
+2. `reviewed_evidence_sha` (the packet head actually reviewed)
+3. in-scope and out-of-scope IDs
+4. budget policy version, or an explicit rejection of the proposed file
 
-## Step 1 exception (explicit)
+Later packet heads do **not** inherit sign-off.
 
-Step 0 `failure_path` originally said `halt_pipeline`. That is **too broad**.
+## Halt (independent brakes; all in force)
 
-Step 1 **may** run and **may** be corrected while the 80% is red because:
+1. **H-RED-SUITE / GAP-0 = block**
+2. **H-STEP0-INCOMPLETE** (blocks Step 2; no Step 2 exception without explicit approval)
+3. **H-GATE-1 DEFER**
+
+## Step 1 exception (explicit; only exception)
+
+Step 1 **may** be corrected while the 80% is red and Step 0 is incomplete because:
 
 - `mutations_allowed: false`
-- `write_access: map_artifacts_only`
-- it does not implement the missing 20%
-- GATE-1 cannot be decided without the map + this packet
+- `write_access: map_artifacts_only` + evidence corrections
+- operator DEFER text permits Step 0/1 evidence corrections
 
-Step 2 **may not** run under the same exception.
+Step 2 **may not** run under that exception, including when Step 0 is incomplete.
 
-## Packet to review before any resubmission
+## Packet to review
 
 | File | Role |
 |---|---|
 | `DECISION_PACKET.md` | Cover |
-| `HALT_POLICY.md` | Halt/resume, Step 1 exception |
-| `policies/node-budget.v1.json` | Numeric LOC + file caps + CODEOWNERS (proposed) |
+| `HALT_POLICY.md` | Halt/resume v1.1 |
+| `policies/node-budget.v1.json` | 1.1.0-proposed (add+del, freeze SHA, aggregate, generated verify) |
+| `step_0/ci_inventory.json` | 45/45 + 16/16, aggregates vs causes |
 | `step_0/PREREQUISITES.md` | Unmet freeze items vs feature work |
-| `step_1/IMPLEMENTATION_STATUS.md` | Evidence for RFC/PR/code status |
-| `step_1/DECISION_TABLE.md` | GAP-1–19 sub-scope, lanes, blank human column |
+| `step_1/GAP-3.md` | Scenario route exists; schema / tenant / zeros |
+| `step_1/IMPLEMENTATION_STATUS.md` | Cited status only |
+| `step_1/DECISION_TABLE.md` | GAP-1–19 sub-scope, work_class, blank human column |
 
-Do not set `spec_gaps_signed_off` true until the operator explicitly approves this packet.
+Do not set `spec_gaps_signed_off` true until the operator explicitly approves this packet against named SHAs.
