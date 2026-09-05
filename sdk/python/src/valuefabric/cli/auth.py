@@ -97,7 +97,12 @@ def _wait_for_callback(server: TokenServer, timeout: int = 60) -> str | None:
         return None
 
 
-def _begin_oidc_login(base_url: str, tenant: str, redirect_uri: str) -> tuple[str, str]:
+def _begin_oidc_login(
+    base_url: str,
+    tenant: str,
+    redirect_uri: str,
+    server: TokenServer | None = None,
+) -> tuple[str, str]:
     """Start the server-owned OIDC flow and open the returned IdP authorization URL."""
     login_url = urljoin(base_url, f"/api/v1/auth/oidc/{tenant}/login")
     response = httpx.get(login_url, params={"redirect_uri": redirect_uri}, timeout=30.0)
@@ -109,6 +114,8 @@ def _begin_oidc_login(base_url: str, tenant: str, redirect_uri: str) -> tuple[st
     state = data.get("state")
     if not isinstance(authorization_url, str) or not isinstance(state, str):
         raise ValueError("OIDC login response is missing authorization_url or state")
+    if server is not None:
+        server.expected_state = state
     webbrowser.open(authorization_url)
     return authorization_url, state
 
