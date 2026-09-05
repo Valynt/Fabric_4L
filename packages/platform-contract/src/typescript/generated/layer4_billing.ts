@@ -4785,6 +4785,20 @@ export interface components {
             message: string;
         };
         /**
+         * ResumeRequest
+         * @description Request to resume a paused/interrupted run.
+         */
+        ResumeRequest: {
+            /** Resume Data */
+            resume_data?: {
+                [key: string]: unknown;
+            };
+            /** Checkpoint Id */
+            checkpoint_id?: string | null;
+            /** Checkpoint Hash */
+            checkpoint_hash?: string | null;
+        };
+        /**
          * RetryProvisioningResponse
          * @description Response from retry provisioning request.
          */
@@ -4837,6 +4851,30 @@ export interface components {
          */
         Role: "super_admin" | "tenant_admin" | "content_admin" | "analyst" | "read_only" | "system";
         /**
+         * RunEnvelope
+         * @description Stable identity envelope for a run.
+         */
+        RunEnvelope: {
+            /** Run Id */
+            run_id: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Trace Id */
+            trace_id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Workflow Type */
+            workflow_type: string;
+            /** @default pending */
+            status: components["schemas"]["RunStatus"];
+            /** Created At */
+            created_at?: string;
+            /** Started At */
+            started_at?: string | null;
+            /** Completed At */
+            completed_at?: string | null;
+        };
+        /**
          * RunListResponse
          * @description Paginated list of runs.
          */
@@ -4851,6 +4889,31 @@ export interface components {
             offset: number;
             /** Has More */
             has_more: boolean;
+        };
+        /**
+         * RunRequest
+         * @description Request to submit a new workflow run.
+         */
+        RunRequest: {
+            /** Workflow Type */
+            workflow_type: string;
+            /** Input Data */
+            input_data?: {
+                [key: string]: unknown;
+            };
+            /** Workflow Id */
+            workflow_id?: string | null;
+            /**
+             * Priority
+             * @default 3
+             */
+            priority: number;
+            /** Timeout Seconds */
+            timeout_seconds?: number | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
         };
         /**
          * RunResponse
@@ -4881,6 +4944,121 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /**
+         * RunResult
+         * @description Result/status of a workflow run.
+         */
+        RunResult: {
+            /** Run Id */
+            run_id: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Trace Id */
+            trace_id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Workflow Type */
+            workflow_type: string;
+            status: components["schemas"]["RunStatus"];
+            /** Output */
+            output?: {
+                [key: string]: unknown;
+            } | null;
+            /** Error */
+            error?: {
+                [key: string]: unknown;
+            } | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** Created At */
+            created_at: string;
+            /** Started At */
+            started_at?: string | null;
+            /** Completed At */
+            completed_at?: string | null;
+        };
+        /**
+         * RunStatus
+         * @description Canonical runtime run statuses.
+         * @enum {string}
+         */
+        RunStatus: "pending" | "running" | "paused" | "completed" | "failed" | "cancelled" | "retrying";
+        /**
+         * RunSummary
+         * @description Lightweight run listing entry.
+         */
+        RunSummary: {
+            /** Run Id */
+            run_id: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Workflow Type */
+            workflow_type: string;
+            status: components["schemas"]["RunStatus"];
+            /** Created At */
+            created_at: string;
+        };
+        /**
+         * RuntimeHealthResponse
+         * @description Safe health state for an authenticated runtime consumer.
+         */
+        RuntimeHealthResponse: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "healthy" | "degraded" | "unavailable";
+            /** Service */
+            service: string;
+            /** Runtime Ready */
+            runtime_ready: boolean;
+            /** Timestamp */
+            timestamp: string;
+        };
+        /**
+         * RuntimeMetricsResponse
+         * @description Vendor-neutral aggregate runtime counters.
+         */
+        RuntimeMetricsResponse: {
+            /** Runs Started Total */
+            runs_started_total: number;
+            /** Runs Terminal Total */
+            runs_terminal_total: number;
+            /** Runs Paused Total */
+            runs_paused_total: number;
+            /** Runs Resumed Total */
+            runs_resumed_total: number;
+            /** Tool Calls Total */
+            tool_calls_total: number;
+            /** Tool Calls Allowed Total */
+            tool_calls_allowed_total: number;
+            /** Tool Calls Denied Total */
+            tool_calls_denied_total: number;
+            /** Checkpoints Saved Total */
+            checkpoints_saved_total: number;
+        };
+        /**
+         * RuntimeRunListResponse
+         * @description Explicit list envelope for stable SDK and OpenAPI generation.
+         */
+        RuntimeRunListResponse: {
+            /** Runs */
+            runs: components["schemas"]["RunSummary"][];
+        };
+        /**
+         * RuntimeTypesResponse
+         * @description Tenant-safe runtime discovery payload.
+         */
+        RuntimeTypesResponse: {
+            /** Workflow Types */
+            workflow_types: string[];
+            /** Tools */
+            tools: components["schemas"]["ToolSchema"][];
+            /** Providers */
+            providers: string[];
         };
         /**
          * SalesforceOAuthAuthorizeRequest
@@ -5960,6 +6138,34 @@ export interface components {
             timeout_seconds: number;
             /** Requires Auth */
             requires_auth: boolean;
+        };
+        /**
+         * ToolSchema
+         * @description Public schema for a registered tool.
+         */
+        ToolSchema: {
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Category */
+            category: string;
+            /**
+             * Tenant Scoped
+             * @default true
+             */
+            tenant_scoped: boolean;
+            /** Parameters */
+            parameters?: {
+                [key: string]: unknown;
+            };
+            /** Required */
+            required?: string[];
+            /**
+             * Version
+             * @default 1.0.0
+             */
+            version: string;
         };
         /**
          * ToolSchemaExample

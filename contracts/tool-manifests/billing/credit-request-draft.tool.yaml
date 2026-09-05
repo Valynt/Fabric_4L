@@ -1,0 +1,84 @@
+tool_id: "billing.credit.request_draft"
+version: "1.0.0"
+status: "ACTIVE"
+owner: "agents/billing-experience"
+description: >
+  Generate a draft credit memo / credit request for review. Does NOT post the
+  credit; returns a draft with impact preview.
+
+implementation:
+  service: "services/layer7-billing"
+  operation_id: "createCreditDraft"
+
+action_id: "billing:credit:write"
+principal_types:
+  - agent
+  - user
+
+input_schema_ref: "jsonschema://tools/billing/credit-request-draft-input@1.0.0"
+output_schema_ref: "jsonschema://tools/billing/credit-request-draft-output@1.0.0"
+
+resource_resolver:
+  name: "billingAccountResolver"
+  authoritative_service: "services/layer7-billing"
+
+tenant_binding:
+  client_supplied_tenant_authoritative: false
+  resolve_server_side: true
+
+side_effect: "DRAFT_ONLY"
+financial_state_change: true
+human_confirmation_required: true
+
+approval_requirement:
+  required: true
+  separation_of_duty: true
+  approver_principal_types:
+    - user
+    - admin
+
+idempotency:
+  required: true
+  key_input_fields:
+    - billing_account_id
+    - reason_code
+    - amount_cents
+
+revision:
+  etag_required: false
+  optimistic_locking: false
+
+audit:
+  required: true
+  action: "billing.credit.request_draft"
+  include_authorization_decision_id: true
+  include_correlation_id: true
+  include_causation_id: true
+  evidence_requirements:
+    - amount_cents
+    - reason_code
+    - billing_account_id
+
+data_controls:
+  allowed:
+    - billing_account_id
+    - amount_cents
+    - reason_code
+    - impact_preview
+  prohibited:
+    - payment_method_token
+    - payment_card_number
+  prompt_visible_fields:
+    - billing_account_id
+    - amount_cents
+    - reason_code
+    - impact_preview
+
+runtime:
+  timeout_ms: 8000
+  retry_policy: "IDEMPOTENT_TRANSIENT_ONLY"
+  rate_limit_class: "billing-write"
+
+supported_agent_classes:
+  - billing-copilot
+  - general-agent

@@ -225,6 +225,9 @@ jobs:
       - name: Check Layer 4 canonical paths
         run: python scripts/ci/check_layer4_canonical_paths.py
 
+      - name: Validate tool manifest registry
+        run: make check-tool-registry
+
       - name: Enforce dead-code regression guard
         run: python scripts/ci/check_dead_code.py
 

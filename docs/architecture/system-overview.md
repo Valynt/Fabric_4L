@@ -711,7 +711,7 @@ Fabric_4L/
 ├── scripts/                         # Smoke tests, tooling scripts
 ├── tests/                           # Cross-layer integration tests
 ├── Architecture.md                  # This file
-├── AGENTS.md                        # AI agent contributor guide
+├── AGENTS.md                        # Concise agent entry point
 └── Providers.md                     # External providers reference
 ```
 

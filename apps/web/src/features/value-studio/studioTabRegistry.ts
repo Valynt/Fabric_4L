@@ -5,6 +5,7 @@
  */
 import { lazy } from "react";
 import type { StudioTabId, StudioTabDef } from "./types";
+import { isValueStudioMissionPrototypeEnabled } from "./mission/prototype";
 import ActionPlanRail from "./rails/ActionPlanRail";
 import ValueModelRail from "./rails/ValueModelRail";
 import DriverTreeRail from "./rails/DriverTreeRail";
@@ -41,9 +42,18 @@ const CalculatorTab = lazy(() => import("@/pages/calculator/ROITab"));
 const ValueCaseTab = lazy(() => import("@/pages/value-case/ValueCasePage"));
 const RealizationTab = lazy(() => import("@/pages/realization/RealizationPage"));
 const SolutionCostTab = lazy(() => import("@/features/intelligence-workspace/tabs/solution-cost/SolutionCostTab"));
+const MissionTab = lazy(() => import("@/features/value-studio/mission/ValueStudioPage"));
 
 // ── Registry ──────────────────────────────────────────────────────────────────
 export const studioTabs: StudioTabDef[] = [
+  {
+    id: "mission",
+    label: "Mission",
+    description: "Mission-led value studio workspace (prototype preview).",
+    component: MissionTab,
+    status: "stub",
+    category: "synthesis",
+  },
   {
     id: "action-plan",
     label: "Action Plan",
@@ -126,6 +136,9 @@ export const DEFAULT_STUDIO_TAB: StudioTabId = "action-plan";
 
 export function getProductionStudioTabDefs(): StudioTabDef[] {
   return studioTabs.filter((tab) => {
+    // Mission is the prototype-gated Slice 1 surface: dev default-on, prod
+    // only when VITE_ENABLE_VS_MISSION_PROTOTYPE=true (mission/prototype.ts).
+    if (tab.id === "mission") return isValueStudioMissionPrototypeEnabled;
     if (tab.status === "active") return true;
     return !isProductionBuild && isDeferredTabEnabled(tab.id);
   });

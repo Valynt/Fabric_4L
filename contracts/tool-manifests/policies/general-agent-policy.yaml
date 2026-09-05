@@ -1,0 +1,24 @@
+# General Agent Policy — Default side-effect restrictions for general-purpose agents
+# Policy: General agents may read, calculate, draft, and perform reversible mutations.
+# Protected or irreversible mutations require explicit approval.
+
+agent_class: "general-agent"
+description: >
+  General-purpose agents may use READ_ONLY, CALCULATION_ONLY, DRAFT_ONLY,
+  and REVERSIBLE_MUTATION tools. PROTECTED_MUTATION and IRREVERSIBLE tools
+  are denied by default.
+allowed_side_effects:
+  - READ_ONLY
+  - CALCULATION_ONLY
+  - DRAFT_ONLY
+  - REVERSIBLE_MUTATION
+
+denied_side_effects:
+  - PROTECTED_MUTATION
+  - IRREVERSIBLE
+
+denied_tools: []
+allowed_tools: []
+
+# Require human confirmation for financial-state-change tools across all agent classes
+require_human_confirmation_for_financial_tools: true

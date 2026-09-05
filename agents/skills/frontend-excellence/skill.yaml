@@ -1,0 +1,17 @@
+apiVersion: fabric.skill/v1
+kind: Skill
+metadata:
+  name: frontend-excellence
+  version: '2026-08-28'
+  description: Orchestrator for taking a prototype through production frontend, backend wiring, and an agentic layer at a top-1% software-engineering bar. This skill routes to the right existing tool or skill for each phase and fills gaps with its reference library.
+  category: engineering
+compatibleAgents:
+- claude-code
+- copilot
+- cursor
+- windsurf
+- opencode
+- openclaw
+- hermes
+deprecatedSince: null
+source: SKILL.md

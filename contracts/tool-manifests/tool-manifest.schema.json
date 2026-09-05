@@ -1,0 +1,284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/tool-manifests/tool-manifest.schema.json",
+  "title": "Fabric 4L Tool Manifest",
+  "description": "Canonical schema for a single callable tool exposed to an agent, MCP client, or agentic workflow.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tool_id",
+    "version",
+    "status",
+    "owner",
+    "description",
+    "implementation",
+    "action_id",
+    "principal_types",
+    "input_schema_ref",
+    "output_schema_ref",
+        "tenant_binding",
+        "side_effect",
+        "audit",
+        "runtime"
+      ],
+  "properties": {
+    "tool_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable, fully-qualified tool identifier (e.g., billing.invoice.explain)."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "SemVer of this manifest."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ACTIVE", "DEPRECATED", "EXPERIMENTAL", "DISABLED"],
+      "description": "Lifecycle status."
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Owning team or domain (e.g., agents/billing-experience)."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable purpose."
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["service", "operation_id"],
+      "properties": {
+        "service": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canonical service name (e.g., services/layer7-billing)."
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "OpenAPI operationId or handler name in the implementing service."
+        },
+        "route": {
+          "type": "string",
+          "description": "Optional HTTP route for runtime routing verification."
+        }
+      }
+    },
+    "action_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Canonical action identifier from the command/permission catalog. Must map to an existing resource-plus-action."
+    },
+    "principal_types": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": ["agent", "user", "service", "mcp_client"]
+      },
+      "description": "Principal types permitted to discover this tool."
+    },
+    "input_schema_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Resolvable reference to the input JSON Schema (e.g., jsonschema://tools/billing/invoice-explain-input@1.0.0)."
+    },
+    "output_schema_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Resolvable reference to the output JSON Schema."
+    },
+    "resource_resolver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "authoritative_service"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name of the reviewed server-side resolver."
+        },
+        "authoritative_service": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Service that owns the resolver."
+        }
+      }
+    },
+    "tenant_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["client_supplied_tenant_authoritative", "resolve_server_side"],
+      "properties": {
+        "client_supplied_tenant_authoritative": {
+          "type": "boolean",
+          "description": "If false, the tenant must be resolved server-side; caller-selected tenant IDs are rejected."
+        },
+        "resolve_server_side": {
+          "type": "boolean",
+          "description": "If true, the implementing service resolves tenant and billing account."
+        }
+      }
+    },
+    "side_effect": {
+      "type": "string",
+      "enum": [
+        "READ_ONLY",
+        "CALCULATION_ONLY",
+        "DRAFT_ONLY",
+        "REVERSIBLE_MUTATION",
+        "PROTECTED_MUTATION",
+        "IRREVERSIBLE"
+      ],
+      "description": "Side-effect classification."
+    },
+    "financial_state_change": {
+      "type": "boolean",
+      "description": "Whether the tool can mutate financial state."
+    },
+    "human_confirmation_required": {
+      "type": "boolean",
+      "description": "Whether human confirmation is required before execution."
+    },
+    "approval_requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required": { "type": "boolean" },
+        "separation_of_duty": { "type": "boolean" },
+        "approver_principal_types": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["user", "admin", "service"] }
+        }
+      }
+    },
+    "data_controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Data fields the tool may return or process."
+        },
+        "prohibited": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Data fields the tool must never return or process."
+        },
+        "prompt_visible_fields": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Fields that may be exposed in agent prompts."
+        },
+        "redaction_policy": {
+          "type": "string",
+          "description": "Name of the redaction policy to apply."
+        }
+      }
+    },
+    "idempotency": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required": { "type": "boolean" },
+        "key_input_fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "etag_required": { "type": "boolean" },
+        "optimistic_locking": { "type": "boolean" }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "action"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "action": { "type": "string", "minLength": 1 },
+        "include_authorization_decision_id": { "type": "boolean" },
+        "include_correlation_id": { "type": "boolean" },
+        "include_causation_id": { "type": "boolean" },
+        "evidence_requirements": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timeout_ms"],
+      "properties": {
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 100,
+          "description": "Hard timeout in milliseconds."
+        },
+        "retry_policy": {
+          "type": "string",
+          "enum": [
+            "NONE",
+            "READ_ONLY_TRANSIENT_ONLY",
+            "IDEMPOTENT_TRANSIENT_ONLY",
+            "CUSTOM"
+          ],
+          "description": "Retry semantics."
+        },
+        "rate_limit_class": {
+          "type": "string",
+          "description": "Rate-limit bucket identifier."
+        }
+      }
+    },
+    "supported_agent_classes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Agent classes that may discover this tool."
+    },
+    "feature_flag": {
+      "type": "string",
+      "description": "Feature flag or emergency disable control."
+    },
+    "deprecation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "replacement_tool_id": { "type": "string" },
+        "sunset_date": { "type": "string", "format": "date" },
+        "migration_guide_url": { "type": "string" }
+      }
+    },
+    "tests": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required_coverage": { "type": "string" },
+        "test_suite_path": { "type": "string" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "required": { "type": "boolean" },
+        "fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

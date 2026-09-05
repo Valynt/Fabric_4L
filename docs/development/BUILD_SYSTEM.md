@@ -126,4 +126,4 @@ CI builds application images for both `linux/amd64` and `linux/arm64` and publis
 - [Command Inventory](./COMMANDS.md) - Stable command map, Makefile target categories, and CI-to-local mappings.
 - [Development Discovery Map](./DISCOVERY_MAP.md) - Issue-to-implementation routing by work type, source of truth, drift checks, validation, and evidence.
 - [Contributing](../../CONTRIBUTING.md) - Contributor setup and PR process.
-- [Agent Reference](../../AGENTS.md) - AI agent command and governance reference.
+- [Agent Entry Point](../../AGENTS.md) - shared package map and links to scoped agent guidance.
