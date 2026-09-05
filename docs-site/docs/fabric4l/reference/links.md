@@ -14,7 +14,7 @@ This page is a curated directory of internal source-of-truth files and external 
 
 | Document | Purpose | Path |
 |---|---|---|
-| Agent Reference | Commands, paths, and rules for agents and contributors | `AGENTS.md` |
+| Agent Entry Point | Shared package map and links to scoped agent guidance | `AGENTS.md` |
 | Design System | Frontend UX, component, and layout governance | `DESIGN.md` |
 | Platform Contract | Tenant context, middleware, and agent output shape | `docs/contract.md` |
 | Behavior-First Testing | Canonical testing strategy and readiness ladder | `docs/governance/behavior-first-testing.md` |
@@ -145,7 +145,7 @@ make check-behavior-readiness-audit
 ### Key file paths at a glance
 
 ```text
-AGENTS.md                                    # Agent/contributor reference
+AGENTS.md                                    # Concise agent entry point
 DESIGN.md                                    # Frontend design system
 docs/contract.md                             # Platform contract
 docs/governance/behavior-first-testing.md    # Testing governance

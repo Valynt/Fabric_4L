@@ -101,6 +101,6 @@ Reference pages are maintained continuously, not on a fixed calendar. Update rul
 ## Related documentation
 
 - `docs/development/DISCOVERY_MAP.md` — Routes issue types to source-of-truth files, drift checks, and validation commands
-- `AGENTS.md` — Agent and contributor reference for commands, paths, and rules
+- `AGENTS.md` — Concise agent entry point with links to scoped guidance
 - `DESIGN.md` — Frontend design system and UX governance
 - `docs/governance/behavior-first-testing.md` — Canonical testing governance

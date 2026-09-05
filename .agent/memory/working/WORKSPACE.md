@@ -1,15 +1,14 @@
 # Workspace (live task state)
 
 ## Active task
-- Goal: Implement the stacked PR merge strategy for Valynt/Fabric_4L.
-- Status: COMPLETE WITH BLOCKERS — verified 35 open PRs, reconciled duplicate/dependency coverage, documented decisions on affected PRs.
-- Result: No merges performed. Required CI was failing/stale; protected-ref branch updates were rejected; API requests to close duplicate/superseded PRs did not take effect, so those PRs (e.g. #1597, #1598) remain open.
+- Goal: Restructure Value Fabric agent instructions using a concise root AGENTS.md and progressive disclosure.
+- Status: Implemented; documentation validation and security review pending.
 
 ## Decisions
-- #1597 and #1598 are covered by grouped dependency PR #1629.
-- #1616 is not covered by #1629/#1633 because it targets the archived frontend snapshot; retained open.
-- #1632 is blocked by @faker-js/faker manifest/lockfile mismatch.
-- Major, small-fix, and feature/refactor PRs remain held pending rebase and green CI.
+- Root AGENTS.md now routes to canonical docs and nearest nested package instructions.
+- docs/AGENTS.md is documentation-specific rather than a duplicate contributor policy manual.
+- Added packages/platform-contract/AGENTS.md for contract-specific conventions and validation.
+- Updated active documentation references that described the root file as the full architecture/testing guide.
 
 ## Next action
-- A maintainer with protected-branch/write permissions must rebase manually, rerun required CI, close duplicate/superseded PRs, and merge serially.
+- Run docs validation, inspect the final diff, scan changed files for secrets, and complete CodeQL review.

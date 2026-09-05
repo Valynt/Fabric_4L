@@ -339,4 +339,4 @@ make verify
 - [Critical Behaviors](critical-behaviors.md) — Layer-by-layer critical behavior examples
 - [Gate Registry](gate-registry.md) — Readiness ladder and waiver policy
 - `pytest.ini` — Full marker definitions and test paths
-- `AGENTS.md` — Agent and contributor testing rules
+- `docs/testing/` — Canonical testing governance and behavior-readiness guidance
