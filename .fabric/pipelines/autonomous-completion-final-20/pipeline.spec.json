@@ -138,7 +138,7 @@
       },
       "incomplete_path": {
         "condition": "container_image_reproducible == false OR golden_baseline_measurements_missing OR schema_seed_snapshot_missing",
-        "action": "halt_steps_2_to_6",
+        "action": "halt_implementation_steps_2_to_6",
         "step_1_exception": true,
         "step_2_exception": {
           "permitted": false,
