@@ -59,6 +59,7 @@ const SelectOrganizationPage = lazy(() => import("@/pages/SelectOrganization"));
 const OnboardingPage = lazy(() => import("@/pages/Onboarding"));
 const ValueNarrativeHome = lazy(() => import("@/pages/ValueNarrativeHome"));
 const ValueStudioMissionPage = lazy(() => import("@/features/value-studio/mission/ValueStudioPage"));
+import { isValueStudioMissionPrototypeEnabled } from "@/features/value-studio/mission/prototype";
 const Accounts = lazy(() => import("@/pages/Accounts"));
 const TasksPage = lazy(() => import("@/pages/TasksPage"));
 const CollaborationCommentsPage = lazy(() => import("@/pages/CollaborationCommentsPage"));
@@ -480,10 +481,15 @@ export const router = createBrowserRouter([
           },
           {
             path: "studio/mission",
-            element: (
+            element: isValueStudioMissionPrototypeEnabled ? (
               <Suspense fallback={<div className="flex h-full items-center justify-center gap-2"><Skeleton className="h-8 w-48" /></div>}>
                 <ValueStudioMissionPage />
               </Suspense>
+            ) : (
+              <EmptyState
+                title="Value Studio Mission is not available"
+                description="The mission-led studio is a prototype preview and is not enabled in this environment."
+              />
             ),
             handle: {
               accessPolicy: accountStdPolicy("studio.mission"),

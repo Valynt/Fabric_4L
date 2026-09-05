@@ -29,6 +29,7 @@ import {
   parseFixtureParam,
   parseLensParam,
 } from "./queryParams";
+import { isValueStudioFixtureSelectorEnabled } from "./prototype";
 import {
   buildAcceptRecommendationPreview,
   buildDeferDecisionPreview,
@@ -78,7 +79,11 @@ export default function ValueStudioPage() {
   const accountId = params.accountId ?? "";
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const fixtureName = parseFixtureParam(searchParams.get(VALUE_STUDIO_QUERY_KEYS.fixture));
+  // The ?fixture= selector is a dev/test-only debug affordance; production
+  // builds ignore it even when the prototype flag is enabled.
+  const fixtureName = isValueStudioFixtureSelectorEnabled
+    ? parseFixtureParam(searchParams.get(VALUE_STUDIO_QUERY_KEYS.fixture))
+    : null;
   const lensParam = parseLensParam(searchParams.get(VALUE_STUDIO_QUERY_KEYS.lens));
   const decisionDeepLink = parseDecisionParam(searchParams.get(VALUE_STUDIO_QUERY_KEYS.decision));
 
@@ -361,6 +366,17 @@ function PageBody({
           )}
           <LensSelector activeLens={activeLens} onSelect={onSelectLens} />
         </div>
+      </div>
+
+      {/* Slice 1 renders fixture-backed demo data only; the badge must stay
+          visible so nobody mistakes it for live account data. */}
+      <div className="flex items-center gap-2">
+        <span
+          data-testid="demo-data-badge"
+          className="inline-flex items-center rounded-md border border-warning/40 bg-warning/10 px-2 py-0.5 vf-text-caption font-medium text-foreground"
+        >
+          Demo data — prototype
+        </span>
       </div>
 
       <JourneyStatus journey={projection.journey} />
