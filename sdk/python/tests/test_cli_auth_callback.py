@@ -11,6 +11,7 @@ from valuefabric.cli.auth import (
     CallbackHandler,
     TokenServer,
     _begin_oidc_login,
+    _wait_for_callback,
 )
 
 
