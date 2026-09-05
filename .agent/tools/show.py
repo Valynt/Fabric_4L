@@ -29,7 +29,11 @@ CANDIDATES = os.path.join(BASE, "memory/candidates")
 LESSONS_JSONL = os.path.join(BASE, "memory/semantic/lessons.jsonl")
 LESSONS_MD = os.path.join(BASE, "memory/semantic/LESSONS.md")
 DREAM_LOG = os.path.join(BASE, "memory/dream.log")
-MANIFEST = os.path.join(BASE, "skills/_manifest.jsonl")
+# Slice S promoted skills to agents/skills (repo root); keep a legacy
+# fallback to .agent/skills for hosts that haven't migrated.
+_NEW_MANIFEST = os.path.join(BASE, "..", "agents", "skills", "_manifest.jsonl")
+_LEGACY_MANIFEST = os.path.join(BASE, "skills", "_manifest.jsonl")
+MANIFEST = _NEW_MANIFEST if os.path.exists(_NEW_MANIFEST) else _LEGACY_MANIFEST
 VERSION_FILE = os.path.join(BASE, "..", "VERSION")
 
 

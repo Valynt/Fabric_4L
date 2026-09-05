@@ -2,7 +2,12 @@
 import json, os
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
-SKILLS_DIR = os.path.join(ROOT, "skills")
+# Slice S promoted first-party skills from .agent/skills to agents/skills
+# (repo root). Prefer the canonical location; fall back to the legacy
+# .agent/skills path so portable hosts that haven't migrated still resolve.
+_NEW_SKILLS_DIR = os.path.join(ROOT, "..", "agents", "skills")
+_LEGACY_SKILLS_DIR = os.path.join(ROOT, "skills")
+SKILLS_DIR = _NEW_SKILLS_DIR if os.path.isdir(_NEW_SKILLS_DIR) else _LEGACY_SKILLS_DIR
 MANIFEST = os.path.join(SKILLS_DIR, "_manifest.jsonl")
 FEATURES_PATH = os.path.join(ROOT, "memory", ".features.json")
 

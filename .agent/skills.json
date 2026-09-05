@@ -11,7 +11,7 @@
       "path": ".agents/skills/clerk"
     },
     {
-      "path": ".agent/skills"
+      "path": "agents/skills"
     },
     {
       "path": ".devin/skills"
