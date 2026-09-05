@@ -321,7 +321,7 @@ describe("decision and intent interactions (§9.9, FE-INTENT-001)", () => {
     await user.click(await screen.findByRole("button", { name: "Edit decision" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Edit decision DISP-01" });
-    expect(dialog).toHaveTextContent("Authoritative impact — read-only")
+    expect(dialog).toHaveTextContent("Authoritative impact — read-only");
     await user.click(screen.getByRole("button", { name: "Continue to preview" }));
 
     const preview = await screen.findByRole("dialog", { name: "Review what this will do" });
