@@ -219,7 +219,15 @@ async def transition_run(
     except HarnessRegistryError as exc:
         _raise_registry_access_denied(exc)
     except ValueError as exc:
-        raise ValidationError(message=str(exc))
+        # Do not forward raw exception text to HTTP responses: ValueError
+        # messages from the registry may embed internal state. Log sanitized
+        # details server-side and return a static, tenant-safe message.
+        logger.warning(
+            "Run transition rejected for run %s: %s",
+            run_id,
+            sanitize_log_error(exc),
+        )
+        raise ValidationError(message="Invalid run transition request")
     except asyncio.CancelledError:
         raise
     except Exception:

@@ -3,12 +3,40 @@
 from __future__ import annotations
 
 import os
+import re
 from typing import Any, AsyncIterator, Optional
 from urllib.parse import urljoin
 
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
+
+# Server-side maximum TTL for presigned (signed) URLs. Clients may request a
+# shorter expiry but may never exceed this bound; the value is enforced
+# server-side so URL lifetime is not client-controllable.
+MAX_PRESIGNED_URL_EXPIRY_SECONDS = int(
+    os.getenv("MAX_PRESIGNED_URL_EXPIRY_SECONDS", "3600")
+)
+
+# Tenant ids may only contain URL/path-safe characters. Anything containing
+# separators, traversal segments, whitespace, or NUL bytes is refused so a
+# tenant id can never be used to escape the tenant prefix boundary.
+_TENANT_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
+
+
+def _validate_tenant_id(tenant_id: str) -> None:
+    """Fail closed on tenant ids that could escape the prefix boundary."""
+    if not _TENANT_ID_PATTERN.match(tenant_id):
+        raise ValueError("invalid tenant id for storage scoping")
+
+
+def _validate_object_key(key: str) -> None:
+    """Fail closed on object keys containing path-traversal segments."""
+    if "\x00" in key or "\\" in key:
+        raise ValueError("invalid object key")
+    segments = key.split("/")
+    if any(segment == ".." for segment in segments):
+        raise ValueError("object key must not contain traversal segments")
 
 
 class StorageClient:
@@ -59,9 +87,12 @@ class StorageClient:
         Returns:
             Normalized key with tenant prefix (e.g., "tenant-123/documents/file.pdf")
         """
+        stripped = key.lstrip('/')
+        _validate_object_key(stripped)
         if tenant_id:
-            return f"tenant-{tenant_id}/{key.lstrip('/')}"
-        return key.lstrip('/')
+            _validate_tenant_id(tenant_id)
+            return f"tenant-{tenant_id}/{stripped}"
+        return stripped
 
     async def put_object(
         self,
@@ -188,6 +219,18 @@ class StorageClient:
             Presigned URL if successful, None otherwise
         """
         normalized_key = self._normalize_key(key, tenant_id)
+
+        # Enforce the server-side TTL bound; fail closed on out-of-range or
+        # non-positive expiries so URL lifetime is never client-controllable.
+        if not isinstance(expires_in, int) or isinstance(expires_in, bool):
+            raise ValueError("expires_in must be an integer number of seconds")
+        if expires_in <= 0:
+            raise ValueError("expires_in must be positive")
+        if expires_in > MAX_PRESIGNED_URL_EXPIRY_SECONDS:
+            raise ValueError(
+                "expires_in exceeds the server-side maximum of "
+                f"{MAX_PRESIGNED_URL_EXPIRY_SECONDS} seconds"
+            )
 
         try:
             url = self._client.generate_presigned_url(

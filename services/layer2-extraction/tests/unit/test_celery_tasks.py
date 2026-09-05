@@ -101,7 +101,7 @@ class TestExtractEntitiesTask:
         result = await extract_entities_task(
             job_id="test-job-123",
             content="Test content",
-            config={"source_url": "https://example.com"},
+            config={"source_url": "https://example.com", "tenant_id": "tenant-1"},
         )
 
         assert result["success"] is True
@@ -121,7 +121,7 @@ class TestExtractEntitiesTask:
             await extract_entities_task(
                 job_id="test-job-123",
                 content="Test content",
-                config={"source_url": "https://example.com"},
+                config={"source_url": "https://example.com", "tenant_id": "tenant-1"},
             )
 
         mock_retry.assert_called_once()
@@ -141,7 +141,7 @@ class TestExtractRelationshipsTask:
         result = await extract_relationships_task(
             job_id="test-job-123",
             entities=[{"name": "Entity1"}],
-            config={},
+            config={"tenant_id": "tenant-1"},
         )
 
         assert result["success"] is True
@@ -162,7 +162,7 @@ class TestExtractRelationshipsTask:
             await extract_relationships_task(
                 job_id="test-job-123",
                 entities=[{"name": "Entity1"}],
-                config={},
+                config={"tenant_id": "tenant-1"},
             )
 
         mock_retry.assert_called_once()

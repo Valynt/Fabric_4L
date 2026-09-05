@@ -204,17 +204,22 @@ class TestQueryGraphToolTenantEnforcement:
         assert "tenant context required" in result.error.lower()
         mock_neo4j_session.run.assert_not_called()
 
-    def test_tenant_filter_detects_path_alias_node_alias(self):
+    def test_tenant_filter_rejects_path_variable_assignment(self):
+        """V1-TENANCY-012 F6: named paths are rejected fail-closed.
+
+        Supersedes the previous path-alias acceptance test: a bound path
+        variable lets nodes(p)/relationships(p) project edges and
+        intermediate nodes that carry no injected tenant predicate, so
+        path-variable assignment is now a structured rejection.
+        """
         QueryGraphTool, _, _, _ = _get_knowledge_tools()
         tool = QueryGraphTool(config={"neo4j_uri": "bolt://localhost:7687"})
 
-        scoped_query, alias = tool._inject_tenant_filter(
-            "MATCH path = (start:Account)-[:OWNS]->(child:UseCase) RETURN path",
-            TENANT_A_ID,
-        )
-
-        assert alias == "start"
-        assert "WHERE start.tenant_id = $tenant_id" in scoped_query
+        with pytest.raises(ValueError, match="path-variable assignment"):
+            tool._inject_tenant_filter(
+                "MATCH path = (start:Account)-[:OWNS]->(child:UseCase) RETURN path",
+                TENANT_A_ID,
+            )
 
     def test_tenant_filter_rejects_query_without_node_alias(self):
         QueryGraphTool, _, _, _ = _get_knowledge_tools()

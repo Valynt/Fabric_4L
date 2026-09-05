@@ -97,6 +97,49 @@ class DeletionReportResponse(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _admin_attr(admin: Any, name: str, default: Any = None) -> Any:
+    """Read an attribute from an admin context (dict or object)."""
+    if isinstance(admin, dict):
+        return admin.get(name, default)
+    return getattr(admin, name, default)
+
+
+def _is_super_admin(admin: Any) -> bool:
+    """True only for platform super-admins (cross-tenant authority)."""
+    roles = _admin_attr(admin, "roles", None) or []
+    values = {str(getattr(role, "value", role)).lower() for role in roles}
+    return "super_admin" in values
+
+
+def _caller_tenant_id(admin: Any) -> Optional[str]:
+    tenant = _admin_attr(admin, "tenant_id") or _admin_attr(admin, "tenant")
+    if tenant is None:
+        return None
+    return str(tenant)
+
+
+def _enforce_tenant_scope(admin: Any, target_tenant_id: str) -> None:
+    """Fail closed when a non-super-admin targets another tenant.
+
+    Returns a uniform 404 (never 403) so the response does not reveal
+    whether the target tenant or resource exists (no existence oracle).
+    """
+    if _is_super_admin(admin):
+        return
+    caller_tenant = _caller_tenant_id(admin)
+    if caller_tenant is None or caller_tenant != target_tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resource not found",
+        )
+
+
+def _not_found(request_id: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Deletion request {request_id} not found",
+    )
+
 async def _background_delete(
     tenant_id: str,
     request_id: str,
@@ -217,6 +260,9 @@ async def initiate_deletion(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Confirmation phrase validation failed") from exc
 
+    # Tenant isolation: a tenant admin may only erase their own tenant.
+    _enforce_tenant_scope(admin, body.tenant_id)
+
     # Idempotency: check for in-progress job on same tenant
     existing = await list_deletion_jobs_for_tenant(body.tenant_id, status_filter="in_progress")
     if existing:
@@ -278,10 +324,9 @@ async def get_deletion_status(
     """
     report, reason = await get_deletion_job(request_id)
     if report is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Deletion request {request_id} not found",
-        )
+        raise _not_found(request_id)
+    # Uniform 404 for cross-tenant reads: do not reveal existence.
+    _enforce_tenant_scope(admin, report.tenant_id)
     return _to_status_response(report, reason=reason)
 
 
@@ -312,8 +357,7 @@ async def get_deletion_report(
     """
     report, reason = await get_deletion_job(request_id)
     if report is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Deletion request {request_id} not found",
-        )
+        raise _not_found(request_id)
+    # Uniform 404 for cross-tenant reads: do not reveal existence.
+    _enforce_tenant_scope(admin, report.tenant_id)
     return _to_report_response(report, reason=reason)
