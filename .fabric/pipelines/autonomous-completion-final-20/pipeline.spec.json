@@ -1,0 +1,303 @@
+{
+  "$schema": "https://example.com/schemas/agentic-pipeline/v1.json",
+  "pipeline": {
+    "id": "autonomous-completion-final-20",
+    "name": "Autonomous Completion Pipeline for the Final 20%",
+    "version": "2.0.0",
+    "created_at": "2026-09-05T15:09:15Z",
+    "description": "Multi-agent pipeline to complete the remaining 20% of a codebase using read-only mapping, DAG decomposition, test-first generation, sandboxed implementation, adversarial auditing, and incremental integration.",
+    "execution_mode": "sequential_steps_with_parallel_dag_nodes",
+    "halt_on_unhandled_failure": true,
+    "target_repo": "Valynt/Fabric_4L",
+    "anchor_sha": "4bb4e142c2ccbc56297de843e71534d956bb198f"
+  },
+  "global_policies": {
+    "observability": {
+      "audit_trail": "append_only",
+      "log_fields": ["agent_id", "step_id", "prompt", "diff", "test_results", "timestamp"]
+    },
+    "rollback": {
+      "strategy": "git_tag_checkpoints",
+      "checkpoint_per_step": true,
+      "on_failure": "revert_to_last_tagged_checkpoint"
+    },
+    "cost_control": {
+      "per_step_token_budget": true,
+      "per_step_compute_budget": true,
+      "alert_on_threshold_pct": 80,
+      "hard_stop_on_budget_exhaustion": true
+    },
+    "idempotency": {
+      "steps_rerunnable_from_checkpoint": true,
+      "side_effects_forbidden_outside_worktrees": true
+    },
+    "human_gates": [
+      { "gate_id": "GATE-1", "step": "step_1", "trigger": "spec_gaps_review", "blocking": true },
+      { "gate_id": "GATE-2", "step": "step_4", "trigger": "budget_overrun_diff", "blocking": true },
+      { "gate_id": "GATE-3", "step": "step_6", "trigger": "production_release_approval", "blocking": true }
+    ],
+    "agent_constraints": {
+      "test_files_read_only_after_step_3": true,
+      "file_ownership_locks_enforced": true,
+      "no_cross_node_writes": true,
+      "no_product_intent_inference": true
+    }
+  },
+  "steps": [
+    {
+      "id": "step_0",
+      "name": "Environment Freeze & Reproducibility Baseline",
+      "goal": "Guarantee a deterministic, identical environment so all downstream results are attributable to code changes, not drift.",
+      "agent": {
+        "role": "environment_agent",
+        "permissions": ["read_repo", "build_container", "run_tests"],
+        "write_access": ["baseline_artifacts_only"]
+      },
+      "actions": [
+        "pin_toolchain_versions",
+        "lock_dependency_manifests",
+        "snapshot_database_schema_and_seed_data",
+        "capture_golden_baseline_run",
+        "record_anchor_git_sha"
+      ],
+      "outputs": [
+        { "artifact": "container_image", "type": "oci_image" },
+        { "artifact": "lockfile_hash_manifest", "type": "json" },
+        { "artifact": "baseline_report", "type": "json", "fields": ["test_pass_state", "coverage_pct", "build_time", "latency_p50", "latency_p95"] }
+      ],
+      "completion_criteria": [
+        "container_image_reproducible == true",
+        "baseline_report_generated == true"
+      ],
+      "failure_path": {
+        "condition": "existing_test_suite_red",
+        "action": "halt_pipeline",
+        "escalation": "human_triage_required",
+        "message": "Never build the missing 20% on a broken 80%."
+      }
+    },
+    {
+      "id": "step_1",
+      "name": "Architectural Baseline & Dependency Mapping",
+      "goal": "Produce an immutable, machine-readable reference map of behaviors, contracts, schemas, and unfinished stubs.",
+      "agent": {
+        "role": "inspection_agent",
+        "permissions": ["read_repo", "parse_ast"],
+        "write_access": ["map_artifacts_only"],
+        "mutations_allowed": false
+      },
+      "actions": [
+        "parse_repository_ast",
+        "map_module_boundaries",
+        "index_incomplete_routes_mocks_todos",
+        "extract_implicit_contracts_via_call_site_analysis",
+        "flag_ambiguous_specifications",
+        "compute_churn_complexity_heatmap"
+      ],
+      "outputs": [
+        { "artifact": "repo_map", "type": "json", "contents": ["dependency_graph", "api_contracts", "schema_definitions", "unfinished_backlog"] },
+        { "artifact": "SPEC_GAPS.md", "type": "markdown", "purpose": "items_requiring_human_intent" },
+        { "artifact": "risk_heatmap", "type": "json" }
+      ],
+      "completion_criteria": [
+        "repo_map_versioned == true",
+        "spec_gaps_signed_off == true"
+      ],
+      "gate": {
+        "gate_id": "GATE-1",
+        "type": "human_review",
+        "target": "SPEC_GAPS.md",
+        "blocking": true,
+        "rule": "agents_must_not_guess_product_intent"
+      }
+    },
+    {
+      "id": "step_2",
+      "name": "Task Decomposition & DAG Orchestration",
+      "goal": "Convert the missing 20% into atomic, non-overlapping DAG nodes with enforced boundaries.",
+      "agent": {
+        "role": "planning_agent",
+        "permissions": ["read_repo_map", "create_worktrees", "define_dag"]
+      },
+      "actions": [
+        "decompose_into_atomic_tasks",
+        "order_by_dependency: schemas -> services -> controllers",
+        "assign_isolated_worktree_per_node",
+        "assign_file_ownership_locks",
+        "assign_task_budgets",
+        "run_cycle_detection",
+        "compute_critical_path"
+      ],
+      "constraints": {
+        "file_ownership": "exclusive_per_node",
+        "budgets": { "max_loc_delta": "per_node_configurable", "max_files_touched": "per_node_configurable" },
+        "dag_must_be_acyclic": true
+      },
+      "outputs": [
+        {
+          "artifact": "execution_dag",
+          "type": "json",
+          "node_schema": {
+            "node_id": "string",
+            "inputs": "array",
+            "outputs": "array",
+            "depends_on": "array<node_id>",
+            "worktree_branch": "string",
+            "owned_files": "array<path>",
+            "budget": { "max_loc": "int", "max_files": "int" },
+            "effort_score": "number"
+          }
+        }
+      ],
+      "completion_criteria": [
+        "dag_validated == true",
+        "all_nodes_have_boundaries_budgets_ownership == true"
+      ],
+      "failure_path": {
+        "condition": "node_exceeds_budget_mid_flight",
+        "action": "halt_node_and_redecompose",
+        "forbidden_action": "force_completion"
+      }
+    },
+    {
+      "id": "step_3",
+      "name": "Test-First Harness Generation",
+      "goal": "Encode success and failure boundaries before implementation (Red state).",
+      "agent": {
+        "role": "test_synthesis_agent",
+        "permissions": ["read_repo_map", "read_api_contracts", "write_test_files"]
+      },
+      "actions": [
+        "generate_unit_tests",
+        "generate_integration_tests",
+        "generate_contract_tests",
+        "generate_property_based_tests_for_data_transformations",
+        "run_mutation_testing_on_harness",
+        "tag_tests_with_dag_node_id"
+      ],
+      "completion_criteria": [
+        "all_new_tests_fail_with_expected_assertion_errors == true",
+        "zero_compile_or_import_errors_in_tests == true",
+        "mutation_kill_score_pct >= 80"
+      ],
+      "post_conditions": {
+        "test_files_frozen": true,
+        "implementation_agents_test_access": "read_only",
+        "rationale": "prevent_agents_from_modifying_tests_to_force_pass"
+      }
+    },
+    {
+      "id": "step_4",
+      "name": "Sandboxed Implementation & Refactoring",
+      "goal": "Implement production logic in isolated worktrees until Green, without bloat.",
+      "agent": {
+        "role": "worker_agent",
+        "instances": "one_per_dag_node",
+        "permissions": ["write_owned_files_only", "run_node_scoped_tests", "read_tests"],
+        "forbidden": ["modify_test_files", "write_outside_ownership_manifest"]
+      },
+      "actions": [
+        "implement_logic_in_worktree",
+        "iterate_until_node_tests_pass",
+        "run_automated_refactoring_pass",
+        "enforce_complexity_ceilings",
+        "enforce_duplication_thresholds"
+      ],
+      "controls": {
+        "iteration_cap": 10,
+        "on_iteration_exhaustion": { "action": "escalate_to_human", "payload": "diagnostic_bundle" },
+        "diff_size_trigger": { "condition": "loc_delta > node_budget", "action": "flag_for_human_inspection", "gate_id": "GATE-2" },
+        "static_analysis": { "cyclomatic_complexity_max": "configurable", "nesting_depth_max": "configurable", "duplication_pct_max": "configurable" }
+      },
+      "completion_criteria": [
+        "node_test_pass_rate_pct == 100",
+        "lint_clean == true",
+        "static_analysis_clean == true",
+        "complexity_within_budget == true",
+        "zero_writes_outside_ownership_manifest == true"
+      ]
+    },
+    {
+      "id": "step_5",
+      "name": "Dual-Tier Adversarial Auditing",
+      "goal": "Independently detect architectural regressions, security flaws, and contract drift.",
+      "agents": [
+        {
+          "role": "architecture_auditor",
+          "independence": { "shared_context_with_peer": false, "distinct_model_instance": true },
+          "focus": ["contract_stability", "layering_violations", "abstraction_fit", "dependency_direction"]
+        },
+        {
+          "role": "adversarial_auditor",
+          "independence": { "shared_context_with_peer": false, "distinct_model_instance": true },
+          "focus": ["injection_surfaces", "authz_gaps", "race_conditions", "resource_exhaustion", "malformed_input_fuzzing"]
+        }
+      ],
+      "additional_scans": ["secrets_scan", "pii_scan", "dependency_vulnerability_audit_for_new_packages"],
+      "finding_requirements": {
+        "every_flag_must_include": "failing_reproduction_case",
+        "opinion_only_flags_accepted": false
+      },
+      "completion_criteria": [
+        "high_severity_flags == 0",
+        "contract_drift_warnings == 0",
+        "independent_signoff_reports == 2"
+      ],
+      "failure_path": {
+        "routing": "findings_routed_to_owning_dag_node_only",
+        "patch_location": "node_worktree",
+        "forbidden_patch_location": "merge_branch",
+        "re_audit_required_after_patch": true
+      }
+    },
+    {
+      "id": "step_6",
+      "name": "Automated Integration & Convergence Verification",
+      "goal": "Topologically merge DAG branches and validate system stability under runtime conditions.",
+      "agent": {
+        "role": "orchestration_agent",
+        "permissions": ["merge_branches", "run_e2e_suite", "run_perf_benchmarks", "generate_reports"]
+      },
+      "merge_strategy": {
+        "order": "topological",
+        "mode": "incremental",
+        "sequence_per_node": ["merge_node", "run_smoke_suite", "proceed_or_isolate"],
+        "rationale": "instant_failure_attribution"
+      },
+      "validation": {
+        "e2e_environment": "step_0_container",
+        "performance_gates": {
+          "latency_p95_regression_tolerance_pct": 5,
+          "memory_regression_tolerance_pct": 5,
+          "on_violation": "fail_merge"
+        },
+        "flaky_test_policy": {
+          "detection": "non_deterministic_pass_on_retry",
+          "action": "quarantine_and_report",
+          "forbidden": "silent_retry_to_green"
+        },
+        "feature_flags": { "required_for_user_facing_changes": true, "purpose": "staged_rollout" }
+      },
+      "completion_criteria": [
+        "e2e_build_green == true",
+        "regression_failures == 0",
+        "performance_within_budget == true",
+        "coverage_pct >= baseline_coverage_pct"
+      ],
+      "outputs": [
+        {
+          "artifact": "release_report",
+          "type": "json",
+          "contents": ["per_node_changelog", "audit_signoffs", "performance_deltas", "feature_flag_inventory", "rollback_instructions"]
+        }
+      ],
+      "gate": {
+        "gate_id": "GATE-3",
+        "type": "human_approval",
+        "scope": "production_release",
+        "blocking": true,
+        "rule": "pipeline_produces_release_candidate_only; human_owns_deploy_decision"
+      }
+    }
+  ]
+}

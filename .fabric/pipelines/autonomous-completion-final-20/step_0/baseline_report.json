@@ -1,0 +1,186 @@
+{
+  "artifact": "baseline_report",
+  "pipeline_id": "autonomous-completion-final-20",
+  "step": "step_0",
+  "generated_at": "2026-09-05T15:20:00Z",
+  "anchor_git_sha": "4bb4e142c2ccbc56297de843e71534d956bb198f",
+  "repo": "Valynt/Fabric_4L",
+  "version_txt": "1.0.0",
+  "container_image_reproducible": false,
+  "container_image_reason": "No OCI image was built in this execution environment. docker CLI not used; Build and Deploy failed on layer1-ingestion at the anchor SHA.",
+  "golden_baseline_run": {
+    "ran_locally": false,
+    "ci_proxy": true,
+    "test_pass_state": "RED",
+    "coverage_pct": null,
+    "build_time": null,
+    "latency_p50": null,
+    "latency_p95": null,
+    "notes": "Local make verify / production-readiness-gate were not executed (no Docker, no service stack, Python 3.10.21 host vs pinned 3.11). CI on the anchor SHA is the evidence."
+  },
+  "toolchain": {
+    "pins": {
+      ".python-version": "3.11.15",
+      ".tool-versions.python": "3.11.10",
+      ".nvmrc": "22.22.2",
+      ".tool-versions.nodejs": "22.22.2",
+      ".tool-versions.pnpm": "10.18.1",
+      ".tool-versions.uv": "0.11.6",
+      "AGENTS.md_declared_pnpm": "10.18.1",
+      "issue_1639_requested_pnpm": ">=10.34.5"
+    },
+    "drift": [
+      {
+        "id": "TOOLCHAIN-PYTHON-PIN-DRIFT",
+        "left": {
+          "file": ".python-version",
+          "value": "3.11.15"
+        },
+        "right": {
+          "file": ".tool-versions",
+          "value": "python 3.11.10"
+        },
+        "severity": "medium",
+        "requires_human_intent": true
+      },
+      {
+        "id": "TOOLCHAIN-PNPM-SECURITY-VS-PIN",
+        "left": {
+          "file": "AGENTS.md / .tool-versions",
+          "value": "pnpm 10.18.1"
+        },
+        "right": {
+          "issue": "#1639",
+          "value": "pnpm >=10.34.5"
+        },
+        "severity": "high",
+        "requires_human_intent": true
+      },
+      {
+        "id": "LOCKFILE-WEB-LOCAL",
+        "left": {
+          "file": "pnpm-lock.yaml",
+          "policy": "root lockfile only (AGENTS.md)"
+        },
+        "right": {
+          "file": "apps/web/pnpm-lock.yaml",
+          "bytes": 499808
+        },
+        "severity": "medium",
+        "requires_human_intent": true
+      }
+    ]
+  },
+  "lockfile_count": 17,
+  "ci": {
+    "anchor_sha": "4bb4e142c2ccbc56297de843e71534d956bb198f",
+    "captured_at": "2026-09-05T15:20:00Z",
+    "source": "GitHub Actions on push to main",
+    "passed": [
+      {
+        "name": "Security Gates",
+        "run": 33970450564,
+        "url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450564"
+      },
+      {
+        "name": "Zero Trust Validation",
+        "run": 33970450366
+      },
+      {
+        "name": "Critical Gates",
+        "run": 33970450305,
+        "notes": "all sampled critical-gate jobs success including tenant-isolation-hostile, openapi-drift, p0-auth-boundaries"
+      },
+      {
+        "name": "Contract Compliance",
+        "run": 33970450321
+      },
+      {
+        "name": "Supply Chain Integrity Gate",
+        "run": 33970450289
+      },
+      {
+        "name": "layer4-route-contract-matrix-check",
+        "run": 33970450365
+      },
+      {
+        "name": "Visual Regression",
+        "run": 33970450292
+      },
+      {
+        "name": "Bundle Analysis",
+        "run": 33970450324
+      }
+    ],
+    "failed": [
+      {
+        "name": "PR Checks",
+        "run": 33970450342,
+        "url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342",
+        "failed_jobs": [
+          "Runtime Contract Tests (Services Up)",
+          "Integration Tests (Docker)",
+          "p0-e2e-gate",
+          "Docker Image Build Verification (frontend)",
+          "Unified Readiness Gate",
+          "02-code-quality-and-tests"
+        ]
+      },
+      {
+        "name": "Prod Readiness Gates",
+        "run": 33970450317,
+        "url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317",
+        "failed_jobs": [
+          "dependency-chaos",
+          "readiness-10",
+          "gate-engineering",
+          "release-policy",
+          "06-production-readiness",
+          "prod-readiness"
+        ]
+      },
+      {
+        "name": "Certify Release Candidate",
+        "run": 33970450296
+      },
+      {
+        "name": "Build and Deploy",
+        "run": 33970450291,
+        "failed_jobs": [
+          "Build Images (layer1-ingestion)"
+        ]
+      },
+      {
+        "name": "Release Evidence Bundle",
+        "run": 33970450297
+      }
+    ],
+    "classification": {
+      "repository_owned_static_gates": "mostly_green (Critical Gates, Security, Contract, Supply Chain, Zero Trust)",
+      "test_suite_and_readiness": "RED on anchor SHA",
+      "environment_dependent_jobs": [
+        "Integration Tests (Docker)",
+        "Runtime Contract Tests (Services Up)",
+        "p0-e2e-gate",
+        "Docker Image Build Verification (frontend)"
+      ],
+      "unclassified_red": [
+        "02-code-quality-and-tests",
+        "prod-readiness / release-policy / gate-engineering"
+      ]
+    }
+  },
+  "step_0_completion_criteria": {
+    "container_image_reproducible": false,
+    "baseline_report_generated": true
+  },
+  "failure_path": {
+    "condition": "existing_test_suite_red",
+    "observed": true,
+    "evidence": "PR Checks run 33970450342 conclusion=failure including 02-code-quality-and-tests; Prod Readiness Gates run 33970450317 conclusion=failure",
+    "action_taken": "halt_implementation_steps",
+    "escalation": "human_triage_required",
+    "message": "Never build the missing 20% on a broken 80%.",
+    "allowed_continuation": "step_1 is read-only mapping and is produced so GATE-1 can be signed with a complete picture. Steps 2\u20136 are NOT started."
+  }
+}
