@@ -3,8 +3,7 @@ kind: Skill
 metadata:
   name: code-quality-improvement
   version: '2026-06-25'
-  description: Use this skill when functional code needs a focused production-quality
-    pass. The goal is not broad refactoring; it is to
+  description: Use this skill when functional code needs a focused production-quality pass. The goal is not broad refactoring; it is to remove concrete correctness, completeness, fragility, maintainability, accessibility, or performance risks in the smallest safe change.
   category: engineering
 compatibleAgents:
 - claude-code
