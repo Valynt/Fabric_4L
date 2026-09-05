@@ -41,6 +41,60 @@ from .registry import BaseTool, TenantSpoofingError
 logger = logging.getLogger(__name__)
 
 
+def _mask_cypher_literals(query: str) -> str:
+    """Return ``query`` with all non-code regions blanked out (same length).
+
+    Masks single- and double-quoted string literals (with backslash escapes
+    and doubled-quote escapes), backtick-quoted identifiers, and ``//`` /
+    ``/* */`` comments, replacing every masked character with a space
+    (newlines preserved). Positions are unchanged, so keyword/alias scans on
+    the masked text map 1:1 onto the original query. This prevents clause
+    keywords such as RETURN/WHERE/WITH/UNION appearing inside literals or
+    comments from being mistaken for real Cypher syntax (and vice versa).
+    """
+    chars = list(query)
+    n = len(query)
+    i = 0
+    while i < n:
+        c = query[i]
+        if c == "/" and i + 1 < n and query[i + 1] == "/":
+            end = query.find("\n", i)
+            end = n if end == -1 else end
+            for k in range(i, end):
+                chars[k] = " "
+            i = end
+        elif c == "/" and i + 1 < n and query[i + 1] == "*":
+            end = query.find("*/", i + 2)
+            end = n if end == -1 else end + 2
+            for k in range(i, end):
+                if chars[k] != "\n":
+                    chars[k] = " "
+            i = end
+        elif c in ("'", '"', "`"):
+            quote = c
+            start = i
+            i += 1
+            while i < n:
+                ch = query[i]
+                if ch == "\\" and quote != "`":
+                    i += 2
+                    continue
+                if ch == quote:
+                    # Doubled-quote escape ('', "", ``) stays inside.
+                    if i + 1 < n and query[i + 1] == quote:
+                        i += 2
+                        continue
+                    i += 1
+                    break
+                i += 1
+            for k in range(start, i):
+                if chars[k] != "\n":
+                    chars[k] = " "
+        else:
+            i += 1
+    return "".join(chars)
+
+
 class ConfigurationError(ValueError):
     """Raised when a tool is misconfigured (e.g., missing a required secret)."""
 
@@ -94,6 +148,89 @@ class QueryGraphTool(BaseTool):
         re.IGNORECASE,
     )
 
+    # Reads that still allow an unscoped second query leg or statement: the
+    # tenant filter is injected at a single point, so anything that adds a
+    # second leg/statement would bypass it and must be rejected (fail closed).
+    _CYPHER_MULTI_LEG_KEYWORDS = re.compile(
+        r"(?<![\.\:\`])\b(UNION)\b(?!\s*\:)",
+        re.IGNORECASE,
+    )
+
+    _MATCH_CLAUSE_PATTERN = re.compile(
+        r"\b(?:OPTIONAL\s+)?MATCH\b",
+        re.IGNORECASE,
+    )
+
+    _NODE_ALIAS_IN_PATTERN = re.compile(r"\(\s*([A-Za-z_][A-Za-z0-9_]*)\b")
+
+    # Pattern comprehensions bind fresh node/relationship aliases INSIDE a
+    # list projection (e.g. [(n)-->(m) | m.name], [p = (n)-[*1..3]->(m) | p]).
+    # The tenant filter only scopes the outer MATCH aliases, so inner aliases
+    # would be unrestricted and leak cross-tenant properties. There is no safe
+    # single-point injection for them -> reject (fail closed). Detected as
+    # '[' ... relationship pattern (paren + dash/arrow) ... '|' on the MASKED
+    # query, so brackets/arrows inside string literals and plain list
+    # literals ([1,2,3], no relationship pattern) do NOT match.
+    _PATTERN_COMPREHENSION = re.compile(
+        r"\[(?:[^\[\]]|\[[^\]]*\])*\((?:[^\[\]]|\[[^\]]*\])*[-<>](?:[^\[\]]|\[[^\]]*\])*\|",
+        re.IGNORECASE,
+    )
+
+    # Subquery forms bind fresh aliases the injected filter cannot scope:
+    # exists((n)-->(m)), EXISTS { ... }, COUNT { ... }. Plain count(...)
+    # aggregation is unaffected (no '{').
+    _SUBQUERY_SYNTAX = re.compile(
+        r"\bexists\s*\(|\b(?:EXISTS|COUNT)\s*\{",
+        re.IGNORECASE,
+    )
+
+    # startNode()/endNode() exist to reach UNALIASED relationship endpoints;
+    # those endpoints carry no injected tenant predicate, so the functions
+    # would expose cross-tenant nodes. No legitimate single-MATCH read in
+    # this tool's surface needs them -> reject (fail closed).
+    _ENDPOINT_FUNCTIONS = re.compile(
+        r"\b(?:startnode|endnode)\s*\(",
+        re.IGNORECASE,
+    )
+
+    # Anonymous node `()` in node position within a MATCH pattern: a '(' at
+    # pattern start or immediately after ']', '-', '>', '<' or ',' that is
+    # NOT followed by an alias character. Function-call parens (preceded by
+    # an identifier char) never match. Applied to the masked MATCH pattern
+    # region only, so '()' inside string literals is inert.
+    _ANONYMOUS_NODE = re.compile(r"(?:[\]\-><,]|^)\s*\(\s*(?![A-Za-z_`])")
+
+    # Variable-length relationship patterns (-[*1..3]->, -[*2]->, -[*1..]->)
+    # match intermediate nodes that carry NO injected tenant predicate, so
+    # nodes(p)/relationships(p) or endpoint projection can expose other
+    # tenants' data. Sibling tools close this with
+    # ALL(x IN nodes(path) WHERE x.tenant_id = $tenant_id); this tool fails
+    # closed instead.
+    # A '*' ANYWHERE inside a relationship bracket is rejected: anonymous
+    # -[*1..3]->, named -[r*1..2]->, typed -[:KNOWS*2]->, and spaced
+    # -[r *2..]-> forms all produce var-length matches. Detected on the
+    # masked query, so '*' inside string literals is inert and plain
+    # multiplication (n.score * 2, no bracket) never matches. Documented
+    # collateral: list literals containing '*' (e.g. [n.score * 2]) are
+    # indistinguishable from rel brackets without a full parser and fail
+    # closed too. Map projections n { .* } use braces and are unaffected.
+    _VARIABLE_LENGTH_PATTERN = re.compile(r"\[[^\]]*\*")
+
+    # nodes()/relationships() project every node/edge on a path, including
+    # unfiltered intermediates; same rationale as startNode()/endNode().
+    _PATH_FUNCTIONS = re.compile(
+        r"\b(?:nodes|relationships)\s*\(",
+        re.IGNORECASE,
+    )
+
+    # Path-variable assignment in a MATCH pattern (p = (n)-->(m)): a named
+    # path lets nodes(p)/relationships(p) reach edge properties and would
+    # also be the vehicle for variable-length traversal, so it is rejected
+    # alongside them (belt-and-braces after _VARIABLE_LENGTH_PATTERN).
+    _PATH_VARIABLE_ASSIGNMENT = re.compile(
+        r"(?:^|,)\s*[A-Za-z_][A-Za-z0-9_]*\s*=\s*\("
+    )
+
     def _inject_tenant_filter(self, query: str, tenant_id: UUID) -> tuple[str, str]:
         """Inject tenant_id filter into Cypher query with proper alias detection.
 
@@ -101,9 +238,14 @@ class QueryGraphTool(BaseTool):
         authenticated tenant by adding a tenant_id filter.
 
         Strategy:
-        1. Extract the actual node alias from the MATCH clause (not hardcoded 'n')
-        2. If query already has WHERE clause, append AND tenant_id condition
-        3. If query has no WHERE, add WHERE tenant_id condition after MATCH
+        1. Extract every node alias bound by the FIRST MATCH clause (all of
+           them are in scope for that clause's WHERE). Reject (fail closed)
+           when a later MATCH/OPTIONAL MATCH binds a fresh alias, because such
+           an alias cannot be safely scoped by a single injection point.
+        2. If the query already has a WHERE clause, prepend the tenant
+           predicates AND wrap the original predicate in parentheses so a
+           hostile top-level ``OR`` cannot escape the tenant filter.
+        3. If the query has no WHERE, add ``WHERE <predicates>`` after MATCH.
 
         Args:
             query: The Cypher query to modify
@@ -113,9 +255,19 @@ class QueryGraphTool(BaseTool):
             Tuple of (modified_query, node_alias) for parameter binding
 
         Raises:
-            ValueError: If node alias cannot be extracted from MATCH clause
+            ValueError: If node alias cannot be extracted from MATCH clause or
+                the query shape cannot be safely tenant-scoped.
         """
-        alias_match = self._FIRST_NODE_ALIAS_PATTERN.search(query)
+        # Mask string literals, backtick identifiers and comments BEFORE any
+        # keyword/alias scanning. All scans run on the masked text (same
+        # length, positions preserved); injections splice the ORIGINAL text.
+        # This stops clause keywords inside literals/comments (e.g. 'RETURN',
+        # 'WITH', 'UNION') from being mistaken for real syntax — in both
+        # directions: hostile queries cannot hide or fake clause boundaries,
+        # and legitimate literals keep working (V1-TENANCY-012 F1/F2).
+        masked = _mask_cypher_literals(query)
+
+        alias_match = self._FIRST_NODE_ALIAS_PATTERN.search(masked)
         if not alias_match:
             raise ValueError(
                 "Cannot inject tenant filter: unable to parse node alias from MATCH clause. "
@@ -123,23 +275,109 @@ class QueryGraphTool(BaseTool):
             )
 
         node_alias = alias_match.group(1)
-        tenant_filter = f"{node_alias}.tenant_id = $tenant_id"
+
+        # Collect every node alias bound by the first MATCH clause; all of
+        # them are in scope at that clause's WHERE position.
+        match_clauses = list(self._MATCH_CLAUSE_PATTERN.finditer(masked))
+        first_clause_end = (
+            match_clauses[1].start() if len(match_clauses) > 1 else len(query)
+        )
+        first_pattern_end = first_clause_end
+        next_clause_match = self._NEXT_CLAUSE_PATTERN.search(
+            masked, pos=match_clauses[0].end()
+        )
+        if next_clause_match and next_clause_match.start() < first_pattern_end:
+            first_pattern_end = next_clause_match.start()
+
+        # Fail closed on anonymous nodes in the MATCH pattern: an unaliased
+        # node carries no injected tenant predicate, so relationships can
+        # reach cross-tenant nodes through it (V1-TENANCY-012 F5). Anonymous
+        # RELATIONSHIPS remain allowed: without an alias no relationship
+        # properties can be projected, both endpoints (when aliased) are
+        # filtered, and startNode()/endNode() are rejected separately.
+        first_pattern_masked = masked[match_clauses[0].end() : first_pattern_end]
+        if self._PATH_VARIABLE_ASSIGNMENT.search(first_pattern_masked):
+            # Named paths would let nodes(p)/relationships(p) project edges
+            # and intermediate nodes outside the injected tenant predicates.
+            raise ValueError(
+                "Cannot inject tenant filter: path-variable assignment in "
+                "MATCH pattern. Match nodes/relationships directly so every "
+                "element carries the tenant filter."
+            )
+        if self._ANONYMOUS_NODE.search(first_pattern_masked):
+            raise ValueError(
+                "Cannot inject tenant filter: anonymous node '()' in MATCH "
+                "pattern. Alias every node so the tenant filter can be "
+                "applied to all of them."
+            )
+
+        first_clause_aliases: list[str] = list(
+            dict.fromkeys(
+                self._NODE_ALIAS_IN_PATTERN.findall(
+                    masked[match_clauses[0].end() : first_pattern_end]
+                )
+            )
+        )
+        if node_alias not in first_clause_aliases:
+            first_clause_aliases.insert(0, node_alias)
+
+        # Fail closed when a later MATCH binds an alias that is not in scope
+        # at the injection point (it would bypass the tenant filter).
+        for later in match_clauses[1:]:
+            later_end_match = self._NEXT_CLAUSE_PATTERN.search(masked, pos=later.end())
+            later_end = later_end_match.start() if later_end_match else len(query)
+            later_aliases = self._NODE_ALIAS_IN_PATTERN.findall(
+                masked[later.end() : later_end]
+            )
+            unscoped = [a for a in later_aliases if a not in first_clause_aliases]
+            if unscoped:
+                raise ValueError(
+                    "Cannot inject tenant filter: query binds node alias(es) "
+                    f"{unscoped} in a later MATCH clause that cannot be "
+                    "tenant-scoped safely. Re-issue as a single-MATCH query."
+                )
+
+        tenant_filter = " AND ".join(
+            f"{alias}.tenant_id = $tenant_id" for alias in first_clause_aliases
+        )
 
         where_match = re.search(
             r"\bWHERE\b",
-            query,
+            masked,
             re.IGNORECASE,
         )
 
         if where_match:
+            # Parenthesise the original predicate so a hostile top-level OR
+            # cannot escape the injected tenant predicates.
+            predicate_end_match = self._NEXT_CLAUSE_PATTERN.search(
+                masked, pos=where_match.end()
+            )
+            predicate_end = (
+                predicate_end_match.start() if predicate_end_match else len(query)
+            )
+            # Fail closed on unbalanced parentheses in the predicate: a
+            # predicate whose parens only balance via string-literal content
+            # could close our wrapping parenthesis early and escape the
+            # tenant filter with a trailing OR (V1-TENANCY-012 F2).
+            predicate_masked = masked[where_match.end() : predicate_end]
+            if predicate_masked.count("(") != predicate_masked.count(")"):
+                raise ValueError(
+                    "Cannot inject tenant filter: unbalanced parentheses in "
+                    "WHERE predicate. Simplify the predicate and retry."
+                )
             modified_query = (
-                query[: where_match.end()] + f" {tenant_filter} AND" + query[where_match.end() :]
+                query[: where_match.end()]
+                + f" {tenant_filter} AND ("
+                + query[where_match.end() : predicate_end]
+                + ") "
+                + query[predicate_end:]
             )
         else:
-            match_keyword = re.search(r"\b(MATCH|OPTIONAL\s+MATCH)\b", query, re.IGNORECASE)
+            match_keyword = re.search(r"\b(MATCH|OPTIONAL\s+MATCH)\b", masked, re.IGNORECASE)
             start_pos = match_keyword.end() if match_keyword else 0
 
-            next_clause_match = self._NEXT_CLAUSE_PATTERN.search(query, pos=start_pos)
+            next_clause_match = self._NEXT_CLAUSE_PATTERN.search(masked, pos=start_pos)
             if next_clause_match:
                 insert_pos = next_clause_match.start()
                 modified_query = query[:insert_pos] + f"WHERE {tenant_filter} " + query[insert_pos:]
@@ -175,10 +413,42 @@ class QueryGraphTool(BaseTool):
         Returns:
             Error message if query contains write operations, None if valid
         """
-        if cls._CYPHER_WRITE_KEYWORDS.search(query):
+        # Scan only real Cypher syntax: keywords inside string literals,
+        # backtick identifiers or comments are inert text and must neither
+        # trigger false rejections nor smuggle actual syntax past the scan.
+        masked = _mask_cypher_literals(query)
+        if cls._CYPHER_WRITE_KEYWORDS.search(masked):
             return (
                 "Write operations are not allowed via query_graph tool. "
                 "Only read-only Cypher queries (MATCH, RETURN, WITH, WHERE, ORDER BY, LIMIT) are permitted."
+            )
+        if cls._CYPHER_MULTI_LEG_KEYWORDS.search(masked) or ";" in masked:
+            # UNION legs and chained statements bypass the single-point tenant
+            # filter injection; reject them so the query fails closed.
+            return (
+                "Multi-leg or chained Cypher queries are not allowed via query_graph tool. "
+                "Issue a single MATCH...RETURN statement so the tenant filter can be enforced."
+            )
+        if cls._PATTERN_COMPREHENSION.search(masked) or cls._SUBQUERY_SYNTAX.search(masked):
+            # Pattern comprehensions and exists()/EXISTS{}/COUNT{} subqueries
+            # bind fresh aliases the tenant filter cannot scope; fail closed.
+            return (
+                "Pattern comprehensions and Cypher subqueries are not allowed via query_graph tool. "
+                "Express the read as a plain MATCH...WHERE...RETURN so the tenant filter can be enforced."
+            )
+        if cls._ENDPOINT_FUNCTIONS.search(masked):
+            # startNode()/endNode() reach unaliased (unfiltered) endpoints.
+            return (
+                "startNode()/endNode() are not allowed via query_graph tool. "
+                "Alias every relationship endpoint so the tenant filter can be enforced."
+            )
+        if cls._VARIABLE_LENGTH_PATTERN.search(masked) or cls._PATH_FUNCTIONS.search(masked):
+            # Variable-length paths expose unfiltered intermediate nodes via
+            # nodes(p)/relationships(p); those functions are banned too.
+            return (
+                "Variable-length paths and nodes()/relationships() are not allowed via "
+                "query_graph tool. Use fixed single-hop patterns so every node carries "
+                "the tenant filter."
             )
         return None
 
