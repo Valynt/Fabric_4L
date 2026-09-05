@@ -3,8 +3,7 @@ kind: Skill
 metadata:
   name: data-flywheel
   version: '2026-04-25'
-  description: Use this skill when a user wants to turn repeated human-approved agent
-    work
+  description: Use this skill when a user wants to turn repeated human-approved agent work across Claude Code, Hermes, OpenClaw, Codex, Cursor, or custom `.agent/` loops into local artifacts for retrieval, evals, prompt shrinking, and optional future open-weight model/adapters.
   category: operations
 compatibleAgents:
 - claude-code
