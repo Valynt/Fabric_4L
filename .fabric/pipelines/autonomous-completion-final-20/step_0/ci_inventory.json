@@ -1,0 +1,1283 @@
+{
+  "query": {
+    "owner": "Valynt",
+    "repo": "Fabric_4L",
+    "run_id": 33970450342,
+    "workflow": "PR Checks",
+    "head_sha": "4bb4e142c2ccbc56297de843e71534d956bb198f",
+    "method": "list_workflow_jobs",
+    "filter": "all",
+    "failed_only": false,
+    "per_page": 30,
+    "pages_fetched": [
+      1,
+      2
+    ],
+    "page_1_count": 30,
+    "page_2_count": 15,
+    "total_count": 45,
+    "note": "Do not use failed_only. GitHub default page size is 30; page 2 is required to see frontend docker, Unified Readiness Gate, and 02-code-quality-and-tests."
+  },
+  "totals_by_conclusion": {
+    "success": 36,
+    "skipped": 2,
+    "cancelled": 1,
+    "failure": 6
+  },
+  "blocking_set_rule": "GAP-0 remains operator block. Underlying failures plus cancelled coverage are in the blocking set. Aggregates are recorded but are not additional independent failures.",
+  "underlying_failures": [
+    {
+      "name": "Runtime Contract Tests (Services Up)",
+      "kind": "underlying_failure",
+      "failing_step": "Run runtime contract marker suite",
+      "class": "environment-dependent (services-up suite)"
+    },
+    {
+      "name": "Integration Tests (Docker)",
+      "kind": "underlying_failure",
+      "failing_step": "Fetch secrets from Infisical",
+      "class": "environment-dependent (secrets/docker)"
+    },
+    {
+      "name": "p0-e2e-gate",
+      "kind": "underlying_failure",
+      "failing_step": "Start deterministic E2E backend",
+      "class": "environment-dependent (e2e backend)"
+    },
+    {
+      "name": "Docker Image Build Verification (frontend)",
+      "kind": "underlying_failure",
+      "failing_step": "Run Trivy image scan (PR security stage)",
+      "class": "image-build succeeded; trivy CVE gate failed (node-tar and related)",
+      "note": "Build image (no push) was success. Do not treat as a missing image."
+    }
+  ],
+  "aggregates": [
+    {
+      "name": "Unified Readiness Gate",
+      "kind": "aggregate",
+      "children_root_failures": [
+        "docker-build-check",
+        "integration-checks",
+        "runtime-contract-checks"
+      ],
+      "evidence": "job 101319028469 log: Root-failure jobs: docker-build-check, integration-checks, runtime-contract-checks"
+    },
+    {
+      "name": "02-code-quality-and-tests",
+      "kind": "aggregate",
+      "children_root_failures": [
+        "layer3-checks=cancelled"
+      ],
+      "evidence": "job 101321948028 log: aggregate gate FAILED: 1/9 child job(s) failed, cancelled, or skipped without confirmation: layer3-checks=cancelled"
+    }
+  ],
+  "cancelled": [
+    {
+      "name": "Layer 3 - Knowledge",
+      "kind": "cancelled",
+      "cancelled_step": "Run tests with coverage",
+      "duration_note": "started 2026-09-05T13:59:14Z completed 2026-09-05T14:29:30Z (~30m16s)",
+      "downstream_aggregate": "02-code-quality-and-tests",
+      "note": "Not a test assertion failure. Coverage step cancelled. Include in inventory; do not drop via failed_only."
+    }
+  ],
+  "skipped": [
+    {
+      "name": "PR Overlap Guard",
+      "kind": "skipped",
+      "note": "PR-only job on a push to main"
+    },
+    {
+      "name": "09-change-risk-and-approval",
+      "kind": "skipped",
+      "note": "PR-only job on a push to main"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 101317902710,
+      "name": "Change Scope",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317902710",
+      "started_at": "2026-09-05T13:59:05Z",
+      "completed_at": "2026-09-05T13:59:13Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317902795,
+      "name": "Governance Docs Guard",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317902795",
+      "started_at": "2026-09-05T13:59:05Z",
+      "completed_at": "2026-09-05T13:59:20Z",
+      "page": 1,
+      "non_success_steps": [
+        {
+          "number": 3,
+          "name": "Detect changed files",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 6,
+          "name": "Enforce Phase 3 API evolution section for enhancement PRs",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 7,
+          "name": "Enforce PR governance impact fields",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 8,
+          "name": "Enforce PR size policy",
+          "conclusion": "skipped"
+        }
+      ],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317902882,
+      "name": "Structural Preflight",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317902882",
+      "started_at": "2026-09-05T13:59:03Z",
+      "completed_at": "2026-09-05T14:01:47Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317902895,
+      "name": "Production Readiness Gate",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317902895",
+      "started_at": "2026-09-05T13:59:03Z",
+      "completed_at": "2026-09-05T13:59:59Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317903433,
+      "name": "PR Overlap Guard",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317903433",
+      "started_at": "2026-09-05T13:59:02Z",
+      "completed_at": "2026-09-05T13:59:01Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "skipped",
+        "note": "PR-only job on a push to main"
+      }
+    },
+    {
+      "id": 101317903463,
+      "name": "09-change-risk-and-approval",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317903463",
+      "started_at": "2026-09-05T13:59:02Z",
+      "completed_at": "2026-09-05T13:59:01Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "skipped",
+        "note": "PR-only job on a push to main"
+      }
+    },
+    {
+      "id": 101317925648,
+      "name": "Layer 4 - Agents",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925648",
+      "started_at": "2026-09-05T13:59:14Z",
+      "completed_at": "2026-09-05T14:01:20Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925651,
+      "name": "Layer 5 - Ground Truth",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925651",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:00:26Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925673,
+      "name": "Layer 1 - Ingestion",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925673",
+      "started_at": "2026-09-05T13:59:14Z",
+      "completed_at": "2026-09-05T14:03:13Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925674,
+      "name": "Layer 2 - Extraction",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925674",
+      "started_at": "2026-09-05T13:59:14Z",
+      "completed_at": "2026-09-05T13:59:57Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925680,
+      "name": "Layer 3 - Knowledge",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925680",
+      "started_at": "2026-09-05T13:59:14Z",
+      "completed_at": "2026-09-05T14:29:30Z",
+      "page": 1,
+      "non_success_steps": [
+        {
+          "number": 14,
+          "name": "Run tests with coverage",
+          "conclusion": "cancelled"
+        },
+        {
+          "number": 15,
+          "name": "Run Layer 3 hostile tenancy endpoint suite",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 19,
+          "name": "Security scan with bandit",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 20,
+          "name": "Dependency audit with pip-audit",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 37,
+          "name": "Post Install uv",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 38,
+          "name": "Post Set up Python",
+          "conclusion": "skipped"
+        }
+      ],
+      "classification": {
+        "kind": "cancelled",
+        "cancelled_step": "Run tests with coverage",
+        "duration_note": "started 2026-09-05T13:59:14Z completed 2026-09-05T14:29:30Z (~30m16s)",
+        "downstream_aggregate": "02-code-quality-and-tests",
+        "note": "Not a test assertion failure. Coverage step cancelled. Include in inventory; do not drop via failed_only."
+      }
+    },
+    {
+      "id": 101317925722,
+      "name": "Layer 5 - Source Contract",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925722",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T13:59:22Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925767,
+      "name": "Alertmanager Config Validation",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925767",
+      "started_at": "2026-09-05T13:59:14Z",
+      "completed_at": "2026-09-05T13:59:34Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925774,
+      "name": "Layer 5 - Contract Shape Regression",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925774",
+      "started_at": "2026-09-05T13:59:14Z",
+      "completed_at": "2026-09-05T13:59:34Z",
+      "page": 1,
+      "non_success_steps": [
+        {
+          "number": 10,
+          "name": "Upload Layer 5 contract diff artifacts",
+          "conclusion": "skipped"
+        }
+      ],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925801,
+      "name": "Critical Behaviors Gate",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925801",
+      "started_at": "2026-09-05T13:59:14Z",
+      "completed_at": "2026-09-05T14:00:22Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925821,
+      "name": "Frontend",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925821",
+      "started_at": "2026-09-05T13:59:14Z",
+      "completed_at": "2026-09-05T14:02:05Z",
+      "page": 1,
+      "non_success_steps": [
+        {
+          "number": 23,
+          "name": "Upload build artifacts on failure",
+          "conclusion": "skipped"
+        }
+      ],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925828,
+      "name": "Billing/Entitlements Regression + Evidence",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925828",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T13:59:51Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925830,
+      "name": "Layer 5 - Tenant Isolation Regression",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925830",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T13:59:35Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925836,
+      "name": "Route Auth Dependency Gate",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925836",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T13:59:24Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925839,
+      "name": "Schemathesis Property-Based Contract Tests",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925839",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:01:41Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925841,
+      "name": "Event Catalog Gate",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925841",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T13:59:25Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925843,
+      "name": "Shared & Tests - Code Quality",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925843",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T13:59:55Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925844,
+      "name": "Tenant Isolation Gate",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925844",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:00:45Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925857,
+      "name": "check-external-deps",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925857",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T13:59:23Z",
+      "page": 1,
+      "non_success_steps": [
+        {
+          "number": 6,
+          "name": "Fail gate on required unavailability",
+          "conclusion": "skipped"
+        }
+      ],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925862,
+      "name": "Layer 6 - Benchmarks",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925862",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T13:59:56Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925881,
+      "name": "behavior-tests",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925881",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:00:53Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925883,
+      "name": "Runtime Contract Tests (Services Up)",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925883",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:07:06Z",
+      "page": 1,
+      "non_success_steps": [
+        {
+          "number": 8,
+          "name": "Run runtime contract marker suite",
+          "conclusion": "failure"
+        }
+      ],
+      "classification": {
+        "kind": "underlying_failure",
+        "failing_step": "Run runtime contract marker suite",
+        "class": "environment-dependent (services-up suite)"
+      }
+    },
+    {
+      "id": 101317925894,
+      "name": "Integration Tests (Docker)",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925894",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T13:59:24Z",
+      "page": 1,
+      "non_success_steps": [
+        {
+          "number": 5,
+          "name": "Fetch secrets from Infisical",
+          "conclusion": "failure"
+        },
+        {
+          "number": 6,
+          "name": "Run release smoke gate",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 17,
+          "name": "Post Set up Python",
+          "conclusion": "skipped"
+        }
+      ],
+      "classification": {
+        "kind": "underlying_failure",
+        "failing_step": "Fetch secrets from Infisical",
+        "class": "environment-dependent (secrets/docker)"
+      }
+    },
+    {
+      "id": 101317925902,
+      "name": "p0-e2e-gate",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925902",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:01:27Z",
+      "page": 1,
+      "non_success_steps": [
+        {
+          "number": 7,
+          "name": "Start deterministic E2E backend",
+          "conclusion": "failure"
+        },
+        {
+          "number": 8,
+          "name": "Run P0 E2E gate",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 20,
+          "name": "Post Set up Node.js",
+          "conclusion": "skipped"
+        }
+      ],
+      "classification": {
+        "kind": "underlying_failure",
+        "failing_step": "Start deterministic E2E backend",
+        "class": "environment-dependent (e2e backend)"
+      }
+    },
+    {
+      "id": 101317925913,
+      "name": "Docker Image Build Verification (layer4-agents)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925913",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:01:02Z",
+      "page": 1,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925919,
+      "name": "Docker Image Build Verification (layer3-knowledge)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925919",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:07:33Z",
+      "page": 2,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925923,
+      "name": "Docker Image Build Verification (layer1-ingestion)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925923",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:00:37Z",
+      "page": 2,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925925,
+      "name": "Docker Compose Config Contract",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925925",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T13:59:30Z",
+      "page": 2,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925939,
+      "name": "Docker Image Build Verification (layer2-extraction)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925939",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:00:17Z",
+      "page": 2,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925940,
+      "name": "Queue Topology",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925940",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T13:59:55Z",
+      "page": 2,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925942,
+      "name": "Docker Image Build Verification (layer6-benchmarks)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925942",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:00:03Z",
+      "page": 2,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925945,
+      "name": "Docker Image Build Verification (layer5-ground-truth)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925945",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:00:31Z",
+      "page": 2,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317925990,
+      "name": "Docker Image Build Verification (frontend)",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925990",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:01:07Z",
+      "page": 2,
+      "non_success_steps": [
+        {
+          "number": 8,
+          "name": "Run Trivy image scan (PR security stage)",
+          "conclusion": "failure"
+        },
+        {
+          "number": 9,
+          "name": "Generate image SBOM (SPDX JSON)",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 10,
+          "name": "Upload SBOM artifact",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 11,
+          "name": "Verify Dockerfile lint",
+          "conclusion": "skipped"
+        }
+      ],
+      "classification": {
+        "kind": "underlying_failure",
+        "failing_step": "Run Trivy image scan (PR security stage)",
+        "class": "image-build succeeded; trivy CVE gate failed (node-tar and related)",
+        "note": "Build image (no push) was success. Do not treat as a missing image."
+      }
+    },
+    {
+      "id": 101317925999,
+      "name": "Kubernetes Dry-Run Validation",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317925999",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:00:00Z",
+      "page": 2,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101317926048,
+      "name": "Cross-Layer Contract Tests",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101317926048",
+      "started_at": "2026-09-05T13:59:15Z",
+      "completed_at": "2026-09-05T14:01:16Z",
+      "page": 2,
+      "non_success_steps": [
+        {
+          "number": 17,
+          "name": "Detect changed files",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 18,
+          "name": "Enforce shim change acknowledgment labels",
+          "conclusion": "skipped"
+        }
+      ],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101318150688,
+      "name": "05-tenant-isolation-and-behavior",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101318150688",
+      "started_at": "2026-09-05T14:00:56Z",
+      "completed_at": "2026-09-05T14:01:41Z",
+      "page": 2,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101318270231,
+      "name": "Gate Engineering Validation",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101318270231",
+      "started_at": "2026-09-05T14:01:49Z",
+      "completed_at": "2026-09-05T14:02:35Z",
+      "page": 2,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101318377335,
+      "name": "01-repository-integrity",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101318377335",
+      "started_at": "2026-09-05T14:02:38Z",
+      "completed_at": "2026-09-05T14:02:46Z",
+      "page": 2,
+      "non_success_steps": [],
+      "classification": {
+        "kind": "success"
+      }
+    },
+    {
+      "id": 101319028469,
+      "name": "Unified Readiness Gate",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101319028469",
+      "started_at": "2026-09-05T14:07:36Z",
+      "completed_at": "2026-09-05T14:07:41Z",
+      "page": 2,
+      "non_success_steps": [
+        {
+          "number": 3,
+          "name": "Enforce unified structural/security/tenant/contract/migration/deployment gate",
+          "conclusion": "failure"
+        }
+      ],
+      "classification": {
+        "kind": "aggregate",
+        "children_root_failures": [
+          "docker-build-check",
+          "integration-checks",
+          "runtime-contract-checks"
+        ],
+        "evidence": "job 101319028469 log: Root-failure jobs: docker-build-check, integration-checks, runtime-contract-checks"
+      }
+    },
+    {
+      "id": 101321948028,
+      "name": "02-code-quality-and-tests",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342/job/101321948028",
+      "started_at": "2026-09-05T14:29:33Z",
+      "completed_at": "2026-09-05T14:29:39Z",
+      "page": 2,
+      "non_success_steps": [
+        {
+          "number": 3,
+          "name": "Summarize code-quality and test gates",
+          "conclusion": "failure"
+        }
+      ],
+      "classification": {
+        "kind": "aggregate",
+        "children_root_failures": [
+          "layer3-checks=cancelled"
+        ],
+        "evidence": "job 101321948028 log: aggregate gate FAILED: 1/9 child job(s) failed, cancelled, or skipped without confirmation: layer3-checks=cancelled"
+      }
+    }
+  ],
+  "prod_readiness_gates": {
+    "run_id": 33970450317,
+    "workflow": "Prod Readiness Gates",
+    "head_sha": "4bb4e142c2ccbc56297de843e71534d956bb198f",
+    "total_count": 16,
+    "pages_fetched": [
+      1
+    ],
+    "per_page": 100,
+    "pagination_complete": true,
+    "totals_by_conclusion": {
+      "success": 10,
+      "failure": 6
+    },
+    "underlying_failures": [
+      "dependency-chaos",
+      "readiness-10",
+      "gate-engineering",
+      "release-policy"
+    ],
+    "aggregates": [
+      "06-production-readiness",
+      "prod-readiness"
+    ],
+    "jobs": [
+      {
+        "id": 101317902495,
+        "name": "determine-profile",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101317902495",
+        "started_at": "2026-09-05T13:59:04Z",
+        "completed_at": "2026-09-05T13:59:12Z",
+        "page": 1,
+        "non_success_steps": [],
+        "classification": {
+          "kind": "success"
+        }
+      },
+      {
+        "id": 101317923340,
+        "name": "setup",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101317923340",
+        "started_at": "2026-09-05T13:59:15Z",
+        "completed_at": "2026-09-05T13:59:23Z",
+        "page": 1,
+        "non_success_steps": [
+          {
+            "number": 3,
+            "name": "Enforce release P0 skip policy",
+            "conclusion": "skipped"
+          }
+        ],
+        "classification": {
+          "kind": "success"
+        }
+      },
+      {
+        "id": 101317945933,
+        "name": "observability-readiness",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101317945933",
+        "started_at": "2026-09-05T13:59:26Z",
+        "completed_at": "2026-09-05T14:00:30Z",
+        "page": 1,
+        "non_success_steps": [],
+        "classification": {
+          "kind": "success"
+        }
+      },
+      {
+        "id": 101317945939,
+        "name": "repo-maturity-scorecard",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101317945939",
+        "started_at": "2026-09-05T13:59:26Z",
+        "completed_at": "2026-09-05T13:59:34Z",
+        "page": 1,
+        "non_success_steps": [],
+        "classification": {
+          "kind": "success"
+        }
+      },
+      {
+        "id": 101317945941,
+        "name": "dependency-chaos",
+        "status": "completed",
+        "conclusion": "failure",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101317945941",
+        "started_at": "2026-09-05T13:59:26Z",
+        "completed_at": "2026-09-05T14:00:42Z",
+        "page": 1,
+        "non_success_steps": [
+          {
+            "number": 5,
+            "name": "Run dependency chaos gate",
+            "conclusion": "failure"
+          },
+          {
+            "number": 6,
+            "name": "Run actions/upload-artifact@v4",
+            "conclusion": "skipped"
+          },
+          {
+            "number": 11,
+            "name": "Post Set up Python",
+            "conclusion": "skipped"
+          }
+        ],
+        "classification": {
+          "kind": "underlying_failure"
+        }
+      },
+      {
+        "id": 101317945947,
+        "name": "arch-conformance",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101317945947",
+        "started_at": "2026-09-05T13:59:26Z",
+        "completed_at": "2026-09-05T14:00:51Z",
+        "page": 1,
+        "non_success_steps": [],
+        "classification": {
+          "kind": "success"
+        }
+      },
+      {
+        "id": 101317945955,
+        "name": "readiness-10",
+        "status": "completed",
+        "conclusion": "failure",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101317945955",
+        "started_at": "2026-09-05T13:59:26Z",
+        "completed_at": "2026-09-05T14:03:21Z",
+        "page": 1,
+        "non_success_steps": [
+          {
+            "number": 7,
+            "name": "Run readiness 10 gate",
+            "conclusion": "failure"
+          },
+          {
+            "number": 15,
+            "name": "Post Set up Python",
+            "conclusion": "skipped"
+          }
+        ],
+        "classification": {
+          "kind": "underlying_failure"
+        }
+      },
+      {
+        "id": 101317945960,
+        "name": "gate-engineering",
+        "status": "completed",
+        "conclusion": "failure",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101317945960",
+        "started_at": "2026-09-05T13:59:25Z",
+        "completed_at": "2026-09-05T14:02:10Z",
+        "page": 1,
+        "non_success_steps": [
+          {
+            "number": 9,
+            "name": "Generate gate-engineering evidence",
+            "conclusion": "failure"
+          },
+          {
+            "number": 10,
+            "name": "Validate release readiness report",
+            "conclusion": "skipped"
+          },
+          {
+            "number": 20,
+            "name": "Post Set up Node",
+            "conclusion": "skipped"
+          },
+          {
+            "number": 21,
+            "name": "Post Set up Python",
+            "conclusion": "skipped"
+          }
+        ],
+        "classification": {
+          "kind": "underlying_failure"
+        }
+      },
+      {
+        "id": 101317945973,
+        "name": "cross-domain-smoke",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101317945973",
+        "started_at": "2026-09-05T13:59:26Z",
+        "completed_at": "2026-09-05T14:00:26Z",
+        "page": 1,
+        "non_success_steps": [],
+        "classification": {
+          "kind": "success"
+        }
+      },
+      {
+        "id": 101317946011,
+        "name": "db-production-readiness-gate",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101317946011",
+        "started_at": "2026-09-05T13:59:26Z",
+        "completed_at": "2026-09-05T14:00:49Z",
+        "page": 1,
+        "non_success_steps": [],
+        "classification": {
+          "kind": "success"
+        }
+      },
+      {
+        "id": 101317946016,
+        "name": "agent-provenance",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101317946016",
+        "started_at": "2026-09-05T13:59:26Z",
+        "completed_at": "2026-09-05T14:00:32Z",
+        "page": 1,
+        "non_success_steps": [],
+        "classification": {
+          "kind": "success"
+        }
+      },
+      {
+        "id": 101317946028,
+        "name": "state-consistency",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101317946028",
+        "started_at": "2026-09-05T13:59:26Z",
+        "completed_at": "2026-09-05T14:00:32Z",
+        "page": 1,
+        "non_success_steps": [],
+        "classification": {
+          "kind": "success"
+        }
+      },
+      {
+        "id": 101317946036,
+        "name": "security-isolation",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101317946036",
+        "started_at": "2026-09-05T13:59:26Z",
+        "completed_at": "2026-09-05T14:03:51Z",
+        "page": 1,
+        "non_success_steps": [
+          {
+            "number": 8,
+            "name": "Enforce tenant boundary release tests",
+            "conclusion": "skipped"
+          },
+          {
+            "number": 9,
+            "name": "Enforce tenant-isolation bundle freshness for release-candidate",
+            "conclusion": "skipped"
+          }
+        ],
+        "classification": {
+          "kind": "success"
+        }
+      },
+      {
+        "id": 101318541446,
+        "name": "release-policy",
+        "status": "completed",
+        "conclusion": "failure",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101318541446",
+        "started_at": "2026-09-05T14:03:54Z",
+        "completed_at": "2026-09-05T14:10:51Z",
+        "page": 1,
+        "non_success_steps": [
+          {
+            "number": 12,
+            "name": "Run canonical release gate",
+            "conclusion": "failure"
+          },
+          {
+            "number": 13,
+            "name": "Sign release manifest",
+            "conclusion": "skipped"
+          },
+          {
+            "number": 14,
+            "name": "Validate canonical release artifacts",
+            "conclusion": "skipped"
+          },
+          {
+            "number": 15,
+            "name": "Run actions/upload-artifact@v4",
+            "conclusion": "skipped"
+          },
+          {
+            "number": 28,
+            "name": "Post Set up Python",
+            "conclusion": "skipped"
+          }
+        ],
+        "classification": {
+          "kind": "underlying_failure"
+        }
+      },
+      {
+        "id": 101319469294,
+        "name": "06-production-readiness",
+        "status": "completed",
+        "conclusion": "failure",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101319469294",
+        "started_at": "2026-09-05T14:10:53Z",
+        "completed_at": "2026-09-05T14:10:59Z",
+        "page": 1,
+        "non_success_steps": [
+          {
+            "number": 3,
+            "name": "Summarize production-readiness gates",
+            "conclusion": "failure"
+          }
+        ],
+        "classification": {
+          "kind": "aggregate",
+          "failing_step": "Summarize production-readiness gates"
+        }
+      },
+      {
+        "id": 101319469366,
+        "name": "prod-readiness",
+        "status": "completed",
+        "conclusion": "failure",
+        "html_url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317/job/101319469366",
+        "started_at": "2026-09-05T14:10:54Z",
+        "completed_at": "2026-09-05T14:11:02Z",
+        "page": 1,
+        "non_success_steps": [
+          {
+            "number": 3,
+            "name": "PR-fast summary",
+            "conclusion": "skipped"
+          },
+          {
+            "number": 4,
+            "name": "Download release artifacts",
+            "conclusion": "failure"
+          },
+          {
+            "number": 5,
+            "name": "Build PR summary",
+            "conclusion": "skipped"
+          },
+          {
+            "number": 6,
+            "name": "Assert machine-readable gate result exists",
+            "conclusion": "skipped"
+          },
+          {
+            "number": 7,
+            "name": "Publish summary",
+            "conclusion": "skipped"
+          }
+        ],
+        "classification": {
+          "kind": "aggregate_or_cascade",
+          "failing_step": "Download release artifacts",
+          "note": "likely cascade of missing child artifacts"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "anchor_sha": "4bb4e142c2ccbc56297de843e71534d956bb198f",
+  "captured_at": "2026-09-05T15:20:00Z",
+  "source": "GitHub Actions on push to main",
+  "passed": [
+    {
+      "name": "Security Gates",
+      "run": 33970450564,
+      "url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450564"
+    },
+    {
+      "name": "Zero Trust Validation",
+      "run": 33970450366
+    },
+    {
+      "name": "Critical Gates",
+      "run": 33970450305,
+      "notes": "all sampled critical-gate jobs success including tenant-isolation-hostile, openapi-drift, p0-auth-boundaries"
+    },
+    {
+      "name": "Contract Compliance",
+      "run": 33970450321
+    },
+    {
+      "name": "Supply Chain Integrity Gate",
+      "run": 33970450289
+    },
+    {
+      "name": "layer4-route-contract-matrix-check",
+      "run": 33970450365
+    },
+    {
+      "name": "Visual Regression",
+      "run": 33970450292
+    },
+    {
+      "name": "Bundle Analysis",
+      "run": 33970450324
+    }
+  ],
+  "failed": [
+    {
+      "name": "PR Checks",
+      "run": 33970450342,
+      "url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450342",
+      "failed_jobs": [
+        "Runtime Contract Tests (Services Up)",
+        "Integration Tests (Docker)",
+        "p0-e2e-gate",
+        "Docker Image Build Verification (frontend)",
+        "Unified Readiness Gate",
+        "02-code-quality-and-tests"
+      ]
+    },
+    {
+      "name": "Prod Readiness Gates",
+      "run": 33970450317,
+      "url": "https://github.com/Valynt/Fabric_4L/actions/runs/33970450317",
+      "failed_jobs": [
+        "dependency-chaos",
+        "readiness-10",
+        "gate-engineering",
+        "release-policy",
+        "06-production-readiness",
+        "prod-readiness"
+      ]
+    },
+    {
+      "name": "Certify Release Candidate",
+      "run": 33970450296
+    },
+    {
+      "name": "Build and Deploy",
+      "run": 33970450291,
+      "failed_jobs": [
+        "Build Images (layer1-ingestion)"
+      ]
+    },
+    {
+      "name": "Release Evidence Bundle",
+      "run": 33970450297
+    }
+  ],
+  "classification": {
+    "repository_owned_static_gates": "mostly_green (Critical Gates, Security, Contract, Supply Chain, Zero Trust)",
+    "test_suite_and_readiness": "RED on anchor SHA",
+    "environment_dependent_jobs": [
+      "Integration Tests (Docker)",
+      "Runtime Contract Tests (Services Up)",
+      "p0-e2e-gate",
+      "Docker Image Build Verification (frontend)"
+    ],
+    "unclassified_red": [
+      "02-code-quality-and-tests",
+      "prod-readiness / release-policy / gate-engineering"
+    ]
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "policy_id": "ac20-node-budget",
+  "version": "1.1.0-proposed",
+  "status": "proposed_not_in_force",
+  "in_force_when": "operator_explicitly_approves_this_file_or_a_superseding_version_in_a_GATE-1_APPROVE_bound_to_freeze_sha_and_reviewed_evidence_sha",
+  "supersedes": "1.0.0-proposed",
+  "replaces": "use pipeline defaults",
+  "pipeline_id": "autonomous-completion-final-20",
+  "reconciles_with": "pipeline.spec.json steps step_2.constraints.budgets and step_4.controls.diff_size_trigger",
+  "created_at": "2026-09-05T18:40:00Z",
+  "notes": [
+    "v1.0.0-proposed mixed a hard overrun rule with a generated-files soft cap and did not define additions+deletions or a comparison SHA. That is withdrawn.",
+    "This file is not product intent. Approving it is a GATE-1 human choice.",
+    "Owners are CODEOWNERS teams, not invented individuals."
+  ],
+  "comparison_sha": {
+    "name": "freeze_sha",
+    "value_for_this_packet": "4bb4e142c2ccbc56297de843e71534d956bb198f",
+    "rule": "Every node loc_delta and files_touched is computed against the freeze SHA named in the bound GATE-1 APPROVE. After a prior node merges, the comparison remains freeze_sha...node_HEAD so earlier in-scope nodes are included in later diffs only if those paths are re-touched. Per-node accounting uses git diff freeze_sha...node_HEAD restricted to node.owned_files.",
+    "command": "git diff --numstat --find-renames <freeze_sha>...HEAD -- <owned_files>"
+  },
+  "counting": {
+    "loc_delta": {
+      "definition": "additions_plus_deletions",
+      "formula": "sum(additions) + sum(deletions) from git --numstat for owned paths",
+      "not": ["net_lines", "handwritten_only", "additions_minus_deletions"],
+      "includes": "every line Git counts as added or deleted, including tests, docs, generated output, lockfiles, and OpenAPI"
+    },
+    "files_touched": {
+      "definition": "unique paths in the node diff",
+      "rename_equals": "one_file_if_git_detects_rename_else_two",
+      "includes": "generated paths, lockfiles, docs"
+    }
+  },
+  "generated_output_verification": {
+    "required": true,
+    "rule": "If a node writes generated paths, the node must list them in node.generated_outputs, name the generator command, and re-run that command in the node worktree. git diff --exit-code on those paths must be clean after regeneration.",
+    "generated_still_counts": true,
+    "forbidden": [
+      "exclude_generated_from_loc_to_stay_under_cap",
+      "exclude_generated_from_files_to_stay_under_cap",
+      "commit_generated_output_that_does_not_reproduce"
+    ]
+  },
+  "enforcement": {
+    "both_limits_are_hard": true,
+    "same_rule_everywhere": [
+      "pipeline.spec.json step_2.constraints.budgets",
+      "pipeline.spec.json step_2.failure_path",
+      "pipeline.spec.json step_4.controls.diff_size_trigger",
+      "this file",
+      "GATE-2"
+    ],
+    "overrun_if": "loc_delta > node.budget.max_loc OR files_touched > node.budget.max_files OR aggregate_loc_delta > aggregate.max_loc OR aggregate_files_touched > aggregate.max_files OR generated_output_verification_failed",
+    "on_overrun": {
+      "action": "halt_node_and_flag_GATE-2",
+      "forbidden": [
+        "force_completion",
+        "raise_budget_without_human",
+        "split_secretly_after_the_fact",
+        "halt_node_and_redecompose_without_GATE-2",
+        "exclude_generated_to_evade"
+      ]
+    }
+  },
+  "aggregate": {
+    "applies_to": "all in-scope AC-20 DAG nodes combined, vs freeze_sha",
+    "max_loc": 2500,
+    "max_files": 80,
+    "excludes": [".fabric/pipelines/autonomous-completion-final-20/**"],
+    "note": "The evidence-packet tree is excluded only while GATE-1 is unsigned. Aggregate numbers are proposed and do not authorize scope."
+  },
+  "default_profile": "service-feature",
+  "profiles": {
+    "service-feature": { "max_loc": 400, "max_files": 12, "use_when": "one service behavior change with tests" },
+    "security-narrow": { "max_loc": 250, "max_files": 8, "use_when": "tenant isolation, authz, or export-path hardening" },
+    "frontend-slice": { "max_loc": 500, "max_files": 15, "use_when": "one Value Studio / web slice behind an existing seam" },
+    "contract-metadata": { "max_loc": 200, "max_files": 40, "use_when": "additive schemas/registries; generated OpenAPI still counts and must verify" },
+    "toolchain": { "max_loc": 300, "max_files": 25, "use_when": "pin/lock/CI surface alignment (fan-out expected)" },
+    "test-debt": { "max_loc": 350, "max_files": 10, "use_when": "closing skips/xfails without product behavior change" },
+    "evidence-docs": { "max_loc": 800, "max_files": 25, "use_when": "pipeline evidence tree only; this PR class; outside AC-20 aggregate" },
+    "ops-manifest": { "max_loc": 300, "max_files": 15, "use_when": "ArgoCD/WAL-G/OTel manifests without app feature work" }
+  },
+  "owner_directory": {
+    "source": "CODEOWNERS + .github/CODEOWNERS",
+    "fallback": "@value-fabric/maintainers",
+    "teams": {
+      "L1": ["@value-fabric/backend-leads", "@value-fabric/data-engineering"],
+      "L2": ["@value-fabric/backend-leads", "@value-fabric/ai-ml-leads"],
+      "L3": ["@value-fabric/backend-leads", "@value-fabric/graph-specialists"],
+      "L4": ["@value-fabric/backend-leads", "@value-fabric/agent-team"],
+      "L5": ["@value-fabric/backend-leads", "@value-fabric/data-engineering"],
+      "L6": ["@value-fabric/backend-leads", "@value-fabric/qa-leads"],
+      "gateway": ["@value-fabric/backend-leads", "@value-fabric/security-leads"],
+      "web": ["@value-fabric/frontend-leads", "@value-fabric/ux-designers"],
+      "contracts": ["@value-fabric/architects", "@value-fabric/backend-leads"],
+      "infra": ["@value-fabric/sre-leads", "@value-fabric/infrastructure-leads"],
+      "security": ["@value-fabric/security-leads", "@value-fabric/ciso"],
+      "ci": ["@value-fabric/sre-leads", "@value-fabric/maintainers"],
+      "platform-architecture": ["@value-fabric/architects"]
+    }
+  },
+  "gate_2": {
+    "gate_id": "GATE-2",
+    "blocking": true,
+    "trigger": "the overrun_if predicate in this file",
+    "human_may": ["raise_budget_once_in_writing", "split_node", "drop_scope"],
+    "agent_may_not": ["self_raise_budget", "redecompose_without_GATE-2"]
+  }
+}

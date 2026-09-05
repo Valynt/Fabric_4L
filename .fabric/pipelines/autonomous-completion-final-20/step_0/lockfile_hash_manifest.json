@@ -1,0 +1,97 @@
+{
+  "generated_at": "2026-09-05T15:20:00Z",
+  "anchor_git_sha": "4bb4e142c2ccbc56297de843e71534d956bb198f",
+  "algorithm": "sha256",
+  "files": [
+    {
+      "path": "apps/web/pnpm-lock.yaml",
+      "sha256": "84049fe68a89379e93364f4f57db0e2d2358dbcd803d1a26504030211c74bbb7",
+      "bytes": 499808
+    },
+    {
+      "path": "docs/archive/frontend-root-2026-05-02/source-snapshot/pnpm-lock.yaml",
+      "sha256": "f0d4bbb48abefb082a1322ed51122e8a810d83a48a9d4637a4c9e6ecb8797597",
+      "bytes": 334838
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "6be2262f3a73ece0f324b3e47e2e64d72c812b3556bf41a37818f60e585df310",
+      "bytes": 492428
+    },
+    {
+      "path": "services/api/uv.lock",
+      "sha256": "ec154057ab52c5252a28f5bb259fd25befd9e83eabedd37e8d1f031cad525168",
+      "bytes": 383303
+    },
+    {
+      "path": "services/layer1-ingestion/requirements.lock",
+      "sha256": "355120d888354b850e2ac45ac0486421796928b1d6bf6d1849967e6e19c93d82",
+      "bytes": 559
+    },
+    {
+      "path": "services/layer1-ingestion/uv.lock",
+      "sha256": "d74565f2e4b28c9fa026b25f70c3d5a3eedf5cebe1331486ddedef9d81af45df",
+      "bytes": 714922
+    },
+    {
+      "path": "services/layer2-extraction/requirements.lock",
+      "sha256": "dc290342f7734e8b817d96c504b2e272a21a73c427da58cf4270a196117d8607",
+      "bytes": 132947
+    },
+    {
+      "path": "services/layer2-extraction/uv.lock",
+      "sha256": "1daf6e201cb59403a544a77ded4bb244f4938a690366712d3150698db23e3e00",
+      "bytes": 613022
+    },
+    {
+      "path": "services/layer2-5-signal-refinery/uv.lock",
+      "sha256": "c4beffb7cf59047ae6a60b60a0fb571867294243503fc00df750f8c964572a42",
+      "bytes": 352117
+    },
+    {
+      "path": "services/layer3-knowledge/requirements.lock",
+      "sha256": "ef92baf99682b31e7a2bcde88ad62c50e9cddf88198654cd8ad80553a682b74b",
+      "bytes": 142788
+    },
+    {
+      "path": "services/layer3-knowledge/uv.lock",
+      "sha256": "23d8f1c4091500a44bbda0102b554ba77be85375c9d733abd85c140d98704ea3",
+      "bytes": 640760
+    },
+    {
+      "path": "services/layer4-agents/requirements.lock",
+      "sha256": "93e935d2fa8eafbe97c9ba4f1f00e749530778308cac8e882095d910c7af3b8a",
+      "bytes": 330
+    },
+    {
+      "path": "services/layer4-agents/uv.lock",
+      "sha256": "ed75c793f93a3f51fc6e5f27787dde710a54c8fb7bdcf7fe797f92c8742dc812",
+      "bytes": 1062451
+    },
+    {
+      "path": "services/layer5-ground-truth/requirements.lock",
+      "sha256": "cdb81739b10088f8f78d693cb0880bcd51c15b9d7bd0e1bfc64e2ae35f83013a",
+      "bytes": 336
+    },
+    {
+      "path": "services/layer5-ground-truth/uv.lock",
+      "sha256": "17dec3eefd264eac6b916a1d43bbf78d46f5dd5589d7e1f10f1e619c904b8dd5",
+      "bytes": 420107
+    },
+    {
+      "path": "services/layer6-benchmarks/requirements.lock",
+      "sha256": "3b334489145f1225f15d7c8ba70acc6937b2383fe63393d9ca0ee30e5e5f2963",
+      "bytes": 67670
+    },
+    {
+      "path": "services/layer6-benchmarks/uv.lock",
+      "sha256": "3b7555a7e1ae94629dba34ba9d9a2bf4af5d74eae4bb23eac943b4a67bac3496",
+      "bytes": 363407
+    },
+    {
+      "path": "skills-lock.json",
+      "sha256": "56351ed3058af29556b524bafa73bd78748b54fd285428d24976b8e63f68a838",
+      "bytes": 4336
+    }
+  ]
+}
