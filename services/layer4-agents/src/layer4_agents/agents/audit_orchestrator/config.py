@@ -274,9 +274,16 @@ class ConfigManager:
         # 1. Start with empty dict (Pydantic defaults will fill in)
         merged: dict[str, Any] = {}
 
-        # 2. Apply YAML config (canonical path, then legacy fallback)
+        # 2. Apply YAML config (canonical path, then legacy fallback).
+        # The legacy fallback only applies when the caller used the canonical
+        # default path; a deliberately-supplied custom path that is absent
+        # should yield defaults, not silently import the legacy file.
         yaml_data = _try_load_yaml(self.yaml_path)
-        if yaml_data is None and not self.yaml_path.exists():
+        if (
+            yaml_data is None
+            and not self.yaml_path.exists()
+            and self.yaml_path == Path(DEFAULT_YAML_PATH)
+        ):
             yaml_data = _try_load_yaml(LEGACY_YAML_PATH)
         if yaml_data:
             merged = self._deep_merge(merged, yaml_data)

@@ -4,7 +4,7 @@ metadata:
   name: deploy-checklist
   version: '2026-01-01'
   description: Run this checklist before any deploy. The production deploy itself
-    is
+    is gated by a human approval step enforced in `protocols/permissions.md`.
   category: operations
 compatibleAgents:
 - claude-code

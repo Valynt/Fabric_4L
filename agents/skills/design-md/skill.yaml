@@ -4,7 +4,7 @@ metadata:
   name: design-md
   version: '2026-04-26'
   description: Use this skill when a task touches Google Stitch's `DESIGN.md` format
-    or
+    or the project explicitly references its design system / design tokens.
   category: design
 compatibleAgents:
 - claude-code
