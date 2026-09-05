@@ -17,11 +17,13 @@ impact summary, model patch card, branch comparison, Review Required decision
 rail, intent preview, edit-decision form, evidence drawer, mission activity
 feed, Steer Flo panel — across the ten named states in §4.
 
-**Canonical route:** `/t/:tenantSlug/accounts/:accountId/studio/mission`
-(DEC-FE-001). Value Studio is account-scoped, so the page lives under the
-canonical tenant/account prefix like every other workspace route; the shell
-redirect `/studio → /studio/action-plan` is untouched, and `mission` is
-registered as an explicit route ahead of the `studio/:tabId` catch-all.
+**Canonical route:** `/t/:tenantSlug/accounts/:accountId/studio/mission`,
+served by the `studio/:tabId` catch-all with `mission` registered as a
+StudioShell tab (DEC-FE-001, revised). Value Studio is account-scoped, so the
+page lives under the canonical tenant/account prefix like every other
+workspace route; the shell redirect `/studio → /studio/action-plan` is
+untouched, and StudioShell remains the single source of chrome — Mission does
+not register a separate route or a second chrome.
 
 **Out of scope (Slice 2+):** see §2, "Deliberately unresolved".
 
@@ -29,7 +31,7 @@ registered as an explicit route ahead of the `studio/:tabId` catch-all.
 
 | ID | Decision | Rationale | Status |
 | --- | --- | --- | --- |
-| DEC-FE-001 | Canonical route is `/t/:tenantSlug/accounts/:accountId/studio/mission`, registered explicitly ahead of `studio/:tabId` | Account-scoped workspace convention; explicit registration avoids ambiguity with the tab catch-all and keeps the route inventory gate honest | Closed |
+| DEC-FE-001 | Mission renders inside StudioShell as a registry tab under `/t/:tenantSlug/accounts/:accountId/studio/:tabId` (`mission`), prototype-gated in prod and dev-default-on; disabled environments show an explicit "not available" state instead of a silent tab fallback | Account-scoped workspace convention; StudioShell is the single source of chrome (single-chrome rule), so no separate route or second chrome is registered. Revised from the Slice-1 explicit-route approach per PR review | Closed (revised) |
 | DEC-FE-002 | Strict projection/view-model boundary: the FE never derives or overwrites projection values; `viewModel.ts` only formats and maps enums | The projection payload is authoritative (FE-DATA-001); missing economics map to explicit copy ("Pending", "Not yet calculable"), never zero (FE-IMP-002/003/004) | Closed |
 | DEC-FE-003 | Fixture strategy: hand-authored deterministic fixtures behind one exported clock (`FIXTURE_NOW`) and reference ids; no `Date.now`/`Math.random`/model-generated content | Reproducible state matrix for §8.1; reviewable diffs; contract hygiene gates forbid nondeterminism in feature code | Closed (removed with the Phase-2 backend adapter) |
 | DEC-FE-004 | Single adapter seam (`adapter.ts`): components consume `ValueStudioViewState` produced by `FixtureValueStudioAdapter` behind `ValueStudioProjectionAdapter`; TanStack Query hook owns caching, never truth | Phase 2 swaps the adapter for the backend projection endpoint without touching component props or view states | Closed |

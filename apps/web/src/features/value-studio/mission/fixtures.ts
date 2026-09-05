@@ -278,7 +278,6 @@ export function makeEvidenceReferences(): readonly EvidenceReference[] {
       evidenceId: "EV-1003",
       sourceType: "Finance workbook",
       sourceTitle: "Downtime cost basis workbook",
-      excerpt: "",
       capturedAt: EVIDENCE_CAPTURED.financeWorkbook,
       traceabilityState: "Partially traced",
       validationState: "Pending finance validation",

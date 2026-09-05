@@ -234,20 +234,33 @@ export type DecisionStatus =
   | "STALE"
   | "CANCELLED";
 
-export interface EvidenceReference {
+export interface UnrestrictedEvidenceReference {
   readonly evidenceId: EvidenceId;
   readonly sourceType: string;
   readonly sourceTitle: string;
-  /** Safe summary or excerpt — never raw tenant-sensitive source content. */
-  readonly excerpt: string;
   readonly capturedAt: IsoDateTime;
   readonly traceabilityState: string;
   readonly validationState: string;
   readonly approvalState: string;
   readonly affectedObjectIds: readonly string[];
-  /** Present only when the backend authorizes rendering the excerpt. */
-  readonly restricted: boolean;
+  readonly restricted: false;
+  /** Safe summary or excerpt — never raw tenant-sensitive source content. */
+  readonly excerpt: string;
 }
+
+export interface RestrictedEvidenceReference {
+  readonly evidenceId: EvidenceId;
+  readonly sourceType: string;
+  readonly sourceTitle: string;
+  readonly capturedAt: IsoDateTime;
+  readonly traceabilityState: string;
+  readonly validationState: string;
+  readonly approvalState: string;
+  readonly affectedObjectIds: readonly string[];
+  readonly restricted: true;
+}
+
+export type EvidenceReference = UnrestrictedEvidenceReference | RestrictedEvidenceReference;
 
 export interface DecisionRequestProjection {
   readonly decisionId: DecisionId;
@@ -349,6 +362,30 @@ export interface DecisionIntentPreviewContent {
   readonly commandType: "working_target.accept" | "decision.edit" | "decision.defer";
   readonly expectedModelVersion: string;
   readonly expectedDecisionVersion: number;
+  readonly decisionId: DecisionId;
+  readonly payload:
+    | {
+        readonly kind: "accept";
+        readonly workingValue: number;
+        readonly workingUnit: string;
+        readonly alternativeValue: number;
+        readonly alternativeUnit: string;
+      }
+    | {
+        readonly kind: "edit";
+        readonly workingValue: number;
+        readonly workingUnit: string;
+        readonly alternativeValue?: number;
+        readonly alternativeUnit?: string;
+        readonly alternativeScope?: string;
+        readonly rationale: string;
+      }
+    | {
+        readonly kind: "defer";
+        readonly ownerDisplayName: string;
+        readonly dueAt: string;
+        readonly reason: string;
+      };
 }
 
 // ── Composite page projection ────────────────────────────────────────────────

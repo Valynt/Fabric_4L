@@ -8,10 +8,8 @@
 
 import type { DecisionIntentPreviewContent, DecisionRequestProjection } from "./types";
 
-/** Static policy limits for the DISP-01 accept command (contract §9.9). */
 const ACCEPT_WILL_NOT: readonly string[] = [
-  "approve 12,000 USD/hour;",
-  "approve program cost;",
+  "approve a program cost;",
   "calculate ROI if cost is unavailable;",
   "publish a deliverable;",
   "clear unrelated blockers.",
@@ -26,6 +24,14 @@ export function buildAcceptRecommendationPreview(
     commandType: "working_target.accept",
     expectedModelVersion: decision.modelVersion,
     expectedDecisionVersion: decision.decisionVersion,
+    decisionId: decision.decisionId,
+    payload: {
+      kind: "accept",
+      workingValue: decision.currentWorkingValue.value,
+      workingUnit: decision.currentWorkingValue.unit,
+      alternativeValue: decision.alternative.value,
+      alternativeUnit: decision.alternative.unit,
+    },
     will: [
       `set the working downtime target to ${working};`,
       `retain ${alternative} as an upside scenario;`,
@@ -47,17 +53,27 @@ export function buildEditDecisionPreview(
   decision: DecisionRequestProjection,
   draft: EditDecisionDraft,
 ): DecisionIntentPreviewContent {
-  const unit = decision.currentWorkingValue.unit;
-  const will: string[] = [`set the working downtime target to ${draft.workingHours} ${unit};`];
+  const workingUnit = decision.currentWorkingValue.unit;
+  const will: string[] = [`set the working downtime target to ${draft.workingHours} ${workingUnit};`];
   if (typeof draft.alternativeHours === "number") {
     const scope = draft.alternativeScope ?? decision.alternative.proposedScope;
-    will.push(`set the alternative to ${draft.alternativeHours} ${unit} (${scope});`);
+    will.push(`set the alternative to ${draft.alternativeHours} ${decision.alternative.unit} (${scope});`);
   }
   will.push("record the supplied rationale on the decision;", "request deterministic recalculation;");
   return {
     commandType: "decision.edit",
     expectedModelVersion: decision.modelVersion,
     expectedDecisionVersion: decision.decisionVersion,
+    decisionId: decision.decisionId,
+    payload: {
+      kind: "edit",
+      workingValue: draft.workingHours,
+      workingUnit,
+      alternativeValue: draft.alternativeHours,
+      alternativeUnit: typeof draft.alternativeHours === "number" ? decision.alternative.unit : undefined,
+      alternativeScope: draft.alternativeScope ?? decision.alternative.proposedScope,
+      rationale: draft.rationale,
+    },
     will,
     willNot: ACCEPT_WILL_NOT,
   };
@@ -71,9 +87,17 @@ export function buildDeferDecisionPreview(
     commandType: "decision.defer",
     expectedModelVersion: decision.modelVersion,
     expectedDecisionVersion: decision.decisionVersion,
+    decisionId: decision.decisionId,
+    payload: {
+      kind: "defer",
+      ownerDisplayName: input.ownerDisplayName,
+      dueAt: input.dueAt,
+      reason: input.reason,
+    },
     will: [
       `defer ${decision.decisionId} to ${input.ownerDisplayName} until ${input.dueAt};`,
       "pause dependent artifact regeneration until the due date;",
+      `record the defer reason: ${input.reason};`,
     ],
     willNot: [
       "change the working downtime target;",

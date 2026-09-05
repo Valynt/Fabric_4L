@@ -67,6 +67,15 @@ export const LENS_DISPLAY: Record<AudienceLens, string> = {
   qbr: "QBR",
 };
 
+export const LENS_DISCLOSURE: Record<AudienceLens, string> = {
+  canonical: "Full case context and governed economics",
+  champion: "Outcome narrative and operational proof",
+  cfo: "Economic impact, governance, and approval blockers",
+  technical: "Assumptions, evidence lineage, and model changes",
+  executive: "Decision status, value at stake, and next action",
+  qbr: "Progress, realized value, and open commitments",
+};
+
 export const JOURNEY_STAGE_DISPLAY: Record<JourneyStageId, string> = {
   scope: "Scope",
   discover: "Discover",

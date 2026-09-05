@@ -181,7 +181,7 @@ describe("blocked — the §1.4 reference economic state", () => {
     expect(evidence.map((e) => e.evidenceId)).toEqual(["EV-1001", "EV-1002", "EV-1003"]);
     const restricted = evidence.find((e) => e.evidenceId === "EV-1003");
     expect(restricted?.restricted).toBe(true);
-    expect(restricted?.excerpt).toBe("");
+    expect("excerpt" in restricted).toBe(false);
   });
 });
 

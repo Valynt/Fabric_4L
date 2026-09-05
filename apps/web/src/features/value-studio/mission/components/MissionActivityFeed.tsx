@@ -1,7 +1,7 @@
 /**
  * Value Studio (mission-led) — mission activity feed (contract §9.12, FE-ACT-*).
  *
- * Chronological, tamper-evident event list: deterministic ordering with
+ * Chronological event list: deterministic ordering with
  * dedupe by eventId (FE-ACT-007), expandable rows (aria-expanded/controls)
  * revealing correlation ID and affected objects, and an Undo control ONLY
  * when the event's backend allowedActions authorizes `activity.undo`
@@ -38,12 +38,6 @@ const STATUS_CLASSES: Record<MissionActivityStatus, string> = {
   WAITING: "bg-warning/10 text-warning",
   FAILED: "bg-destructive/10 text-destructive",
   RETRIED: "bg-warning/10 text-warning",
-};
-
-const ACTOR_LABEL: Record<MissionActivityEvent["actorType"], string> = {
-  HUMAN: "You",
-  AGENT: "Flo",
-  SYSTEM: "System",
 };
 
 export function MissionActivityFeed({
@@ -108,7 +102,7 @@ export function MissionActivityFeed({
                     </span>
                   </span>
                   <span className="vf-text-caption text-muted-foreground">
-                    {ACTOR_LABEL[event.actorType]} ·{" "}
+                    {event.actorDisplayName} ·{" "}
                     <time dateTime={event.occurredAt}>{formatDate(event.occurredAt)}</time>
                   </span>
                 </span>

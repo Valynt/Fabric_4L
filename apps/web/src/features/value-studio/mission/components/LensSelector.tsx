@@ -15,9 +15,10 @@ import { LENS_DISPLAY } from "../viewModel";
 export interface LensSelectorProps {
   readonly activeLens: AudienceLens;
   readonly onSelect: (lens: AudienceLens) => void;
+  readonly disabled?: boolean;
 }
 
-export function LensSelector({ activeLens, onSelect }: LensSelectorProps) {
+export function LensSelector({ activeLens, onSelect, disabled = false }: LensSelectorProps) {
   return (
     <div role="group" aria-label="Audience lens" className="flex flex-wrap items-center gap-1">
       {AUDIENCE_LENSES.map((lens) => {
@@ -27,6 +28,7 @@ export function LensSelector({ activeLens, onSelect }: LensSelectorProps) {
             key={lens}
             type="button"
             aria-pressed={active}
+            disabled={disabled}
             onClick={() => onSelect(lens)}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 vf-text-body-s font-medium",

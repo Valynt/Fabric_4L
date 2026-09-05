@@ -22,6 +22,14 @@ describe("buildAcceptRecommendationPreview", () => {
     expect(preview.commandType).toBe("working_target.accept");
     expect(preview.expectedModelVersion).toBe("VM-12");
     expect(preview.expectedDecisionVersion).toBe(3);
+    expect(preview.decisionId).toBe(decision.decisionId);
+    expect(preview.payload).toEqual({
+      kind: "accept",
+      workingValue: 340,
+      workingUnit: "hours/year",
+      alternativeValue: 280,
+      alternativeUnit: "hours/year",
+    });
     expect(preview.will).toEqual([
       "set the working downtime target to 340 hours/year;",
       "retain 280 hours/year as an upside scenario;",
@@ -29,8 +37,7 @@ describe("buildAcceptRecommendationPreview", () => {
       "resume MISSION-204 from its waiting checkpoint.",
     ]);
     expect(preview.willNot).toEqual([
-      "approve 12,000 USD/hour;",
-      "approve program cost;",
+      "approve a program cost;",
       "calculate ROI if cost is unavailable;",
       "publish a deliverable;",
       "clear unrelated blockers.",
@@ -99,11 +106,11 @@ describe("buildDeferDecisionPreview", () => {
     expect(preview.will).toEqual([
       "defer DISP-01 to R. Chen until 2026-09-01;",
       "pause dependent artifact regeneration until the due date;",
+      "record the defer reason: Waiting on the finance workbook.;",
     ]);
     expect(preview.willNot).toEqual([
       "change the working downtime target;",
-      "approve 12,000 USD/hour;",
-      "approve program cost;",
+      "approve a program cost;",
       "calculate ROI if cost is unavailable;",
       "publish a deliverable;",
       "clear unrelated blockers.",

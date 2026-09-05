@@ -2,8 +2,9 @@
  * Value Studio (mission-led) — Slice 1 page composition (contract
  * FE-VOS-STUDIO-001 §9, §10).
  *
- * Canonical route: /t/:tenantSlug/accounts/:accountId/studio/mission
- * (DEC-FE-001, closed).
+ * Rendered inside StudioShell as the registry-backed `mission` tab of
+ * /t/:tenantSlug/accounts/:accountId/studio/:tabId (DEC-FE-001, revised —
+ * StudioShell is the single source of chrome).
  *
  * The page renders ONE typed, versioned case projection and cannot fabricate
  * economic truth, mission activity, authorization, or workflow completion.
@@ -47,6 +48,7 @@ import type {
 } from "./types";
 import { OpportunityHeader } from "./components/OpportunityHeader";
 import { LensSelector } from "./components/LensSelector";
+import { LENS_DISCLOSURE } from "./viewModel";
 import { JourneyStatus } from "./components/JourneyStatus";
 import { MissionStrip } from "./components/MissionStrip";
 import { SteerFloTrigger } from "./components/SteerFloTrigger";
@@ -87,7 +89,11 @@ export default function ValueStudioPage() {
   const lensParam = parseLensParam(searchParams.get(VALUE_STUDIO_QUERY_KEYS.lens));
   const decisionDeepLink = parseDecisionParam(searchParams.get(VALUE_STUDIO_QUERY_KEYS.decision));
 
-  const { view, isLoading, refetch } = useValueStudioProjection(tenantSlug, accountId, fixtureName);
+  const { view, isLoading, error, refetch } = useValueStudioProjection(
+    tenantSlug,
+    accountId,
+    fixtureName,
+  );
 
   // ── Local presentation state (never domain state) ──────────────────────────
   const [preview, setPreview] = useState<DecisionIntentPreviewContent | null>(null);
@@ -98,7 +104,17 @@ export default function ValueStudioPage() {
   const [railClosed, setRailClosed] = useState(false);
   const [commandNotice, setCommandNotice] = useState<string | null>(null);
 
-  const projectionKey = `${tenantSlug}/${accountId}/${fixtureName ?? "default"}`;
+  const projectionIdentity =
+    view && view.kind !== "loading" && view.kind !== "error" && view.kind !== "unauthorized"
+      ? [
+          view.projection.projectionVersion,
+          view.projection.etag,
+          view.projection.decision?.decisionId ?? "no-decision",
+          view.projection.decision?.decisionVersion ?? "no-version",
+          view.projection.decision?.modelVersion ?? "no-model",
+        ].join("/")
+      : "unresolved";
+  const projectionKey = `${tenantSlug}/${accountId}/${fixtureName ?? "default"}/${projectionIdentity}`;
 
   // Reset presentation state when a different projection is addressed.
   useEffect(() => {
@@ -153,11 +169,21 @@ export default function ValueStudioPage() {
 
   // ── State machine (contract §10): first match wins ─────────────────────────
 
-  if (isLoading || !view || view.kind === "loading") {
+  if (isLoading || (!view && !error) || view?.kind === "loading") {
     return <ValueStudioSkeletons />;
   }
 
-  if (view.kind === "error") {
+  if (error) {
+    return (
+      <InlineError
+        message={error.message}
+        correlationId={error.correlationId}
+        onRetry={error.retryable ? refetch : undefined}
+      />
+    );
+  }
+
+  if (view?.kind === "error") {
     return (
       <InlineError
         message={view.message}
@@ -165,6 +191,12 @@ export default function ValueStudioPage() {
         onRetry={view.retryable ? refetch : undefined}
       />
     );
+  }
+
+  // No error and no projection yet — keep showing skeletons until the
+  // adapter resolves (keeps `view` narrowed for the remaining states).
+  if (!view) {
+    return <ValueStudioSkeletons />;
   }
 
   if (view.kind === "unauthorized") {
@@ -367,6 +399,11 @@ function PageBody({
           <LensSelector activeLens={activeLens} onSelect={onSelectLens} />
         </div>
       </div>
+
+      {/* FE-VOS-STUDIO-001: each lens discloses what it emphasizes. */}
+      <p data-testid="lens-disclosure" className="vf-text-caption text-muted-foreground">
+        Viewing as {LENS_DISCLOSURE[activeLens]}
+      </p>
 
       {/* Slice 1 renders fixture-backed demo data only; the badge must stay
           visible so nobody mistakes it for live account data. */}

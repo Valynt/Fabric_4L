@@ -9,7 +9,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { fixtureValueStudioAdapter } from "./adapter";
+import { fixtureValueStudioAdapter, type ValueStudioProjectionAdapter } from "./adapter";
 import type { ValueStudioViewState } from "./types";
 
 export const VALUE_STUDIO_QUERY_KEY = "value-studio-mission-projection";
@@ -25,18 +25,36 @@ export function valueStudioProjectionKey(
 export interface UseValueStudioProjectionResult {
   readonly view: ValueStudioViewState | undefined;
   readonly isLoading: boolean;
+  readonly error: Extract<ValueStudioViewState, { kind: "error" }> | null;
   readonly refetch: () => void;
+}
+
+function normalizeProjectionError(error: unknown): Extract<ValueStudioViewState, { kind: "error" }> {
+  const candidate = error as { correlationId?: unknown; retryable?: unknown; message?: unknown };
+  return {
+    kind: "error",
+    message:
+      typeof candidate.message === "string" && candidate.message.length > 0
+        ? candidate.message
+        : "The value case could not be loaded.",
+    correlationId:
+      typeof candidate.correlationId === "string" && candidate.correlationId.length > 0
+        ? candidate.correlationId
+        : "corr_value_studio_projection_error",
+    retryable: candidate.retryable !== false,
+  };
 }
 
 export function useValueStudioProjection(
   tenantSlug: string,
   accountId: string,
   fixtureName: string | null,
+  adapter: ValueStudioProjectionAdapter = fixtureValueStudioAdapter,
 ): UseValueStudioProjectionResult {
   const query = useQuery({
     queryKey: valueStudioProjectionKey(tenantSlug, accountId, fixtureName),
     queryFn: () =>
-      fixtureValueStudioAdapter.getProjection({ tenantSlug, accountId, fixtureName }),
+      adapter.getProjection({ tenantSlug, accountId, fixtureName }),
     // Fixture data is static; no polling in Phase 1. The backend adapter owns
     // refetch policy (contract §10.2) when it lands.
     staleTime: Infinity,
@@ -46,12 +64,9 @@ export function useValueStudioProjection(
   return {
     view: query.data,
     isLoading: query.isLoading,
+    error: query.error ? normalizeProjectionError(query.error) : null,
     refetch: () => {
-      // TanStack Query resolves refetch with an error result rather than
-      // rejecting; the catch satisfies the async-boundary audit contract.
-      void query.refetch().catch(() => {
-        /* failure surfaces through query state */
-      });
+      void query.refetch();
     },
   };
 }

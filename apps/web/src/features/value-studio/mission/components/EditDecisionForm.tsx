@@ -9,7 +9,7 @@
  * draft; the command backend lands in Phase 2.
  */
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FabricDialog } from "@/components/ui/fabric/FabricDialog";
@@ -50,6 +50,7 @@ export function EditDecisionForm({
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<EditDecisionFormValues>({
     resolver: zodResolver(schema),
@@ -62,6 +63,23 @@ export function EditDecisionForm({
       rationale: initialDraft?.rationale ?? "",
     },
   });
+
+  useEffect(() => {
+    reset({
+      workingHours: initialDraft?.workingHours ?? recommendedWorking,
+      alternativeHours: initialDraft?.alternativeHours ?? recommendedAlt,
+      alternativeScope: initialDraft?.alternativeScope ?? decision.alternative.proposedScope,
+      rationale: initialDraft?.rationale ?? "",
+    });
+  }, [
+    decision.decisionId,
+    decision.decisionVersion,
+    decision.modelVersion,
+    initialDraft,
+    recommendedAlt,
+    recommendedWorking,
+    reset,
+  ]);
 
   const submit = handleSubmit((values) => {
     onSubmitDraft({
