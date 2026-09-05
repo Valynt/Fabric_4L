@@ -1,9 +1,9 @@
 # Autonomous Agent Fleet Registry
 
 This file is the coordination entry point for automated agents working in Value Fabric. It is
-not a second policy source: the repository-root [`AGENTS.md`](../AGENTS.md) is the canonical
-instruction set, and [`docs/AGENTS.md`](../docs/AGENTS.md) is the canonical architecture guide
-for agent behavior.
+not a policy source: the repository-root [`AGENTS.md`](../AGENTS.md) routes shared guidance,
+nearest package `AGENTS.md` files own scoped conventions, and canonical docs own architecture
+and governance policy.
 
 ## Fleet roles
 

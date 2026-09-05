@@ -489,9 +489,23 @@ def _check_dependency_pinning(repo_path: Path, _config: AuditConfig) -> dict[str
 _GUARDRAIL_RE = re.compile(r"do not|guardrail|policy|restrict|allowed", re.IGNORECASE)
 
 
+def _resolve_skills_root(repo_path: Path) -> Path | None:
+    """Return the skills root, preferring canonical ``agents/skills`` over legacy ``.agent/skills``.
+
+    After the Slice S promotion the first-party skills live in ``agents/skills/``.
+    The legacy ``.agent/skills/`` path is retained as a fallback so audits of
+    checkouts that predate the promotion (or that still carry the shim) keep
+    working. Returns ``None`` when neither location exists.
+    """
+    for candidate in (repo_path / "agents" / "skills", repo_path / ".agent" / "skills"):
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
 def _check_llm_guardrails(repo_path: Path, _config: AuditConfig) -> dict[str, Any]:
-    prompts_dir = repo_path / ".agent" / "skills"
-    if not prompts_dir.exists():
+    prompts_dir = _resolve_skills_root(repo_path)
+    if prompts_dir is None:
         return {"triggered": False, "prompts_missing_guardrails": 0}
     missing: list[str] = []
     for prompt in prompts_dir.rglob("*.txt"):
@@ -761,16 +775,19 @@ def _check_conflicting_claims(repo_path: Path, _config: AuditConfig) -> dict[str
 
 
 def _check_missing_repo_audit_skill(repo_path: Path, _config: AuditConfig) -> dict[str, Any]:
-    skill_dir = repo_path / ".agent" / "skills" / "repo-audit"
-    present = (
-        skill_dir.exists()
+    root = _resolve_skills_root(repo_path)
+    skill_dir = (root / "repo-audit") if root else None
+    present = bool(
+        skill_dir
+        and skill_dir.exists()
         and (skill_dir / "SKILL.md").exists()
         and (skill_dir / "config.yaml").exists()
     )
     return {
         "triggered": not present,
         "evidence": (
-            "Missing .agent/skills/repo-audit/SKILL.md or config.yaml" if not present else ""
+            "Missing agents/skills/repo-audit/SKILL.md or config.yaml "
+            "(legacy .agent/skills/repo-audit also checked)" if not present else ""
         ),
         "check_output": f"repo_audit_skill_present={present}",
         "repo_audit_skill_present": present,
@@ -780,7 +797,8 @@ def _check_missing_repo_audit_skill(repo_path: Path, _config: AuditConfig) -> di
 
 
 def _check_skill_prompts_complete(repo_path: Path, _config: AuditConfig) -> dict[str, Any]:
-    prompts_dir = repo_path / ".agent" / "skills" / "repo-audit" / "prompts"
+    root = _resolve_skills_root(repo_path)
+    prompts_dir = (root / "repo-audit" / "prompts") if root else None
     expected = {
         "system.txt",
         "analyze_git.txt",
@@ -788,10 +806,11 @@ def _check_skill_prompts_complete(repo_path: Path, _config: AuditConfig) -> dict
         "analyze_docs.txt",
         "generate_report.txt",
     }
-    if not prompts_dir.exists():
+    if not (prompts_dir and prompts_dir.exists()):
         return {
             "triggered": True,
-            "evidence": "Missing .agent/skills/repo-audit/prompts directory",
+            "evidence": "Missing agents/skills/repo-audit/prompts directory "
+            "(legacy .agent/skills/repo-audit/prompts also checked)",
             "check_output": "repo_audit_prompts_complete=false",
             "repo_audit_prompts_complete": False,
             "observed_fact": "The repo-audit skill is missing its prompt directory.",

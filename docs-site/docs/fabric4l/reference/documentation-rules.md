@@ -235,4 +235,4 @@ Keep tables scannable. If a table exceeds six rows, consider splitting it or add
 - [Links](links.md) — Internal and external reference directory
 - [Glossary](glossary.md) — Platform terminology definitions
 - `docs/development/DISCOVERY_MAP.md` — Issue-to-implementation routing
-- `AGENTS.md` — Agent and contributor reference
+- `AGENTS.md` — Concise agent entry point

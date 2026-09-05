@@ -1,12 +1,6 @@
 # Async Boundary Inventory
 
-Generated: 2026-06-25T19:22:02.346Z
-
-## src/api/auth.ts
-- L26 [async-boundary] `async function registerWithEmailPassword`
-
-## src/api/billing.ts
-- L11 [async-boundary] `async function getEntitlementDecision`
+Generated: 2026-09-05T06:18:06.597Z
 
 ## src/api/packs.ts
 - L74 [async-boundary] `async function listValuePackSummaries`
@@ -49,21 +43,19 @@ Generated: 2026-06-25T19:22:02.346Z
 ## src/app/settings/pages/BillingWorkspace.tsx
 - L31 [async-boundary] `const handleSave = async (`
 
+## src/auth/AuthorizationProvider.tsx
+- L120 [async-boundary] `queryFn: async (`
+- L218 [async-boundary] `queryFn: async (`
+- L149 [fire-and-forget-no-catch] `void query.refetch();`
+
 ## src/auth/clerkSession.ts
 - L62 [async-boundary] `async function getClerkSessionToken`
 
 ## src/components/billing/InvoiceDetailDrawer.tsx
-- L47 [async-boundary] `const handleDownloadPDF = async (`
+- L51 [async-boundary] `const handleDownloadPDF = async (`
 
 ## src/components/ErrorBoundary.tsx
 - L33 [async-boundary] `const handleCopy = async (`
-
-## src/components/ExportMenu.tsx
-- L16 [async-boundary] `const handleExport = async (`
-
-## src/components/login-form.tsx
-- L143 [async-boundary] `const handleSubmit = async (`
-- L359 [async-boundary] `const handleSubmit = async (`
 
 ## src/components/skill-outputs/SkillJobLauncher.tsx
 - L59 [async-boundary] `async function handleSubmit`
@@ -72,13 +64,45 @@ Generated: 2026-06-25T19:22:02.346Z
 - L170 [async-boundary] `const handleSubmit = async (`
 
 ## src/components/workspace/ProspectPromptBuilder.tsx
-- L1286 [async-boundary] `const handleAttach = async (`
+- L726 [async-boundary] `const handleAttach = async (`
+- L1118 [fire-and-forget-no-catch] `void handleFormSubmit();`
 
 ## src/contexts/AuthContext.tsx
 - L62 [async-boundary] `const initiateLogin = async (`
 - L66 [async-boundary] `const handleCallback = async (`
 - L71 [async-boundary] `const logout = async (`
 - L80 [async-boundary] `const refreshToken = async (`
+
+## src/features/value-case/api/valueCaseApi.ts
+- L18 [async-boundary] `async function fetchValueCasesApi`
+- L36 [async-boundary] `async function createValueCaseApi`
+- L56 [async-boundary] `async function updateValueCaseApi`
+- L77 [async-boundary] `async function publishValueCaseApi`
+- L97 [async-boundary] `async function fetchAccountApi`
+
+## src/features/value-case/components/ValueCaseWorkspace.tsx
+- L114 [async-boundary] `const handleConfirmGenerate = async (`
+
+## src/features/value-case/queries/useValueCaseJourney.ts
+- L107 [async-boundary] `queryFn: async (`
+- L122 [async-boundary] `queryFn: async (`
+- L232 [async-boundary] `mutationFn: async (`
+- L317 [async-boundary] `mutationFn: async (`
+- L349 [async-boundary] `mutationFn: async (`
+- L309 [fire-and-forget-no-catch] `void queryClient.invalidateQueries({
+        queryKey: valueCaseKeys.scope(submissionScope),
+        exact: true,
+      });`
+- L341 [fire-and-forget-no-catch] `void queryClient.invalidateQueries({
+        queryKey: valueCaseKeys.scope(submissionScope),
+        exact: true,
+      });`
+- L372 [fire-and-forget-no-catch] `void queryClient.invalidateQueries({
+        queryKey: valueCaseKeys.scope(submissionScope),
+        exact: true,
+      });`
+- L507 [fire-and-forget-no-catch] `void accountQuery.refetch();`
+- L508 [fire-and-forget-no-catch] `void versionsQuery.refetch();`
 
 ## src/hooks/useAcademy.ts
 - L120 [async-boundary] `async function fetchPillars`
@@ -92,9 +116,6 @@ Generated: 2026-06-25T19:22:02.346Z
 - L167 [async-boundary] `async function createMaturityAssessmentPayload`
 - L175 [async-boundary] `async function fetchResources`
 - L196 [async-boundary] `queryFn: async (`
-
-## src/hooks/useAccountAccess.ts
-- L17 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useAccounts.ts
 - L139 [async-boundary] `async function fetchAccounts`
@@ -162,10 +183,9 @@ Generated: 2026-06-25T19:22:02.346Z
 - L39 [async-boundary] `async function fetchComplianceStatus`
 
 ## src/hooks/useDocuments.ts
-- L76 [async-boundary] `mutationFn: async (`
-- L105 [async-boundary] `mutationFn: async (`
-- L131 [async-boundary] `queryFn: async (`
-- L143 [async-boundary] `mutationFn: async (`
+- L74 [async-boundary] `mutationFn: async (`
+- L100 [async-boundary] `queryFn: async (`
+- L113 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useEnrichment.ts
 - L93 [async-boundary] `async function fetchEnrichmentStatus`
@@ -181,20 +201,14 @@ Generated: 2026-06-25T19:22:02.346Z
 - L304 [async-boundary] `queryFn: async (`
 - L333 [async-boundary] `mutationFn: async (`
 
-## src/hooks/useEntitlements.ts
-- L25 [async-boundary] `queryFn: async (`
-
 ## src/hooks/useEvidence.ts
-- L162 [async-boundary] `async function fetchCaseStudies`
-- L172 [async-boundary] `async function fetchCaseStudy`
-- L177 [async-boundary] `async function fetchIndustryStats`
-- L182 [async-boundary] `async function fetchProductStats`
-- L202 [async-boundary] `queryFn: async (`
-- L266 [async-boundary] `mutationFn: async (`
-- L394 [async-boundary] `queryFn: async (`
-
-## src/hooks/useExtraction.ts
-- L76 [async-boundary] `queryFn: async (`
+- L161 [async-boundary] `async function fetchCaseStudies`
+- L171 [async-boundary] `async function fetchCaseStudy`
+- L176 [async-boundary] `async function fetchIndustryStats`
+- L181 [async-boundary] `async function fetchProductStats`
+- L201 [async-boundary] `queryFn: async (`
+- L265 [async-boundary] `mutationFn: async (`
+- L374 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useExtractionResults.ts
 - L76 [async-boundary] `queryFn: async (`
@@ -238,8 +252,9 @@ Generated: 2026-06-25T19:22:02.346Z
 - L74 [async-boundary] `async function fetchUsers`
 - L79 [async-boundary] `async function fetchApiKeys`
 - L120 [async-boundary] `mutationFn: async (`
-- L143 [async-boundary] `mutationFn: async (`
-- L157 [async-boundary] `mutationFn: async (`
+- L144 [async-boundary] `mutationFn: async (`
+- L164 [async-boundary] `mutationFn: async (`
+- L178 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useGraphQuery.ts
 - L90 [async-boundary] `mutationFn: async (`
@@ -303,18 +318,11 @@ Generated: 2026-06-25T19:22:02.346Z
 - L116 [async-boundary] `queryFn: async (`
 - L137 [async-boundary] `queryFn: async (`
 
-## src/hooks/useL5Governance.ts
-- L45 [async-boundary] `async function fetchJson`
-
 ## src/hooks/useModels.ts
 - L103 [async-boundary] `async function fetchModels`
 - L124 [async-boundary] `async function fetchFolders`
 - L158 [async-boundary] `mutationFn: async (`
 - L190 [async-boundary] `mutationFn: async (`
-
-## src/hooks/useNarrativeGeneration.ts
-- L62 [async-boundary] `queryFn: async (`
-- L81 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useNarratives.ts
 - L89 [async-boundary] `async function fetchNarratives`
@@ -345,9 +353,6 @@ Generated: 2026-06-25T19:22:02.346Z
 ## src/hooks/useOperationalAudit.ts
 - L68 [async-boundary] `async function fetchOperationalAudit`
 
-## src/hooks/useOpportunities.ts
-- L59 [async-boundary] `async function fetchOpportunities`
-
 ## src/hooks/usePauseAllExtractions.ts
 - L15 [async-boundary] `mutationFn: async (`
 
@@ -376,7 +381,7 @@ Generated: 2026-06-25T19:22:02.346Z
 - L85 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useResolvedTenant.ts
-- L86 [async-boundary] `queryFn: async (`
+- L96 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useROICalculator.ts
 - L161 [async-boundary] `async function fetchTemplates`
@@ -392,11 +397,6 @@ Generated: 2026-06-25T19:22:02.346Z
 - L288 [async-boundary] `mutationFn: async (`
 - L298 [async-boundary] `mutationFn: async (`
 - L311 [async-boundary] `mutationFn: async (`
-
-## src/hooks/useROIScenarios.ts
-- L64 [async-boundary] `queryFn: async (`
-- L79 [async-boundary] `mutationFn: async (`
-- L100 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useRunExtraction.ts
 - L56 [async-boundary] `mutationFn: async (`
@@ -419,9 +419,6 @@ Generated: 2026-06-25T19:22:02.346Z
 - L537 [async-boundary] `mutationFn: async (`
 - L557 [async-boundary] `mutationFn: async (`
 - L585 [async-boundary] `mutationFn: async (`
-
-## src/hooks/useSuperAdminOverview.ts
-- L33 [async-boundary] `async function fetchTenantOverview`
 
 ## src/hooks/useTargets.ts
 - L273 [async-boundary] `queryFn: async (`
@@ -489,33 +486,27 @@ Generated: 2026-06-25T19:22:02.346Z
 - L511 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useWorkspaceCase.ts
-- L24 [async-boundary] `queryFn: async (`
-- L57 [async-boundary] `queryFn: async (`
-- L77 [async-boundary] `mutationFn: async (`
-- L104 [async-boundary] `mutationFn: async (`
-- L121 [async-boundary] `mutationFn: async (`
-- L151 [async-boundary] `mutationFn: async (`
-- L185 [async-boundary] `mutationFn: async (`
-- L235 [async-boundary] `mutationFn: async (`
-- L289 [async-boundary] `async function getOrCreateCanonicalCaseId`
-- L318 [async-boundary] `async function persistWorkspaceTab`
+- L39 [async-boundary] `queryFn: async (`
+- L72 [async-boundary] `queryFn: async (`
+- L93 [async-boundary] `mutationFn: async (`
+- L124 [async-boundary] `mutationFn: async (`
+- L142 [async-boundary] `mutationFn: async (`
+- L177 [async-boundary] `mutationFn: async (`
+- L211 [async-boundary] `mutationFn: async (`
+- L261 [async-boundary] `mutationFn: async (`
+- L315 [async-boundary] `async function getOrCreateCanonicalCaseId`
+- L344 [async-boundary] `async function persistWorkspaceTab`
 
 ## src/lib/clipboard.ts
 - L7 [async-boundary] `async function copyToClipboard`
 
-## src/pages/admin/FormulaGovernance.tsx
-- L228 [async-boundary] `const handleApprovalAction = async (`
+## src/pages/AcceptInvite.tsx
+- L24 [async-boundary] `async function handleSubmit`
 
 ## src/pages/admin/PermissionsAdmin.tsx
 - L169 [async-boundary] `const handleInvite = async (`
 - L183 [async-boundary] `const handleCreateKey = async (`
 - L210 [async-boundary] `const handleRevokeConfirm = async (`
-
-## src/pages/admin/PlatformSettings.tsx
-- L422 [async-boundary] `const handleUpdate = async (`
-
-## src/pages/admin/VariableRegistry.tsx
-- L206 [async-boundary] `const handleTestBinding = async (`
 
 ## src/pages/calculator/ROITab.tsx
 - L98 [async-boundary] `queryFn: async (`

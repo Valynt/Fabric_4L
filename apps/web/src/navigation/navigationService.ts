@@ -67,6 +67,7 @@ export type RouteState =
   | "intelligence-solution-cost"
   // Value Studio Workspace (account-scoped)
   | "studio"
+  | "studio-mission"
   | "studio-action-plan"
   | "studio-value-model"
   | "studio-driver-tree"
@@ -208,6 +209,7 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
 
   // Value Studio Workspace
   studio: { path: "/t/:tenantSlug/accounts/:accountId/studio", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.workspace" },
+  "studio-mission": { path: "/t/:tenantSlug/accounts/:accountId/studio/mission", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.mission" },
   "studio-action-plan": { path: "/t/:tenantSlug/accounts/:accountId/studio/action-plan", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.action-plan" },
   "studio-value-model": { path: "/t/:tenantSlug/accounts/:accountId/studio/value-model", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.value-model" },
   "studio-driver-tree": { path: "/t/:tenantSlug/accounts/:accountId/studio/driver-tree", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.driver-tree" },
@@ -476,5 +478,5 @@ export function isRouteActive(location: string, resolvedPath: string): boolean {
     return current === "/";
   }
 
-  return current === route || current.startsWith(route + "/");
+  return current === route || (current.startsWith(route) && current[route.length] === "/");
 }

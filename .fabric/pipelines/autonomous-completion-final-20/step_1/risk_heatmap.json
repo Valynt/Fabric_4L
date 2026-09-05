@@ -1,0 +1,97 @@
+{
+  "artifact": "risk_heatmap",
+  "generated_at": "2026-09-05T15:20:00Z",
+  "anchor_git_sha": "4bb4e142c2ccbc56297de843e71534d956bb198f",
+  "cells": [
+    {
+      "id": "R-CI-RED-MAIN",
+      "area": "ci",
+      "severity": "critical",
+      "churn": "high",
+      "complexity": "high",
+      "evidence": "PR Checks + Prod Readiness + Certify RC failed on 4bb4e14",
+      "owned_by": "release-owner"
+    },
+    {
+      "id": "R-TENANT-L4-VARREG",
+      "area": "tenant_isolation",
+      "severity": "medium",
+      "churn": "medium",
+      "complexity": "medium",
+      "evidence": "PR #1684 Slice T: Neo4jVariableRegistry CRUD/search unscoped",
+      "owned_by": "layer4-agents"
+    },
+    {
+      "id": "R-L3-NEO4J-SESSION",
+      "area": "resource_lifecycle",
+      "severity": "medium",
+      "churn": "low",
+      "complexity": "medium",
+      "evidence": "TODO(lifecycle) dependencies_tenant_secured.py; PR #1661 open",
+      "owned_by": "layer3-knowledge"
+    },
+    {
+      "id": "R-PNPM-P0",
+      "area": "supply_chain",
+      "severity": "high",
+      "churn": "high",
+      "complexity": "medium",
+      "evidence": "issue #1639 vs pin 10.18.1; PR #1645 open",
+      "owned_by": "devex"
+    },
+    {
+      "id": "R-COMPAT-OVERDUE",
+      "area": "compatibility",
+      "severity": "medium",
+      "churn": "high",
+      "complexity": "high",
+      "evidence": ">=10 CDR rows past 2026-08-31 target",
+      "owned_by": "platform-architecture"
+    },
+    {
+      "id": "R-SKIP-DEBT-L4",
+      "area": "test_integrity",
+      "severity": "medium",
+      "churn": "medium",
+      "complexity": "medium",
+      "evidence": "VF-L4-AUTH-DEBT-001 (5 skips), permission-contract DEFERRED (4), usage idempotency DEFERRED",
+      "owned_by": "layer4-agents"
+    },
+    {
+      "id": "R-VS-SLICE2",
+      "area": "product",
+      "severity": "high",
+      "churn": "high",
+      "complexity": "high",
+      "evidence": "FE-VOS-STUDIO-001 Slice 2+ deliberately unresolved; Slice 1 fixture-only",
+      "owned_by": "product + mission-backend"
+    },
+    {
+      "id": "R-LAUNCH-ENV",
+      "area": "launch",
+      "severity": "high",
+      "churn": "low",
+      "complexity": "high",
+      "evidence": "P0-001 4/7 journeys still require staging; docs/readiness/current.md BLOCKED",
+      "owned_by": "release-owner"
+    },
+    {
+      "id": "R-BILLING-RFC",
+      "area": "architecture",
+      "severity": "medium",
+      "churn": "high",
+      "complexity": "high",
+      "evidence": "issue #1613 RFC billing ownership vs archived COMPAT-L4-003 (L4 is currently canonical)",
+      "owned_by": "billing-owner / council"
+    },
+    {
+      "id": "R-PYTHON-PIN",
+      "area": "reproducibility",
+      "severity": "low",
+      "churn": "low",
+      "complexity": "low",
+      "evidence": ".python-version 3.11.15 vs .tool-versions 3.11.10",
+      "owned_by": "devex"
+    }
+  ]
+}

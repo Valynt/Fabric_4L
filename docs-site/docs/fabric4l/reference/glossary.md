@@ -108,4 +108,4 @@ This glossary defines terms used across the ValuePact platform, its documentatio
 
 - [Links](links.md) — Internal and external references
 - [Documentation Rules](documentation-rules.md) — Conventions for writing and maintaining docs
-- `AGENTS.md` — Agent and contributor command and path reference
+- `AGENTS.md` — Concise agent entry point and progressive-disclosure map

@@ -14,6 +14,7 @@ export interface StudioTabRailProps {
 }
 
 export type StudioTabId =
+  | "mission"
   | "action-plan"
   | "value-model"
   | "driver-tree"

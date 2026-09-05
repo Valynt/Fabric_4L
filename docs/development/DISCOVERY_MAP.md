@@ -80,6 +80,7 @@ The completion audit in [repository-discoverability-audit.md](../governance/repo
 | Test inventory and coverage posture | `docs/testing/`, `tests/`, `artifacts/` |
 | Contract and API alignment | `docs/contracts/`, `contracts/`, `contracts/openapi/`, `contracts/jsonschema/` |
 | Production readiness and release gates | `docs/validation/`, `docs/launch/`, `.fabric/prod-gates.policy.yaml`, `artifacts/release/` |
+| Autonomous completion freeze and gate status | [`.fabric/pipelines/autonomous-completion-final-20/README.md`](../../.fabric/pipelines/autonomous-completion-final-20/README.md) |
 | Repository discoverability completion | `docs/governance/repository-discoverability-audit.md`, `docs/development/DISCOVERY_MAP.md`, `docs/development/COMMANDS.md` |
 | Security and tenant isolation | `docs/security/`, `docs/validation/tenant-isolation-evidence-summary.md`, `tests/security/` |
 | Supply chain and dependency posture | `docs/supply-chain/`, `docs/security/secure-software-supply-chain.md`, `license-reports/`, `artifacts/supply-chain/` |

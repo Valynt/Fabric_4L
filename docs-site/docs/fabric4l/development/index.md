@@ -122,6 +122,6 @@ This documentation is authoritative for local development workflows. If a comman
 - [`docs/development/BUILD_SYSTEM.md`](https://github.com/BBB/Fabric_4L/blob/main/docs/development/BUILD_SYSTEM.md) — Canonical build system and command hierarchy
 - [`docs/development/COMMANDS.md`](https://github.com/BBB/Fabric_4L/blob/main/docs/development/COMMANDS.md) — Complete command inventory
 - [`docs/development/DISCOVERY_MAP.md`](https://github.com/BBB/Fabric_4L/blob/main/docs/development/DISCOVERY_MAP.md) — Route issue types to validation commands and evidence
-- [`AGENTS.md`](https://github.com/BBB/Fabric_4L/blob/main/AGENTS.md) — AI agent and automation reference
+- [`AGENTS.md`](https://github.com/BBB/Fabric_4L/blob/main/AGENTS.md) — concise AI agent entry point and progressive-disclosure links
 - [`DESIGN.md`](https://github.com/BBB/Fabric_4L/blob/main/DESIGN.md) — Frontend design system and UX governance
 - [`docs/governance/behavior-first-testing.md`](https://github.com/BBB/Fabric_4L/blob/main/docs/governance/behavior-first-testing.md) — Testing philosophy and readiness ladder
