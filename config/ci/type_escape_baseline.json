@@ -27631,12 +27631,6 @@
       "text": "input_data: dict[str, Any],"
     },
     {
-      "kind": "python-any",
-      "line": 651,
-      "path": "services/layer4-agents/src/layer4_agents/engine/executor.py",
-      "text": "async def get_result(self, workflow_id: str) -> dict[str, Any] | None:"
-    },
-    {
       "kind": "python-type-ignore",
       "line": 678,
       "path": "services/layer4-agents/src/layer4_agents/engine/executor.py",
