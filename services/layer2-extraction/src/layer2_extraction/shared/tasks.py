@@ -8,7 +8,20 @@ import logging
 import os
 
 from celery import Celery
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.redis_ha import get_celery_redis_broker_config
+
+
+def _require_task_tenant_id(config: dict) -> str:
+    """Require verified tenant context on a queued task payload; fail closed.
+
+    Raises ValueError (non-retryable) when the payload carries no usable
+    tenant_id, so tenantless or blank-tenant jobs never reach processing.
+    """
+    tenant_id = (config or {}).get("tenant_id")
+    if tenant_id is None or not str(tenant_id).strip():
+        raise ValueError("tenant_id is required in config for extraction task")
+    return str(tenant_id).strip()
 
 # Get Redis URL from environment
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
@@ -93,10 +106,8 @@ async def run_extraction_task(self, job_id: str, source_url: str, content: str, 
     """
     logger.info("Starting extraction task", extra={"job_id": job_id, "source_url": source_url})
 
-    # Validate tenant_id in config
-    tenant_id = config.get("tenant_id")
-    if not tenant_id:
-        raise ValueError("tenant_id is required in config for extraction task")
+    # Validate tenant_id in config (fail closed, non-retryable)
+    _require_task_tenant_id(config)
 
     try:
         # Import here to avoid circular dependencies
@@ -116,6 +127,14 @@ async def run_extraction_task(self, job_id: str, source_url: str, content: str, 
             "job_id": job_id,
         }
 
+    except AuthorizationError:
+        # Tenant-context failures (e.g. tenant_context_mismatch from a forged
+        # or stale payload) are terminal: fail closed without retrying.
+        logger.error(
+            "Extraction task rejected: tenant context failure",
+            extra={"job_id": job_id},
+        )
+        raise
     except Exception as exc:
         logger.error("Extraction task failed", extra={"job_id": job_id, "error": str(exc)})
         # Retry with exponential backoff
@@ -135,6 +154,9 @@ async def extract_entities_task(self, job_id: str, content: str, config: dict):
         dict with extracted entities and metadata
     """
     logger.info("Starting entity extraction task", extra={"job_id": job_id})
+
+    # Fail closed on missing tenant context (non-retryable)
+    _require_task_tenant_id(config)
 
     try:
         # Import here to avoid circular dependencies
@@ -178,6 +200,9 @@ async def extract_relationships_task(self, job_id: str, entities: list, config: 
         dict with extracted relationships and metadata
     """
     logger.info("Starting relationship extraction task", extra={"job_id": job_id})
+
+    # Fail closed on missing tenant context (non-retryable)
+    _require_task_tenant_id(config)
 
     try:
         # Import here to avoid circular dependencies

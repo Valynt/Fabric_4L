@@ -40,6 +40,14 @@ class ExtractionArtifacts(BaseModel):
     relationships: list[Any] = Field(default_factory=list)
 
 
+def _reject_cross_tenant_overwrite(existing: PipelineJob | None, incoming: PipelineJob) -> None:
+    """Fail closed when a write would rebind an existing job to another tenant."""
+    if existing is not None and existing.tenant_id != incoming.tenant_id:
+        raise PermissionError(
+            f"Cross-tenant job mutation denied for job {incoming.job_id}"
+        )
+
+
 class InMemoryJobStore:
     """In-memory job store for development and testing."""
 
@@ -61,6 +69,7 @@ class InMemoryJobStore:
             return None
 
     async def set_job(self, job: PipelineJob) -> None:
+        _reject_cross_tenant_overwrite(self._jobs.get(job.job_id), job)
         self._jobs[job.job_id] = job
 
     async def set(self, job: PipelineJob) -> None:
@@ -146,6 +155,11 @@ class RedisJobStore:
         return await self.get_job(job_id, tenant_id=tenant_id)
 
     async def set_job(self, job: PipelineJob) -> None:
+        raw_existing = await self._redis.get(self._job_key(job.job_id))
+        existing = (
+            PipelineJob.model_validate(json.loads(raw_existing)) if raw_existing is not None else None
+        )
+        _reject_cross_tenant_overwrite(existing, job)
         await self._redis.setex(
             self._job_key(job.job_id),
             self._default_ttl,
