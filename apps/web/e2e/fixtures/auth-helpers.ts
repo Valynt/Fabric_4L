@@ -236,28 +236,20 @@ async function seedBackendIntegratedSession(page: Page, user: TestUserInfo): Pro
   // context, and httpOnly cookies cannot be set from JavaScript.
   const setCookieHeader = response.headers()['set-cookie'];
   if (setCookieHeader) {
-    // TODO(staging-cookie-portability): The browser sends API requests to the
-    // frontend origin (Vite proxies them to the backend in legacy mode), so
-    // the cookie is scoped to the frontend hostname — not the backend host the
-    // session was minted from. This works locally because frontend and backend
-    // share the `localhost` host (different ports). On separate-hostname
-    // staging (e.g. Bunnyshell), J2 and the security test make direct requests
-    // to PLAYWRIGHT_BACKEND_URL, whose hostname differs from the frontend
-    // origin, so the frontend-scoped cookie will NOT accompany those direct
-    // backend requests. Before promoting this suite to a staging/Bunnyshell
-    // synthetic monitor, either (a) route all authenticated test API calls
-    // through the frontend/API-gateway origin, or (b) install equivalent
-    // session cookies for both the frontend and backend hostnames. Do NOT
-    // point this suite at production — it seeds deterministic data and the
-    // admin test creates governance reviews and decisions.
-    const cookieDomain = new URL(frontendOrigin).hostname;
-    const cookies = parseSetCookieHeader(setCookieHeader, cookieDomain);
+    // Browser traffic may use the frontend proxy while live assertions call
+    // the backend directly. Install host-scoped copies for both origins so the
+    // session remains portable when staging assigns them different hostnames.
+    const cookieDomains = [
+      new URL(frontendOrigin).hostname,
+      ...(backendUrl ? [new URL(backendUrl).hostname] : []),
+    ];
+    const cookies = parseSetCookieHeader(setCookieHeader, cookieDomains);
     if (cookies.length > 0) {
       await page.context().addCookies(
         cookies.map((c) => ({
           name: c.name,
           value: c.value,
-          domain: cookieDomain,
+          domain: c.domain,
           path: c.path,
           httpOnly: c.httpOnly,
           secure: c.secure,
@@ -275,9 +267,9 @@ async function seedBackendIntegratedSession(page: Page, user: TestUserInfo): Pro
  * Parse a raw Set-Cookie header value (possibly comma-joined) into cookie
  * objects suitable for Playwright's context.addCookies().
  */
-function parseSetCookieHeader(
+export function parseSetCookieHeader(
   header: string | string[],
-  defaultDomain: string
+  defaultDomains: string | string[]
 ): Array<{
   name: string;
   value: string;
@@ -288,6 +280,7 @@ function parseSetCookieHeader(
   sameSite: 'Strict' | 'Lax' | 'None' | undefined;
   expires: number;
 }> {
+  const domains = [...new Set(Array.isArray(defaultDomains) ? defaultDomains : [defaultDomains])];
   const raw = Array.isArray(header) ? header.join(', ') : header;
   // Split on cookie-name boundaries; a new cookie starts with a name=value pair
   // followed by attributes. The two cookie names we issue are vf_session and
@@ -297,7 +290,7 @@ function parseSetCookieHeader(
     .map((s) => s.trim())
     .filter(Boolean);
 
-  return cookieTexts
+  const parsedCookies = cookieTexts
     .map((text) => {
       const parts = text.split(';').map((p) => p.trim());
       const [name, ...valueParts] = parts[0].split('=');
@@ -334,7 +327,7 @@ function parseSetCookieHeader(
       return {
         name: name.trim(),
         value,
-        domain: defaultDomain,
+        domain: domains[0],
         path,
         httpOnly,
         secure,
@@ -343,6 +336,8 @@ function parseSetCookieHeader(
       };
     })
     .filter((c): c is NonNullable<typeof c> => c !== null);
+
+  return domains.flatMap((domain) => parsedCookies.map((cookie) => ({ ...cookie, domain })));
 }
 
 /**
