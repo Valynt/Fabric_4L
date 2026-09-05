@@ -632,7 +632,7 @@ SEED_FINDINGS: list[dict[str, Any]] = [
         "observed_fact": "The ``repo-audit`` skill package is missing or incomplete.",
         "inference_risk": "The audit agent cannot be invoked as a portable skill by the agent harness.",
         "business_impact": "Audit capability is not reusable across workspaces and interfaces.",
-        "recommended_fix": "Create .agent/skills/repo-audit with SKILL.md, config.yaml, and prompts.",
+        "recommended_fix": "Create agents/skills/repo-audit with SKILL.md, config.yaml, and prompts.",
         "check": _check_missing_repo_audit_skill,
     },
     {
@@ -647,7 +647,7 @@ SEED_FINDINGS: list[dict[str, Any]] = [
         "observed_fact": "The ``repo-audit`` skill is missing expected prompt files.",
         "inference_risk": "LLM-powered phases of the audit agent cannot use consistent prompts.",
         "business_impact": "Agent output quality varies and is harder to govern.",
-        "recommended_fix": "Add all required prompt files under .agent/skills/repo-audit/prompts.",
+        "recommended_fix": "Add all required prompt files under agents/skills/repo-audit/prompts.",
         "check": _check_skill_prompts_complete,
     },
     {

@@ -5,7 +5,7 @@ This module provides the :class:`ConfigManager` which loads configuration
 from multiple sources with a defined precedence:
 
 1. Environment variables (``AUDIT__*`` prefix, double-underscore for nesting)
-2. YAML config file (``.agent/skills/repo-audit/config.yaml``)
+2. YAML config file (``agents/skills/repo-audit/config.yaml``, legacy ``.agent/skills/repo-audit/config.yaml`` fallback)
 3. Default values defined in the :class:`AuditConfig` Pydantic model
 
 The configuration is validated using Pydantic v2 and provides helpers for
@@ -28,7 +28,8 @@ from .models import (
 logger = logging.getLogger(__name__)
 
 ENV_PREFIX: str = "AUDIT__"
-DEFAULT_YAML_PATH: str = ".agent/skills/repo-audit/config.yaml"
+DEFAULT_YAML_PATH: str = "agents/skills/repo-audit/config.yaml"
+LEGACY_YAML_PATH: str = ".agent/skills/repo-audit/config.yaml"
 
 
 def _convert_env_value(value: str) -> Any:
@@ -272,8 +273,10 @@ class ConfigManager:
         # 1. Start with empty dict (Pydantic defaults will fill in)
         merged: dict[str, Any] = {}
 
-        # 2. Apply YAML config
+        # 2. Apply YAML config (canonical path, then legacy fallback)
         yaml_data = _try_load_yaml(self.yaml_path)
+        if yaml_data is None and not self.yaml_path.exists():
+            yaml_data = _try_load_yaml(LEGACY_YAML_PATH)
         if yaml_data:
             merged = self._deep_merge(merged, yaml_data)
 
@@ -415,4 +418,5 @@ __all__ = [
     "ConfigManager",
     "ENV_PREFIX",
     "DEFAULT_YAML_PATH",
+    "LEGACY_YAML_PATH",
 ]
