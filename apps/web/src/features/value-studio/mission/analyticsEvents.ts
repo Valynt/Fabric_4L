@@ -19,7 +19,7 @@ export const VALUE_STUDIO_EVENTS = {
   evidenceOpened: "evidence_opened",
   steerFloOpened: "steer_flo_opened",
   activityEventExpanded: "activity_event_expanded",
-  generativeUiFallbackUsed: "generated_ui_fallback_used",
+  generativeUiFallbackUsed: "generative_ui_fallback_used",
 } as const;
 
 export type ValueStudioEventName =

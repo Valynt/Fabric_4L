@@ -69,7 +69,7 @@ export function makeCaseProjection(
     opportunity: {
       opportunityId: VALUE_STUDIO_REFERENCE_IDS.opportunityId,
       arr: { amount: 1_200_000, currency: "USD" },
-      decisionDate: "2026-09-12",
+      decisionDate: "2026-09-12T00:00:00.000Z",
       champion: { principalId: "principal_r_chen", displayName: "R. Chen" },
     },
     economics: {
@@ -662,7 +662,7 @@ export function getValueStudioFixture(name: ValueStudioFixtureName): ValueStudio
         name,
         view: {
           kind: "error",
-          message: "The value case could not be loaded.",
+          message: "The Value Studio projection could not be loaded.",
           correlationId: "corr_fixture_error_01",
           retryable: true,
         },
