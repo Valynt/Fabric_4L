@@ -51,13 +51,13 @@ def test_missing_repo_audit_skill_detects_canonical(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_missing_repo_audit_skill_detects_legacy(tmp_path: Path) -> None:
     _make_repo_audit(tmp_path, tmp_path / ".agent" / "skills")
-    result = catalog_checks._check_missing_repo_audit_skill(tmp_path, None)  # type: ignore[arg-type]
+    result = catalog_checks._check_missing_repo_audit_skill(tmp_path, None)
     assert result["triggered"] is False
     assert result["repo_audit_skill_present"] is True
 
 
 @pytest.mark.unit
 def test_missing_repo_audit_skill_triggers_when_absent(tmp_path: Path) -> None:
-    result = catalog_checks._check_missing_repo_audit_skill(tmp_path, None)  # type: ignore[arg-type]
+    result = catalog_checks._check_missing_repo_audit_skill(tmp_path, None)
     assert result["triggered"] is True
     assert result["repo_audit_skill_present"] is False
