@@ -3,8 +3,7 @@ kind: Skill
 metadata:
   name: saas-product-design
   version: '2026-05-06'
-  description: Core competencies for building scalable, high-retention multi-tenant
-    SaaS products, focusing on architecture, onboarding
+  description: Core competencies for building scalable, high-retention multi-tenant SaaS products, focusing on architecture, onboarding, navigation, and modern UI design.
   category: design
 compatibleAgents:
 - claude-code
