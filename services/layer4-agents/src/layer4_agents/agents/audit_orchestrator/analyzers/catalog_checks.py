@@ -787,7 +787,7 @@ def _check_missing_repo_audit_skill(repo_path: Path, _config: AuditConfig) -> di
         "triggered": not present,
         "evidence": (
             "Missing agents/skills/repo-audit/SKILL.md or config.yaml "
-            "(legacy .agent/skills/repo-audit also checked)" if not present else ""
+            "(expected in either the canonical or legacy skills root)" if not present else ""
         ),
         "check_output": f"repo_audit_skill_present={present}",
         "repo_audit_skill_present": present,
@@ -810,7 +810,7 @@ def _check_skill_prompts_complete(repo_path: Path, _config: AuditConfig) -> dict
         return {
             "triggered": True,
             "evidence": "Missing agents/skills/repo-audit/prompts directory "
-            "(legacy .agent/skills/repo-audit/prompts also checked)",
+            "(expected in either the canonical or legacy skills root)",
             "check_output": "repo_audit_prompts_complete=false",
             "repo_audit_prompts_complete": False,
             "observed_fact": "The repo-audit skill is missing its prompt directory.",
