@@ -86,5 +86,10 @@ celery_app.conf.update(
             "schedule": crontab(hour=3, minute=0),
             "options": {"queue": "default"},
         },
+        "reconcile-stuck-jobs-metrics": {
+            "task": "layer1_ingestion.shared.tasks.reconcile_stuck_jobs_metrics",
+            "schedule": crontab(minute="*"),
+            "options": {"queue": "default"},
+        },
     },
 )

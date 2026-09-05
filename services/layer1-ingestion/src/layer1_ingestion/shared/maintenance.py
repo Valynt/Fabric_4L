@@ -91,6 +91,7 @@ class MaintenanceOperation(Enum):
     CLEANUP_OLD_CONTENT = "cleanup_old_content"
     MIGRATE_DATA = "migrate_data"
     SYSTEM_HEALTH_CHECK = "system_health_check"
+    RECONCILE_STUCK_JOBS = "reconcile_stuck_jobs"
     CACHE_WARMING = "cache_warming"
     INDEX_REBUILD = "index_rebuild"
     AUDIT_EXPORT = "audit_export"

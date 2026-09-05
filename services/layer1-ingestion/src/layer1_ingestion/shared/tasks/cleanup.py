@@ -10,11 +10,57 @@ from ...metrics.prometheus_metrics import get_metrics
 from ..database import get_db_session
 from ..maintenance import authorize_maintenance_operation, maintenance_audit_log
 from ..models import (
+    JobStatus,
     RawContent,
+    ScrapingJob,
     TenantRegistry,
 )
 from ..task_contracts import cleanup_old_contentResult
 from .tasks_bootstrap import celery_app, logger
+
+STUCK_JOB_STATUSES = (
+    JobStatus.VALIDATING.value,
+    JobStatus.BROWSER_ACQUIRING.value,
+    JobStatus.NAVIGATING.value,
+    JobStatus.EXTRACTING.value,
+    JobStatus.TRANSFORMING.value,
+    JobStatus.STORING.value,
+)
+
+
+def refresh_stuck_jobs_metrics(tenant_ids: list[UUID]) -> dict[str, int]:
+    """Refresh aggregate stuck-job gauges while preserving tenant-scoped reads."""
+    counts_by_stage = {status: 0 for status in STUCK_JOB_STATUSES}
+    for tenant_id in tenant_ids:
+        with get_db_session(tenant_id=tenant_id, require_tenant=True) as session:
+            rows = (
+                session.query(ScrapingJob.status)
+                .filter(ScrapingJob.status.in_(STUCK_JOB_STATUSES))
+                .all()
+            )
+        for (status,) in rows:
+            counts_by_stage[status] += 1
+
+    metrics = get_metrics()
+    if metrics:
+        metrics.refresh_stuck_jobs(counts_by_stage)
+    return counts_by_stage
+
+
+@celery_app.task(name="layer1_ingestion.shared.tasks.reconcile_stuck_jobs_metrics")
+def reconcile_stuck_jobs_metrics() -> dict[str, int]:
+    """Celery beat reconciliation loop for the aggregate stuck-jobs gauge."""
+    authorize_maintenance_operation("reconcile_stuck_jobs", tenant_id="tenant-registry")
+    with maintenance_audit_log("reconcile_stuck_jobs", tenant_id="tenant-registry") as record:
+        with get_db_session(tenant_id=None, require_tenant=False) as session:
+            tenant_ids = [
+                row[0]
+                for row in session.query(TenantRegistry.tenant_id)
+                .filter(TenantRegistry.is_active.is_(True))
+                .all()
+            ]
+        record.rows_affected = len(tenant_ids)
+    return refresh_stuck_jobs_metrics(tenant_ids)
 
 
 @celery_app.task(name="layer1_ingestion.shared.tasks._enumerate_authorized_tenants_for_cleanup")
