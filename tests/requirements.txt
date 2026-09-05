@@ -26,7 +26,7 @@ factory-boy>=3.3.0
 faker>=20.0.0
 
 # Async testing
-anyio>=4.0.0
+anyio>=4.14.2
 
 # Mocking for HTTP requests (enables CI contract tests without running services)
 respx>=0.20.0
