@@ -44,6 +44,11 @@
       "bytes": 613022
     },
     {
+      "path": "services/layer2-5-signal-refinery/uv.lock",
+      "sha256": "c4beffb7cf59047ae6a60b60a0fb571867294243503fc00df750f8c964572a42",
+      "bytes": 352117
+    },
+    {
       "path": "services/layer3-knowledge/requirements.lock",
       "sha256": "ef92baf99682b31e7a2bcde88ad62c50e9cddf88198654cd8ad80553a682b74b",
       "bytes": 142788

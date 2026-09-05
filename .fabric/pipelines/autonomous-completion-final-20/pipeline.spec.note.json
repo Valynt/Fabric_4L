@@ -4,8 +4,8 @@
     "canonical_budget": "policies/node-budget.v1.json",
     "narrative": "HALT_POLICY.md",
     "step_0_failure_path": {
-      "literal_was": "halt_pipeline",
-      "now_means": "halt_implementation_steps_2_to_6",
+      "original_literal_was": "halt_pipeline",
+      "current_action": "halt_implementation_steps_2_to_6",
       "step_1_exception": true,
       "step_2_exception": false,
       "step_2_exception_to_incomplete_step_0": false

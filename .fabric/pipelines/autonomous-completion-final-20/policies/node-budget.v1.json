@@ -67,8 +67,8 @@
     "applies_to": "all in-scope AC-20 DAG nodes combined, vs freeze_sha",
     "max_loc": 2500,
     "max_files": 80,
-    "excludes": "this evidence-packet tree (.fabric/pipelines/autonomous-completion-final-20/**) while GATE-1 is unsigned",
-    "note": "Aggregate numbers are proposed. They do not authorize scope."
+    "excludes": [".fabric/pipelines/autonomous-completion-final-20/**"],
+    "note": "The evidence-packet tree is excluded only while GATE-1 is unsigned. Aggregate numbers are proposed and do not authorize scope."
   },
   "default_profile": "service-feature",
   "profiles": {

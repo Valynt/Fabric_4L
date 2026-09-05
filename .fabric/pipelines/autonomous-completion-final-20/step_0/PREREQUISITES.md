@@ -12,7 +12,7 @@ Step 0 is **PARTIAL**. Unmet items below are **not** AC-20 features. H-STEP0-INC
 | Spec action | Required for | Observed | Status | Lane |
 |---|---|---|---|---|
 | pin_toolchain_versions | freeze | Pins **recorded**, not rewritten. Python 3.11.15 vs 3.11.10; pnpm 10.18.1 vs P0 #1639 `>=10.34.5` | PARTIAL — drift flagged as GAP-9/10 | prereq_maintenance |
-| lock_dependency_manifests | freeze | 17 lockfiles hashed in `lockfile_hash_manifest.json` | MET as snapshot | — |
+| lock_dependency_manifests | freeze | 18 lockfiles hashed in `lockfile_hash_manifest.json` | MET as snapshot | — |
 | snapshot_database_schema_and_seed_data | freeze | **Not done** | UNMET | prereq_maintenance |
 | capture_golden_baseline_run | freeze + Step 6 perf | CI proxy only. Local `make verify` not run. `coverage_pct`, `build_time`, `latency_p50`, `latency_p95` = null. Layer 3 coverage step **cancelled** (~30m) so even the CI proxy has no L3 coverage number | UNMET | prereq_maintenance |
 | record_anchor_git_sha | freeze | `4bb4e14` | MET | — |

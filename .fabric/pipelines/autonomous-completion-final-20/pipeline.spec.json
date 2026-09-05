@@ -1,5 +1,4 @@
 {
-  "$schema": "https://example.com/schemas/agentic-pipeline/v1.json",
   "pipeline": {
     "id": "autonomous-completion-final-20",
     "name": "Autonomous Completion Pipeline for the Final 20%",

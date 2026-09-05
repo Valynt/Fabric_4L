@@ -19,6 +19,12 @@
         "responsibility": "Ontology-guided extraction, LLM extraction, RDF/OWL"
       },
       {
+        "id": "L2.5",
+        "path": "services/layer2-5-signal-refinery",
+        "port": 8007,
+        "responsibility": "Normalize Layer 2 extraction output into tenant-scoped, evidence-backed ValueSignal objects"
+      },
+      {
         "id": "L3",
         "path": "services/layer3-knowledge",
         "port": 8003,
@@ -52,6 +58,11 @@
       "stack": "React/Vite",
       "design_contract": "DESIGN.md"
     },
+    "value_studio_service": {
+      "path": "services/value-studio",
+      "stack": "TypeScript/Vitest",
+      "boundary": "private isolated domain service workspace"
+    },
     "contracts": {
       "path": "contracts/",
       "kinds": [
@@ -74,6 +85,63 @@
       "portable_brain": ".agent/",
       "fleet_registry": ".devin/AGENTS.md"
     }
+  },
+  "dependency_graph": {
+    "edge_direction": "consumer_to_provider_or_canonical_source",
+    "scope": "Static, source-evidenced cross-module dependencies at anchor_git_sha; absence of an edge means not established by this Step 1 pass, not runtime independence.",
+    "nodes": [
+      "services/layer1-ingestion",
+      "services/layer2-extraction",
+      "services/layer2-5-signal-refinery",
+      "services/layer3-knowledge",
+      "services/layer4-agents",
+      "services/layer5-ground-truth",
+      "services/layer6-benchmarks",
+      "services/api",
+      "services/value-studio",
+      "apps/web",
+      "packages/shared",
+      "packages/platform-contract",
+      "contracts"
+    ],
+    "edges": [
+      {
+        "from": "services/layer2-5-signal-refinery",
+        "to": "services/layer2-extraction",
+        "kind": "input_contract",
+        "evidence": "services/layer2-5-signal-refinery/README.md: normalizes Layer 2 extraction output"
+      },
+      {
+        "from": "services/layer2-5-signal-refinery",
+        "to": "services/layer3-knowledge",
+        "kind": "runtime_client",
+        "evidence": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/clients/l3_graph_client.py"
+      },
+      {
+        "from": "services/layer2-5-signal-refinery",
+        "to": "packages/shared",
+        "kind": "shared_runtime",
+        "evidence": "services/layer2-5-signal-refinery/Dockerfile.full copies packages/shared/src/value_fabric/shared"
+      },
+      {
+        "from": "apps/web",
+        "to": "packages/platform-contract",
+        "kind": "view_model_contract",
+        "evidence": "AGENTS.md repository rule: frontend components consume domain/view models through canonical platform contracts"
+      },
+      {
+        "from": "services/api",
+        "to": "contracts",
+        "kind": "gateway_contract",
+        "evidence": "docs/development/DISCOVERY_MAP.md API gateway route: OpenAPI and route contracts are canonical drift surfaces"
+      }
+    ],
+    "isolated_nodes": [
+      {
+        "id": "services/value-studio",
+        "evidence": "services/value-studio/AGENTS.md and package.json define a private deterministic workspace with no declared runtime workspace dependency"
+      }
+    ]
   },
   "api_contracts": {
     "openapi_dir": "contracts/openapi",

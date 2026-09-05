@@ -1,7 +1,7 @@
 # Halt and resume policy (reconciled, v1.1)
 
 **Pipeline:** `autonomous-completion-final-20` v2.0.0  
-**Policy version:** `halt-policy.v1.1` (JSON: `policies/halt_and_resume.v1.json`)  
+**Policy:** `ac20-halt-and-resume` v1.1.0 (JSON: `policies/halt_and_resume.v1.json`)
 **Status:** in force for this evidence branch  
 **Does not authorize implementation, scope, waivers, or GATE-1 sign-off.**
 
@@ -11,7 +11,7 @@ This document reconciles `pipeline.spec.json`, Step 0 baseline, GATE-1 instructi
 
 | Source | What it said | Conflict | Resolution |
 |---|---|---|---|
-| Original operator spec `step_0.failure_path.action` | `halt_pipeline` | Too broad vs mapping | Halt **implementation**. Step 1 is the only exception. |
+| Original operator spec `step_0.failure_path.action` | `halt_pipeline` | Too broad vs mapping | Current spec action is `halt_implementation_steps_2_to_6`. Step 1 is the only exception. |
 | halt-policy v1.0 `step_0_incomplete.blocks` | `[step_3..step_6]`, `does_not_block: [step_1]` | Left Step 2 unmentioned → implicit Step 2 exception to incomplete Step 0 | **Removed.** Operator (second DEFER): do not introduce a Step 2 exception to incomplete Step 0 without explicit approval. None is in force. H-STEP0-INCOMPLETE **blocks Step 2**. |
 | halt-policy v1.0 `resume_step_2` | GATE-1 + GAP-0 + budget; no Step 0 complete | Same implicit exception | Resume Step 2 also requires H-STEP0-INCOMPLETE cleared, waived, or an explicit Step-2-exception approval. |
 | GATE-1 sign-off | `spec_gaps_signed_off == true` with no SHA binding | A later packet could inherit an earlier approval | **Bind** APPROVE to `freeze_sha` + `reviewed_evidence_sha`. Later heads do not inherit. |

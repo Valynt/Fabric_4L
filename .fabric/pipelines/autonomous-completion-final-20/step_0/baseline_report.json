@@ -71,7 +71,7 @@
       }
     ]
   },
-  "lockfile_count": 17,
+  "lockfile_count": 18,
   "ci": {
     "anchor_sha": "4bb4e142c2ccbc56297de843e71534d956bb198f",
     "captured_at": "2026-09-05T15:20:00Z",
@@ -158,15 +158,28 @@
     "classification": {
       "repository_owned_static_gates": "mostly_green (Critical Gates, Security, Contract, Supply Chain, Zero Trust)",
       "test_suite_and_readiness": "RED on anchor SHA",
-      "environment_dependent_jobs": [
+      "underlying_environment_dependent_jobs": [
         "Integration Tests (Docker)",
         "Runtime Contract Tests (Services Up)",
-        "p0-e2e-gate",
-        "Docker Image Build Verification (frontend)"
+        "p0-e2e-gate"
       ],
-      "unclassified_red": [
-        "02-code-quality-and-tests",
-        "prod-readiness / release-policy / gate-engineering"
+      "underlying_security_gate_jobs": [
+        "Docker Image Build Verification (frontend): image build succeeded; Trivy scan failed"
+      ],
+      "cancelled_underlying_jobs": [
+        "Layer 3 - Knowledge: coverage step cancelled"
+      ],
+      "aggregate_failures": [
+        "Unified Readiness Gate",
+        "02-code-quality-and-tests: layer3-checks=cancelled",
+        "06-production-readiness",
+        "prod-readiness"
+      ],
+      "release_requirement_failures": [
+        "dependency-chaos",
+        "readiness-10",
+        "gate-engineering",
+        "release-policy"
       ]
     }
   },
@@ -177,8 +190,8 @@
   "failure_path": {
     "condition": "existing_test_suite_red",
     "observed": true,
-    "evidence": "PR Checks run 33970450342 conclusion=failure including 02-code-quality-and-tests; Prod Readiness Gates run 33970450317 conclusion=failure",
-    "action_taken": "halt_implementation_steps",
+    "evidence": "PR Checks run 33970450342: four underlying failures, one Layer 3 cancellation, and two aggregate failures including 02-code-quality-and-tests; Prod Readiness Gates run 33970450317: four underlying release failures and two aggregate failures",
+    "action_taken": "halt_implementation_steps_2_to_6",
     "escalation": "human_triage_required",
     "message": "Never build the missing 20% on a broken 80%.",
     "allowed_continuation": "step_1 is read-only mapping and is produced so GATE-1 can be signed with a complete picture. Steps 2\u20136 are NOT started."
