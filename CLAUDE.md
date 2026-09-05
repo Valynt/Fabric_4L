@@ -27,7 +27,7 @@ lesson would be violated by your intended action, stop and explain why.
 ## While working
 
 ### Skills
-Read `.agent/skills/_index.md` and load the full `SKILL.md` for any skill
+Read `agents/skills/_index.md` and load the full `SKILL.md` for any skill
 whose triggers match the task. Don't skip this — skills carry constraints
 the permissions file doesn't cover.
 
