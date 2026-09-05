@@ -1,4 +1,15 @@
 import type { UserTier } from "@/hooks";
+import { isValueStudioMissionPrototypeEnabled } from "@/features/value-studio/mission/prototype";
+
+const PROTOTYPE_GATED_NODES: Readonly<Record<string, boolean>> = {
+  "studio-mission": isValueStudioMissionPrototypeEnabled,
+};
+
+/** Prototype-gated nodes are hidden from navigation when their flag is off. */
+export function isNavNodeEnabled(node: NavSchemaNode): boolean {
+  if (!node.prototypeOnly) return true;
+  return PROTOTYPE_GATED_NODES[node.id] ?? false;
+}
 
 export interface NavSchemaNode {
   id: string;
@@ -8,6 +19,11 @@ export interface NavSchemaNode {
   badge?: string;
   description?: string;
   breadcrumbLabel?: string;
+  /**
+   * Prototype-gated child: hidden from navigation unless the build explicitly
+   * enables it (see isNavNodeEnabled in this module).
+   */
+  prototypeOnly?: boolean;
   /** Core children lead the section and are surfaced in the left sidebar. */
   core?: boolean;
   children?: NavSchemaNode[];
@@ -45,6 +61,7 @@ export const NAV_SCHEMA: NavSchemaNode[] = [
     tier: "standard",
     description: "Build the product-anchored business case",
     children: [
+      { id: "studio-mission", label: "Mission", path: "/t/:tenantSlug/accounts/:accountId/studio/mission", tier: "standard", prototypeOnly: true },
       { id: "studio-action-plan", label: "Action Plan", path: "/t/:tenantSlug/accounts/:accountId/studio/action-plan", tier: "standard" },
       { id: "studio-value-model", label: "Value Model", path: "/t/:tenantSlug/accounts/:accountId/studio/value-model", tier: "standard" },
       { id: "studio-driver-tree", label: "Driver Tree", path: "/t/:tenantSlug/accounts/:accountId/studio/driver-tree", tier: "standard" },
