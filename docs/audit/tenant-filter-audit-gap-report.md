@@ -14,6 +14,8 @@ The audit cataloged every graph and vector query surface across the monorepo and
 
 **38 query surfaces were cataloged** (30 graph/Cypher, 5 vector, 3 full-text BM25). The full-text (BM25) surfaces are included because they share the same tenant-filter invariant and are part of the hybrid retrieval path; they are counted separately from the graph and vector surfaces so the totals reconcile with the catalog tables below.
 
+**Posture breakdown:** of the 38 cataloged surfaces, **36 are SAFE**, **1 is MEDIUM** (GAP-1: L4 `Neo4jVariableRegistry`), and **1 is LOW** (GAP-2: `query_graph` first-alias-only tenant filter). Two additional conditional observations (C1-C2) are SAFE by design and are counted as **LOW defense-in-depth** items in the summary table, not as confirmed gaps. There are **0 CRITICAL** and **0 HIGH** findings.
+
 **Two gaps were confirmed.** The primary one is the Layer 4 `Neo4jVariableRegistry`, which performs CRUD/search with **no tenant scoping whatsoever** (no `tenant_id` property on the model, no tenant filter on any query). This is assessed as **MEDIUM** severity (design gap) because pack variable definitions are global templates loaded at startup/CI, but it violates the invariant that *every graph query carries a tenant filter*. A second, **LOW** defense-in-depth gap exists in the `query_graph` tool, whose tenant filter scopes only the first node alias of a MATCH clause (see GAP-2).
 
 A small number of **conditional / defense-in-depth** observations were noted where tenant filtering relies on a wrapper seam rather than being explicit in the query text — these are SAFE by design but worth documenting.
