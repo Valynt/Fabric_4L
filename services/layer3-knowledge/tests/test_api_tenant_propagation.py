@@ -53,7 +53,9 @@ async def test_get_neo4j_secured_propagates_tenant_id_to_session():
     request = _FakeRequest(context=RequestContext(tenant_id="tenant-a"))
 
     with pytest.raises(Exception):  # driver unavailable, tenant propagated first
-        await get_neo4j_secured(request, context=RequestContext(tenant_id="tenant-a"))
+        await anext(
+            get_neo4j_secured(request, context=RequestContext(tenant_id="tenant-a"))
+        )
 
 
 def test_secured_session_carries_request_tenant_id():

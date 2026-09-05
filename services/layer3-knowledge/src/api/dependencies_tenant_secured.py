@@ -23,6 +23,7 @@ Provides secure Neo4j session injection with:
 import inspect
 import logging
 import re
+from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any
 
 from fastapi import Depends, HTTPException, Request, status
@@ -275,7 +276,7 @@ class Neo4jTenantSessionSecured:
 async def get_neo4j_secured(
     request: Request,
     context: RequestContext | None = Depends(_require_request_context_provider()),
-) -> Neo4jTenantSessionSecured:
+) -> AsyncIterator[Neo4jTenantSessionSecured]:
     """FastAPI dependency for secured, tenant-scoped Neo4j sessions.
 
     This is the RECOMMENDED dependency for all endpoints that query Neo4j.
@@ -298,8 +299,8 @@ async def get_neo4j_secured(
         request: FastAPI request object
         context: Request context with tenant_id
 
-    Returns:
-        Configured Neo4jTenantSessionSecured instance
+    Yields:
+        Configured Neo4jTenantSessionSecured instance for the current request
 
     Raises:
         HTTPException: 400 if tenant context missing, 503 if Neo4j unavailable
@@ -329,14 +330,15 @@ async def get_neo4j_secured(
         tenant_id=str(context.tenant_id),
         strict_validation=True,
     )
-    # The wrapper lazily creates the underlying driver session in __aenter__;
-    # dependencies return (not yield) this object, so initialize eagerly or
-    # the first run() fails with HTTP 500 "Neo4j session not initialized"
-    # (observed via the Meridian certification journey, 2026-08-12).
-    # TODO(lifecycle): per-request cleanup is not wired; sessions are returned
-    # to the driver pool on close(), which callers do not currently invoke.
+    # The wrapper lazily creates the underlying driver session in __aenter__,
+    # so initialize before yielding or the first run() fails with HTTP 500
+    # "Neo4j session not initialized" (observed via the Meridian certification
+    # journey, 2026-08-12).
     await session.__aenter__()
-    return session
+    try:
+        yield session
+    finally:
+        await session.close()
 
 
 async def create_neo4j_tenant_session(
@@ -367,27 +369,37 @@ async def create_neo4j_tenant_session(
 async def get_neo4j_with_tenant(
     request: Request,
     context: RequestContext | None = Depends(_require_request_context_provider()),
-) -> Neo4jTenantSessionSecured:
+) -> AsyncIterator[Neo4jTenantSessionSecured]:
     """Canonical FastAPI dependency for tenant-scoped Neo4j route access."""
-    return await get_neo4j_secured(request, context)
+    dependency = get_neo4j_secured(request, context)
+    try:
+        session = await anext(dependency)
+        yield session
+    finally:
+        await dependency.aclose()
 
 
 async def get_neo4j_with_validation(
     request: Request,
     context: RequestContext | None = Depends(_require_request_context_provider()),
-) -> Neo4jTenantSessionSecured:
+) -> AsyncIterator[Neo4jTenantSessionSecured]:
     """Alias for get_neo4j_secured - explicit validation naming.
 
     Use this dependency when you want to emphasize that query validation
     is being applied for security compliance.
     """
-    return await get_neo4j_secured(request, context)
+    dependency = get_neo4j_secured(request, context)
+    try:
+        session = await anext(dependency)
+        yield session
+    finally:
+        await dependency.aclose()
 
 
 async def get_neo4j_with_optional_tenant(
     request: Request,
     context: RequestContext | None = Depends(_require_request_context_provider()),
-) -> Neo4jTenantSessionSecured:
+) -> AsyncIterator[Neo4jTenantSessionSecured]:
     """Compatibility dependency for privileged paths that may bypass tenant scope.
 
     New tenant-facing routes must use ``get_neo4j_with_tenant``. This helper is
@@ -395,7 +407,13 @@ async def get_neo4j_with_optional_tenant(
     ``RequestContext``; non-super-admin callers must provide tenant context.
     """
     if context and context.tenant_id:
-        return await get_neo4j_secured(request, context)
+        dependency = get_neo4j_secured(request, context)
+        try:
+            session = await anext(dependency)
+            yield session
+        finally:
+            await dependency.aclose()
+        return
     if context and context.is_super_admin():
         raise AuthorizationError(
             message="Super-admin Neo4j bypass must use an explicitly reviewed admin dependency."
