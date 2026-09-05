@@ -353,6 +353,7 @@ async def test_salesforce_interactions_reject_invalid_prospect_id_before_query(
 
     result = await tool.execute(FetchInteractionHistoryInput(prospect_id=prospect_id))
 
+    assert result.error
     assert "Invalid prospect_id format" in result.error
     assert client.calls == []
 
