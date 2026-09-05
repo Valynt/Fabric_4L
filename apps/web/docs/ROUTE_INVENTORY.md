@@ -10,16 +10,16 @@
 
 | Category | Count |
 |----------|-------|
-| Total defined route entries in router | 92 |
-| Unique page components | 53 |
-| Active (tenant/account-scoped) routes | 79 |
+| Total defined route entries in router | 91 |
+| Unique page components | 52 |
+| Active (tenant/account-scoped) routes | 78 |
 | Global (non-tenant) routes | 12 |
 | Redirect-only routes | 9 |
 | Catch-all / 404 | 1 |
 | Routes with `tenantAdminPolicy` | 26 |
 | Routes with `tenantAdvPolicy` | 18 |
 | Routes with `tenantStdPolicy` | 18 |
-| Routes with `accountStdPolicy` | 15 |
+| Routes with `accountStdPolicy` | 14 |
 | Routes with `accountAdvPolicy` | 0 |
 | Routes with `homePolicy` | 13 |
 | Routes with `authPolicy` | 2 |
@@ -97,19 +97,18 @@ These routes render inside `GlobalLayout` + `RequireClerkAuth`.
 > `StudioShell` is the single chrome owner: it renders the account header, canonical tab bar, AI right rail, and active tab content.
 > Individual Studio page components render only page-specific content; they do not render their own headers, tab bars, or right rails.
 > Tab definitions (labels, order, visibility, right-rail mapping) are sourced from `studioTabRegistry.ts`.
-> NAV_SCHEMA lists 7 active sub-tabs handled by `:tabId`, plus the `mission` child handled by an explicit route.
+> NAV_SCHEMA lists 8 sub-tabs: 7 active plus the prototype-gated `mission` tab (FE-VOS-STUDIO-001); the router handles all of them via the single dynamic `:tabId` route below.
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
 | 16 | `/t/:tenantSlug/accounts/:accountId/studio` | Redirect → `action-plan` | `accountStdPolicy` | Both | Active |
-| 16a | `/t/:tenantSlug/accounts/:accountId/studio/mission` | `ValueStudioMissionPage` | `accountStdPolicy` (`studio.mission`) | Both | Active (Slice 1, FE-VOS-STUDIO-001) |
 | 17 | `/t/:tenantSlug/accounts/:accountId/studio/:tabId` | `StudioShell` | `accountStdPolicy` | Both | Active |
 
-### NAV_SCHEMA Studio Children
+### NAV_SCHEMA Studio Children (handled by `:tabId`)
 
 | Tab ID | Label | Tier | Explicit Router Entry? | Right Rail |
 |--------|-------|------|------------------------|------------|
-| `mission` | Mission | standard | **Yes — explicit route** (registered ahead of `:tabId`) | — (page-local decision rail) |
+| `mission` | Mission | standard | No (handled by `:tabId`); prototype-gated — visible only when `VITE_ENABLE_VS_MISSION_PROTOTYPE=true` | Detail panel (decision rail injected via shell) + agent stream |
 | `action-plan` | Action Plan | standard | No (handled by `:tabId`) | Agent stream |
 | `value-model` | Value Model | standard | No (handled by `:tabId`) | Agent stream |
 | `driver-tree` | Driver Tree | standard | No (handled by `:tabId`) | Agent stream |
@@ -458,3 +457,4 @@ _None — legacy `/workflow/*` and `/value-pilot/*` routes have been removed._
 ---
 
 *End of Phase 1A — Route/Nav/Policy Alignment*
+
