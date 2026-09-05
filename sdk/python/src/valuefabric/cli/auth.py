@@ -6,7 +6,6 @@ import hmac
 import http.server
 import time
 import webbrowser
-from typing import Any
 from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
@@ -15,7 +14,7 @@ import typer
 from rich import print as rich_print
 from rich.prompt import Prompt
 
-from .config import CONFIG_FILE, _load_config, _save_config
+from .config import CONFIG_FILE, ConfigData, _load_config, _save_config
 
 app = typer.Typer(help="Authentication management")
 
@@ -81,7 +80,7 @@ class CallbackHandler(http.server.BaseHTTPRequestHandler):
             b"<p>You can close this window and return to the CLI.</p></body></html>"
         )
 
-    def log_message(self, format: str, *args: Any) -> None:
+    def log_message(self, format: str, *args: object) -> None:
         pass
 
 
@@ -240,7 +239,7 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
     _persist_jwt(config, base_url, token)
 
 
-def _persist_jwt(config: dict[str, Any], base_url: str, token: str) -> None:
+def _persist_jwt(config: ConfigData, base_url: str, token: str) -> None:
     """Validate and persist a JWT access token into the active CLI profile."""
     jwt_token = token if _is_jwt(token) else None
     if not jwt_token:
