@@ -23,6 +23,7 @@ LOCAL_CALLBACK_HOST = "127.0.0.1"
 LOCAL_CALLBACK_PORT = 8080
 LOCAL_CALLBACK_PATH = "/callback"
 LOCAL_REDIRECT_URI = f"http://{LOCAL_CALLBACK_HOST}:{LOCAL_CALLBACK_PORT}{LOCAL_CALLBACK_PATH}"
+SESSION_COOKIE_NAME = "vf_session"
 
 
 class TokenServer(http.server.HTTPServer):
@@ -62,10 +63,9 @@ class CallbackHandler(http.server.BaseHTTPRequestHandler):
                 timeout=30.0,
             )
             response.raise_for_status()
-            data = response.json()
-            token = data.get("access_token") if isinstance(data, dict) else None
+            token = response.cookies.get(SESSION_COOKIE_NAME)
             if not isinstance(token, str) or not token:
-                raise ValueError("OIDC callback did not return an access token")
+                raise ValueError("OIDC callback did not set a session cookie")
             server.captured_token = token
         except Exception:
             self.send_error(502, "OIDC token exchange failed")

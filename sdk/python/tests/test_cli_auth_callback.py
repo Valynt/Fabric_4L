@@ -84,7 +84,14 @@ def test_callback_exchanges_code_through_server_owned_callback() -> None:
     server.expected_state = "expected"
     server.oidc_callback_url = "https://api.example/api/v1/auth/oidc/callback"
     response = Mock()
-    response.json.return_value = {"access_token": "header.payload.signature"}
+    response.cookies = {"vf_session": "header.payload.signature"}
+    response.json.return_value = {
+        "token_type": "Bearer",
+        "expires_in": 3600,
+        "user_id": "user-123",
+        "email": "user@example.com",
+        "role": "member",
+    }
     response.raise_for_status.return_value = None
     try:
         with patch("valuefabric.cli.auth.httpx.get", return_value=response) as get:
