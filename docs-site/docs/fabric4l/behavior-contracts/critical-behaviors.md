@@ -190,4 +190,4 @@ Tests should be named after the behavior they prove, not the method they call.
 - [Test Strategy](test-strategy.md) — Marker definitions and execution commands
 - [Gate Registry](gate-registry.md) — Readiness ladder and waiver policy
 - `docs/governance/behavior-first-testing.md` — Canonical governance statement
-- `AGENTS.md` — Full testing rules for agents and contributors
+- `docs/testing/` — Canonical testing governance and behavior-readiness guidance
